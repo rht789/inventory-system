@@ -1,0 +1,8 @@
+/vendor/
+/uploads/
+*.log *.tmp /temp/ /cache/
+.env
+.vscode/
+.DS_Store
+Thumbs.db
+*.sql.gz *.bak

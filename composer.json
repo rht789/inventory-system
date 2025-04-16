@@ -1,0 +1,9 @@
+{
+    "require": {
+        "chillerlan/php-qrcode": "^5.0",
+        "tecnickcom/tcpdf": "^6.9",
+        "phpoffice/phpspreadsheet": "^4.1",
+        "phpmailer/phpmailer": "^6.9",
+        "firebase/php-jwt": "^6.11"
+    }
+}
