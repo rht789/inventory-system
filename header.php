@@ -2,6 +2,7 @@
 <header class="sticky top-0 z-50 bg-white rounded-tl-2xl shadow-sm px-6 py-3 flex justify-between items-center">
     <!-- Tailwind CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- In <head> -->
 
 <!-- Font Awesome CDN -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
