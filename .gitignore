@@ -6,3 +6,4 @@
 .DS_Store
 Thumbs.db
 *.sql.gz *.bak
+.qodo
