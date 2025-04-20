@@ -55,6 +55,7 @@ include 'sidebar.php';
           <th class="px-4 py-3">Category</th>
           <th class="px-4 py-3">Size & Stock</th>
           <th class="px-4 py-3">Total Stock</th>
+          <th class="px-4 py-3">Barcode</th>
           <th class="px-4 py-3">Cost Price (৳)</th>
           <th class="px-4 py-3">Selling Price (৳)</th>
           <th class="px-4 py-3">Actions</th>
@@ -187,31 +188,54 @@ include 'sidebar.php';
   </div>
 </div>
 
+<!-- Barcode Preview Modal -->
+<!-- Barcode Preview Modal -->
+<div id="barcodeModal"
+     class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-lg max-w-lg w-full">
+    <div class="flex justify-end mb-4">
+      <button onclick="closeBarcodeModal()" class="text-gray-600 hover:text-black">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <img
+      id="barcodeModalImg"
+      src=""
+      alt="Barcode"
+      class="mx-auto w-full max-h-[80vh] object-contain"
+    />
+  </div>
+</div>
+
+
 <script type="module">
 import { apiGet, apiPost } from './js/ajax.js';
 
 // expose for onclick handlers
-window.openCategoryModal    = () => document.getElementById('categoryModal').classList.remove('hidden');
-window.closeCategoryModal   = () => document.getElementById('categoryModal').classList.add('hidden');
-window.openEditProductModal = () => document.getElementById('editProductModal').classList.remove('hidden');
-window.closeEditProductModal= () => document.getElementById('editProductModal').classList.add('hidden');
+window.openCategoryModal     = () => document.getElementById('categoryModal').classList.remove('hidden');
+window.closeCategoryModal    = () => document.getElementById('categoryModal').classList.add('hidden');
+window.openEditProductModal  = () => document.getElementById('editProductModal').classList.remove('hidden');
+window.closeEditProductModal = () => document.getElementById('editProductModal').classList.add('hidden');
+window.openBarcodeModal      = () => document.getElementById('barcodeModal').classList.remove('hidden');
+window.closeBarcodeModal     = () => document.getElementById('barcodeModal').classList.add('hidden');
 
 // DOM refs
 const
-  toast          = document.getElementById('toast'),
-  searchInput    = document.getElementById('searchInput'),
-  stockSelect    = document.getElementById('stockSelect'),
-  categorySelect = document.getElementById('categorySelect'),
-  productList    = document.getElementById('product-list'),
-  newSizeInput   = document.getElementById('newSizeInput'),
-  addSizeBtn     = document.getElementById('addSizeBtn'),
-  sizeList       = document.getElementById('sizeList'),
-  totalUnitsSpan = document.getElementById('totalUnits'),
-  stockInput     = document.getElementById('stockInput'),
-  categoryList   = document.getElementById('categoryList'),
-  newCategoryInput = document.getElementById('newCategoryInput'),
-  addCategoryBtn = document.getElementById('addCategoryBtn'),
-  productForm    = document.getElementById('productForm');
+  toast             = document.getElementById('toast'),
+  searchInput       = document.getElementById('searchInput'),
+  stockSelect       = document.getElementById('stockSelect'),
+  categorySelect    = document.getElementById('categorySelect'),
+  productList       = document.getElementById('product-list'),
+  newSizeInput      = document.getElementById('newSizeInput'),
+  addSizeBtn        = document.getElementById('addSizeBtn'),
+  sizeList          = document.getElementById('sizeList'),
+  totalUnitsSpan    = document.getElementById('totalUnits'),
+  stockInput        = document.getElementById('stockInput'),
+  categoryList      = document.getElementById('categoryList'),
+  newCategoryInput  = document.getElementById('newCategoryInput'),
+  addCategoryBtn    = document.getElementById('addCategoryBtn'),
+  productForm       = document.getElementById('productForm'),
+  barcodeModalImg   = document.getElementById('barcodeModalImg');
 
 let sizes = [], editingProductId = null;
 
@@ -245,23 +269,28 @@ async function fetchProducts() {
     });
     const prods = await apiGet(`./api/products.php?${params}`);
     productList.innerHTML = prods.map(p => {
-      // coerce to numbers immediately
-      const cost  = Number(p.price);
-      const sell  = Number(p.selling_price);
+      const cost   = Number(p.price).toFixed(2);
+      const sell   = Number(p.selling_price).toFixed(2);
       const badges = p.sizes.map(s =>
         `<span class="bg-gray-100 px-2 py-1 rounded text-xs">
            ${s.size_name}:${s.stock}
          </span>`
       ).join('');
-      const total = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
+      const total  = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
+
       return `
         <tr class="border-t hover:bg-gray-50">
           <td class="px-4 py-3 font-semibold">${p.name}</td>
           <td class="px-4 py-3">${p.category_name}</td>
           <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
           <td class="px-4 py-3 font-bold text-center">${total}</td>
-          <td class="px-4 py-3">৳ ${cost.toFixed(2)}</td>
-          <td class="px-4 py-3">৳ ${sell.toFixed(2)}</td>
+          <td class="px-4 py-3 text-center">
+            <img src="./${p.barcode}"
+                 alt="Barcode"
+                 class="barcode-img h-8 mx-auto cursor-pointer"/>
+          </td>
+          <td class="px-4 py-3">৳ ${cost}</td>
+          <td class="px-4 py-3">৳ ${sell}</td>
           <td class="px-4 py-3">
             <button onclick="startEditProduct(${p.id})" class="text-blue-600 mr-2">
               <i class="fas fa-edit"></i>
@@ -272,13 +301,21 @@ async function fetchProducts() {
           </td>
         </tr>`;
     }).join('');
+
+    // attach click handlers to barcode thumbnails
+    document.querySelectorAll('.barcode-img').forEach(img => {
+      img.onclick = () => {
+        barcodeModalImg.src = img.src;
+        openBarcodeModal();
+      };
+    });
   } catch (err) {
     console.error(err);
     showToast(`Could not load products: ${err.message}`, false);
   }
 }
 
-// delete
+// delete product
 window.deleteProduct = async id => {
   if (!confirm('Delete this product?')) return;
   try {
@@ -295,24 +332,22 @@ window.deleteProduct = async id => {
   }
 };
 
-// start edit (or add new)
+// start edit (or add)
 window.startEditProduct = async id => {
   sizes = []; productForm.reset();
   editingProductId = id || null;
-
   if (id) {
     const ps = await apiGet(`./api/products.php`);
     const p  = ps.find(x => x.id === id);
-    productForm.id.value           = p.id;
-    productForm.name.value         = p.name;
-    productForm.description.value  = p.description;
-    productForm.min_stock.value    = p.min_stock;
-    productForm.price.value        = p.price;
-    productForm.selling_price.value= p.selling_price;
-    productForm.category_id.value  = p.category_id;
+    productForm.id.value            = p.id;
+    productForm.name.value          = p.name;
+    productForm.description.value   = p.description;
+    productForm.min_stock.value     = p.min_stock;
+    productForm.price.value         = p.price;
+    productForm.selling_price.value = p.selling_price;
+    productForm.category_id.value   = p.category_id;
     sizes = p.sizes.map(s => ({ size:s.size_name, stock:+s.stock }));
   }
-
   renderSizes();
   openEditProductModal();
 };
@@ -326,15 +361,17 @@ addSizeBtn.onclick = () => {
   renderSizes();
 };
 
-// render sizes list
+// render sizes
 function renderSizes() {
   sizeList.innerHTML = sizes.map((s,i) => `
     <li class="flex items-center gap-2">
       <span class="bg-gray-100 px-2 py-1 rounded text-sm">${s.size}</span>
       <input type="number" min="0" value="${s.stock}"
-             data-idx="${i}" class="border px-2 py-1 rounded w-16 sizeStock"/>
+             data-idx="${i}"
+             class="border px-2 py-1 rounded w-16 sizeStock"/>
       <span>units</span>
-      <button data-idx="${i}" class="ml-auto text-red-500 removeSize">&times;</button>
+      <button data-idx="${i}"
+              class="ml-auto text-red-500 removeSize">&times;</button>
     </li>`).join('');
 
   sizeList.querySelectorAll('.sizeStock').forEach(inp => {
@@ -345,7 +382,7 @@ function renderSizes() {
   });
   sizeList.querySelectorAll('.removeSize').forEach(btn => {
     btn.onclick = () => {
-      sizes.splice(+btn.dataset.idx,1);
+      sizes.splice(+btn.dataset.idx, 1);
       renderSizes();
     };
   });
@@ -354,7 +391,7 @@ function renderSizes() {
 
 // update total units
 function updateTotal() {
-  const total = sizes.reduce((sum,s) => sum + s.stock, 0);
+  const total = sizes.reduce((sum, s) => sum + s.stock, 0);
   totalUnitsSpan.textContent = total;
   stockInput.value = total;
 }
@@ -364,15 +401,15 @@ productForm.onsubmit = async e => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(productForm).entries());
   const payload = {
-    action: editingProductId ? 'update' : undefined,
-    id:     editingProductId,
-    name:   data.name,
-    category_id: +data.category_id,
-    description: data.description,
-    min_stock: +data.min_stock,
-    price:  parseFloat(data.price),
+    action:        editingProductId ? 'update' : undefined,
+    id:            editingProductId,
+    name:          data.name,
+    category_id:   +data.category_id,
+    description:   data.description,
+    min_stock:     +data.min_stock,
+    price:         parseFloat(data.price),
     selling_price: parseFloat(data.selling_price),
-    stock:  +data.stock,
+    stock:         +data.stock,
     sizes
   };
 
@@ -391,7 +428,7 @@ productForm.onsubmit = async e => {
   }
 };
 
-// load categories for filter, form & modal
+// load categories
 async function loadCategories() {
   const cats = await apiGet('./api/categories.php');
   categorySelect.innerHTML =
@@ -408,7 +445,7 @@ async function loadCategories() {
           <i class="fas fa-trash text-red-500 cursor-pointer"
              onclick="deleteCategory(${c.id})"></i>
         </div>
-      </li>`).join('');
+      </li>`).join('');  
 }
 
 // add category
