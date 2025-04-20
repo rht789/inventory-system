@@ -1,4 +1,7 @@
-<!-- sidebar.php -->
+<?php
+$currentPage = basename($_SERVER['PHP_SELF']);
+?>
+
 <aside id="sidebar"
   class="fixed top-0 left-0 z-40 h-full w-64 bg-white border-r transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shadow-md rounded-r-2xl p-4">
   
@@ -10,25 +13,25 @@
   </div>
 
   <nav class="flex flex-col gap-2 text-sm text-gray-600">
-    <a href="dashboard.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+    <a href="dashboard.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'dashboard.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-home w-4"></i> Dashboard
     </a>
-    <a href="orders.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+    <a href="orders.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'orders.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-shopping-cart w-4"></i> Orders
     </a>
-    <a href="products.php" class="flex items-center gap-3 px-3 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium">
+    <a href="products.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'products.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-cube w-4"></i> Products
     </a>
-    <a href="stock.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+    <a href="stock.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'stock.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-boxes w-4"></i> Stock
     </a>
-    <a href="reports.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+    <a href="reports.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'reports.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-chart-bar w-4"></i> Reports
     </a>
-    <a href="owners.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+    <a href="owners.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'owners.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-user-friends w-4"></i> Users
     </a>
-    <a href="settings.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
+    <a href="settings.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'settings.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-cog w-4"></i> Setting
     </a>
   </nav>
