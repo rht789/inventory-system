@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Your PDO connection
+require 'db.php'; // Your PDO DB connection
 
 $error = '';
 $loginSuccess = false;
@@ -10,35 +10,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST["email"] ?? '');
     $password = $_POST["password"] ?? '';
 
-    // Email validation
+    // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email address.";
+        $error = "Invalid email format.";
     }
 
-    // If no validation error and fields are not empty
     if (empty($error) && !empty($email) && !empty($password)) {
         try {
             $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
-            // Debugging: Check if user exists
-            if (!$user) {
-                $error = "No account found with this email.";
+            // If user exists and password matches
+            if ($user && password_verify($password, $user["password_hash"])) {
+                $_SESSION["loggedin"] = true;
+                $_SESSION["email"] = $user["email"];
+                $_SESSION["username"] = $user["username"];
+                $_SESSION["role"] = $user["role"];
+                $loginSuccess = true;
             } else {
-                // Debugging: Verify password
-                if (password_verify($password, $user["password_hash"])) {
-                    $_SESSION["loggedin"] = true;
-                    $_SESSION["email"] = $user["email"];
-                    $_SESSION["username"] = $user["username"];
-                    $_SESSION["role"] = $user["role"];
-                    $loginSuccess = true;
-                } else {
-                    $error = "The password you entered is incorrect.";
-                }
+                $error = "Invalid email or password.";
             }
         } catch (PDOException $e) {
-            $error = "An error occurred while connecting to the database. Please try again later.";
+            $error = "Database error: " . $e->getMessage();
         }
     }
 }
@@ -131,16 +125,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <h2><strong>SmartInventory</strong></h2>
     <p>Enter your Credentials to sign in</p>
 
+    <!-- Error or success message -->
     <?php if (!empty($error)): ?>
         <div class="error"><?= htmlspecialchars($error) ?></div>
     <?php elseif (!empty($loginSuccess)): ?>
         <div class="success">
-            Login Successful ✅<br>
+            Login Successful...<br>
             <strong>Username:</strong> <?= htmlspecialchars($_SESSION["username"]) ?><br>
             <strong>Role:</strong> <?= htmlspecialchars($_SESSION["role"]) ?>
         </div>
     <?php endif; ?>
 
+    <!-- Login form -->
     <form method="post" action="">
         <div class="input-group">
             <label for="email">Email</label>
@@ -160,7 +156,3 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 </body>
 </html>
-
-
-<?php
-echo password_hash("Admin123", PASSWORD_DEFAULT);
