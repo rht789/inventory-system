@@ -1,5 +1,6 @@
 /vendor/
 /uploads/
+/barcodes/
 *.log *.tmp /temp/ /cache/
 .env
 .vscode/
