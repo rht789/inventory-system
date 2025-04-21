@@ -4,6 +4,7 @@
         "tecnickcom/tcpdf": "^6.9",
         "phpoffice/phpspreadsheet": "^4.1",
         "phpmailer/phpmailer": "^6.9",
-        "firebase/php-jwt": "^6.11"
+        "firebase/php-jwt": "^6.11",
+        "picqer/php-barcode-generator": "^3.2"
     }
 }

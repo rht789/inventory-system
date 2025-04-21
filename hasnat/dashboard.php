@@ -2,7 +2,11 @@
  <!-- role based entry -->
   <!-- logout -->
 
+<<<<<<< HEAD
   <?php
+=======
+ <?php
+>>>>>>> 9ecbd9d644de41af03474d4f3f3bcf92c9bfab28
 session_start();
 require '../db.php'; // adjust the path as needed
 
