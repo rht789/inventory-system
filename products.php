@@ -96,7 +96,7 @@ include 'sidebar.php';
      class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
   <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
     <div class="flex justify-between items-center mb-2">
-      <h3 class="text-lg font-semibold">Edit Product</h3>
+      <h3 class="text-lg font-semibold" id="editProductModalTitle">Edit Product</h3>
       <button onclick="closeEditProductModal()">
         <i class="fas fa-times text-gray-600"></i>
       </button>
@@ -189,7 +189,6 @@ include 'sidebar.php';
 </div>
 
 <!-- Barcode Preview Modal -->
-<!-- Barcode Preview Modal -->
 <div id="barcodeModal"
      class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded shadow-lg max-w-lg w-full">
@@ -207,15 +206,29 @@ include 'sidebar.php';
   </div>
 </div>
 
-
 <script type="module">
 import { apiGet, apiPost } from './js/ajax.js';
 
 // expose for onclick handlers
 window.openCategoryModal     = () => document.getElementById('categoryModal').classList.remove('hidden');
 window.closeCategoryModal    = () => document.getElementById('categoryModal').classList.add('hidden');
-window.openEditProductModal  = () => document.getElementById('editProductModal').classList.remove('hidden');
-window.closeEditProductModal = () => document.getElementById('editProductModal').classList.add('hidden');
+window.openEditProductModal  = () => {
+    // Reset state for adding a new product
+    editingProductId = null;
+    sizes = [];
+    productForm.reset();
+    renderSizes();
+    document.getElementById('editProductModalTitle').textContent = 'Add Product';
+    document.getElementById('editProductModal').classList.remove('hidden');
+};
+window.closeEditProductModal = () => {
+    document.getElementById('editProductModal').classList.add('hidden');
+    // Reset state when closing the modal
+    editingProductId = null;
+    sizes = [];
+    productForm.reset();
+    renderSizes();
+};
 window.openBarcodeModal      = () => document.getElementById('barcodeModal').classList.remove('hidden');
 window.closeBarcodeModal     = () => document.getElementById('barcodeModal').classList.add('hidden');
 
@@ -237,7 +250,7 @@ const
   productForm       = document.getElementById('productForm'),
   barcodeModalImg   = document.getElementById('barcodeModalImg');
 
-let sizes = [], editingProductId = null;
+let sizes = [], editingProductId = null, editingCategoryId = null;
 
 // show toast
 function showToast(msg, success = true) {
@@ -334,36 +347,45 @@ window.deleteProduct = async id => {
 
 // start edit (or add)
 window.startEditProduct = async id => {
-  sizes = []; productForm.reset();
+  // Reset state
+  sizes = [];
+  productForm.reset();
   editingProductId = id || null;
+
   if (id) {
+    // Edit mode: Populate form with product data
     const ps = await apiGet(`./api/products.php`);
-    const p  = ps.find(x => x.id === id);
-    productForm.id.value            = p.id;
-    productForm.name.value          = p.name;
-    productForm.description.value   = p.description;
-    productForm.min_stock.value     = p.min_stock;
-    productForm.price.value         = p.price;
+    const p = ps.find(x => x.id === id);
+    productForm.id.value = p.id;
+    productForm.name.value = p.name;
+    productForm.description.value = p.description || '';
+    productForm.min_stock.value = p.min_stock;
+    productForm.price.value = p.price;
     productForm.selling_price.value = p.selling_price;
-    productForm.category_id.value   = p.category_id;
-    sizes = p.sizes.map(s => ({ size:s.size_name, stock:+s.stock }));
+    productForm.category_id.value = p.category_id;
+    sizes = p.sizes.map(s => ({ size: s.size_name, stock: +s.stock }));
+    document.getElementById('editProductModalTitle').textContent = 'Edit Product';
+  } else {
+    // Add mode: Ensure form is fully reset
+    document.getElementById('editProductModalTitle').textContent = 'Add Product';
   }
+
   renderSizes();
-  openEditProductModal();
+  document.getElementById('editProductModal').classList.remove('hidden');
 };
 
 // add a size
 addSizeBtn.onclick = () => {
   const sz = newSizeInput.value.trim();
   if (!sz || sizes.some(x => x.size === sz)) return;
-  sizes.push({ size:sz, stock:0 });
+  sizes.push({ size: sz, stock: 0 });
   newSizeInput.value = '';
   renderSizes();
 };
 
 // render sizes
 function renderSizes() {
-  sizeList.innerHTML = sizes.map((s,i) => `
+  sizeList.innerHTML = sizes.map((s, i) => `
     <li class="flex items-center gap-2">
       <span class="bg-gray-100 px-2 py-1 rounded text-sm">${s.size}</span>
       <input type="number" min="0" value="${s.stock}"
@@ -371,7 +393,7 @@ function renderSizes() {
              class="border px-2 py-1 rounded w-16 sizeStock"/>
       <span>units</span>
       <button data-idx="${i}"
-              class="ml-auto text-red-500 removeSize">&times;</button>
+              class="ml-auto text-red-500 removeSize">×</button>
     </li>`).join('');
 
   sizeList.querySelectorAll('.sizeStock').forEach(inp => {
@@ -401,15 +423,15 @@ productForm.onsubmit = async e => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(productForm).entries());
   const payload = {
-    action:        editingProductId ? 'update' : undefined,
-    id:            editingProductId,
-    name:          data.name,
-    category_id:   +data.category_id,
-    description:   data.description,
-    min_stock:     +data.min_stock,
-    price:         parseFloat(data.price),
+    action: editingProductId ? 'update' : undefined,
+    id: editingProductId,
+    name: data.name,
+    category_id: +data.category_id,
+    description: data.description,
+    min_stock: +data.min_stock,
+    price: parseFloat(data.price),
     selling_price: parseFloat(data.selling_price),
-    stock:         +data.stock,
+    stock: +data.stock,
     sizes
   };
 
@@ -430,37 +452,118 @@ productForm.onsubmit = async e => {
 
 // load categories
 async function loadCategories() {
-  const cats = await apiGet('./api/categories.php');
-  categorySelect.innerHTML =
-    '<option>All Categories</option>' +
-    cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  productForm.category_id.innerHTML =
-    cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  categoryList.innerHTML =
-    cats.map(c => `
-      <li class="flex justify-between items-center py-2">${c.name}
+  try {
+    const cats = await apiGet('./api/categories.php');
+    categorySelect.innerHTML =
+      '<option>All Categories</option>' +
+      cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    productForm.category_id.innerHTML =
+      cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    categoryList.innerHTML = cats.map(c => `
+      <li class="flex justify-between items-center py-2" data-category-id="${c.id}">
+        <span class="category-name">${c.name}</span>
+        <input type="text" class="category-edit-input hidden border px-2 py-1 rounded w-2/3" value="${c.name}" />
         <div class="flex gap-2">
-          <i class="fas fa-edit text-gray-500 cursor-pointer"
-             onclick="alert('Edit not implemented')"></i>
-          <i class="fas fa-trash text-red-500 cursor-pointer"
-             onclick="deleteCategory(${c.id})"></i>
+          <button onclick="startEditCategory(${c.id})" class="edit-btn text-gray-500 cursor-pointer">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button onclick="confirmEditCategory(${c.id})" class="confirm-btn hidden text-green-500 cursor-pointer">
+            <i class="fas fa-check"></i>
+          </button>
+          <button onclick="deleteCategory(${c.id})" class="text-red-500 cursor-pointer">
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
-      </li>`).join('');  
+      </li>`).join('');
+  } catch (err) {
+    console.error(err);
+    showToast(`Could not load categories: ${err.message}`, false);
+  }
 }
+
+// start editing a category
+window.startEditCategory = id => {
+  if (editingCategoryId) {
+    // If another category is being edited, cancel that edit
+    cancelEditCategory(editingCategoryId);
+  }
+  editingCategoryId = id;
+  const li = document.querySelector(`li[data-category-id="${id}"]`);
+  li.querySelector('.category-name').classList.add('hidden');
+  li.querySelector('.category-edit-input').classList.remove('hidden');
+  li.querySelector('.edit-btn').classList.add('hidden');
+  li.querySelector('.confirm-btn').classList.remove('hidden');
+  li.querySelector('.category-edit-input').focus();
+};
+
+// confirm editing a category
+window.confirmEditCategory = async id => {
+  const li = document.querySelector(`li[data-category-id="${id}"]`);
+  const newName = li.querySelector('.category-edit-input').value.trim();
+  if (!newName) {
+    showToast('Category name cannot be empty', false);
+    return;
+  }
+  try {
+    const res = await apiPost('./api/categories.php', { action: 'update', id, name: newName });
+    if (res.success) {
+      showToast('Category updated!');
+      editingCategoryId = null;
+      await loadCategories();
+    } else {
+      showToast(res.message || 'Update failed', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(`Update error: ${err.message}`, false);
+  }
+};
+
+// cancel editing a category (used when starting a new edit)
+window.cancelEditCategory = id => {
+  const li = document.querySelector(`li[data-category-id="${id}"]`);
+  li.querySelector('.category-name').classList.remove('hidden');
+  li.querySelector('.category-edit-input').classList.add('hidden');
+  li.querySelector('.edit-btn').classList.remove('hidden');
+  li.querySelector('.confirm-btn').classList.add('hidden');
+};
 
 // add category
 addCategoryBtn.onclick = async () => {
   const name = newCategoryInput.value.trim();
-  if (!name) return alert('Enter category name');
-  await apiPost('./api/categories.php', { name });
-  newCategoryInput.value = '';
-  loadCategories();
+  if (!name) {
+    showToast('Category name cannot be empty', false);
+    return;
+  }
+  try {
+    const res = await apiPost('./api/categories.php', { name });
+    if (res.success) {
+      showToast('Category added!');
+      newCategoryInput.value = '';
+      await loadCategories();
+    } else {
+      showToast(res.message || 'Add failed', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(`Add error: ${err.message}`, false);
+  }
 };
 
 // delete category
 window.deleteCategory = async id => {
   if (!confirm('Delete this category?')) return;
-  await apiPost('./api/categories.php', { action:'delete', id });
-  loadCategories();
+  try {
+    const res = await apiPost('./api/categories.php', { action: 'delete', id });
+    if (res.success) {
+      showToast('Category deleted!');
+      await loadCategories();
+    } else {
+      showToast(res.message || 'Delete failed', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(`Delete error: ${err.message}`, false);
+  }
 };
 </script>
