@@ -1,23 +1,22 @@
 <?php
-// api/stock.php
 require_once __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
+// Save stock adjustment (POST)
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Save stock adjustment
 if ($method === 'POST') {
     $data = $_POST;
 
     $product_id = $data['product_id'] ?? null;
-    $size_id    = $data['product_size_id'] ?? null;
-    $batch_id   = $data['batch_id'] ?? null;
-    $quantity   = $data['quantity'] ?? null;
-    $reason     = trim($data['reason'] ?? '');
-    $location   = trim($data['location'] ?? '');
-    $note       = trim($data['note'] ?? '');
-    $user_id    = $data['user_id'] ?? 1; // Replace with session-based logic
-    $type       = $data['type'] ?? 'in'; // 'in' or 'out'
+    $size_id = $data['product_size_id'] ?? null;
+    $batch_id = $data['batch_id'] ?? null;
+    $quantity = $data['quantity'] ?? null;
+    $reason = trim($data['reason'] ?? '');
+    $location = trim($data['location'] ?? '');
+    $note = trim($data['note'] ?? '');
+    $user_id = $data['user_id'] ?? 1; // Replace with session-based logic
+    $type = $data['type'] ?? 'in'; // 'in' or 'out'
 
     if (!$product_id || !$quantity || !$reason) {
         http_response_code(400);
@@ -52,13 +51,7 @@ if ($method === 'POST') {
             INSERT INTO stock_logs (product_id, batch_id, changes, reason, user_id, timestamp)
             VALUES (?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->execute([
-            $product_id,
-            $batch_id,
-            $change,
-            $reason . ($note ? " ({$note})" : ''),
-            $user_id
-        ]);
+        $stmt->execute([ $product_id, $batch_id, $change, $reason . ($note ? " ({$note})" : ''), $user_id ]);
 
         $pdo->commit();
         echo json_encode(['success' => true]);
@@ -70,16 +63,11 @@ if ($method === 'POST') {
     exit;
 }
 
-// Load products and sizes for dropdowns
+// Load products and sizes for dropdowns (GET)
 if ($method === 'GET') {
     try {
         // Fetch product list
-        $stmt = $pdo->query("
-            SELECT id, name, barcode
-            FROM products
-            WHERE deleted_at IS NULL
-            ORDER BY name ASC
-        ");
+        $stmt = $pdo->query("SELECT id, name, barcode FROM products WHERE deleted_at IS NULL ORDER BY name ASC");
         $products = $stmt->fetchAll();
 
         // Attach sizes for each product
@@ -97,6 +85,5 @@ if ($method === 'GET') {
     exit;
 }
 
-// Method not allowed
 http_response_code(405);
 echo json_encode(['success' => false, 'message' => 'Method not allowed']);

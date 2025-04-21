@@ -1,21 +1,16 @@
 <?php
-// stock.php
 include 'header.php';
 include 'sidebar.php';
 ?>
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
-
   <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden"></div>
 
   <!-- Header -->
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold">Stock Management</h2>
-    <button onclick="openAdjustStockModal()"
-            class="bg-black text-white px-4 py-2 rounded text-sm">
-      + Adjust Stock
-    </button>
+    <button onclick="openAdjustStockModal()" class="bg-black text-white px-4 py-2 rounded text-sm">+ Adjust Stock</button>
   </div>
 
   <!-- Filters -->
@@ -52,6 +47,7 @@ include 'sidebar.php';
         </tr>
       </thead>
       <tbody id="stock-list">
+        <!-- Stock details will be dynamically populated via JS -->
       </tbody>
     </table>
   </div>
@@ -62,9 +58,7 @@ include 'sidebar.php';
   <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Adjust Stock</h3>
-      <button onclick="closeAdjustStockModal()">
-        <i class="fas fa-times text-gray-600"></i>
-      </button>
+      <button onclick="closeAdjustStockModal()"><i class="fas fa-times text-gray-600"></i></button>
     </div>
 
     <form id="adjustStockForm" class="space-y-4">
@@ -77,9 +71,7 @@ include 'sidebar.php';
       </select>
 
       <input type="number" name="quantity" placeholder="Quantity (use negative to reduce)" required class="w-full border px-3 py-2 rounded" />
-
       <input type="text" name="location" placeholder="Location (e.g., Warehouse A)" class="w-full border px-3 py-2 rounded" />
-
       <input type="text" name="reason" placeholder="Reason for adjustment" required class="w-full border px-3 py-2 rounded" />
 
       <button type="submit" class="bg-black text-white w-full py-2 rounded">
@@ -97,6 +89,7 @@ const modal = document.getElementById('adjustStockModal');
 const form  = document.getElementById('adjustStockForm');
 const stockList = document.getElementById('stock-list');
 
+// Function to show toast notifications
 function showToast(msg, success = true) {
   toast.textContent = msg;
   toast.className = `fixed bottom-4 right-4 text-white px-4 py-2 rounded shadow-lg ${success ? 'bg-green-500' : 'bg-red-500'}`;
@@ -104,18 +97,21 @@ function showToast(msg, success = true) {
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
+// Open and Close Modal
 window.openAdjustStockModal = () => {
   modal.classList.remove('hidden');
   populateProductDropdown();
 };
+
 window.closeAdjustStockModal = () => modal.classList.add('hidden');
 
+// Fetch and load stock data
 async function loadStock() {
   try {
     const prods = await apiGet('./api/products.php');
     stockList.innerHTML = prods.map(p => {
       const total = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
-      const badges = p.sizes.map(s =>
+      const badges = p.sizes.map(s => 
         `<span class="bg-gray-100 px-2 py-1 rounded text-xs">${s.size_name}:${s.stock}</span>`
       ).join(' ');
       const status = total === 0 ? 'Out of Stock' : total <= p.min_stock ? 'Low Stock' : 'In Stock';
@@ -139,6 +135,7 @@ async function loadStock() {
   }
 }
 
+// Populate the product dropdown
 async function populateProductDropdown() {
   const productSelect = form.querySelector('select[name="product_id"]');
   const sizeSelect = form.querySelector('select[name="product_size_id"]');
@@ -172,10 +169,7 @@ async function populateProductDropdown() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadStock();
-});
-
+// Handle form submission for stock adjustment
 form.onsubmit = async e => {
   e.preventDefault();
   const formData = Object.fromEntries(new FormData(form));
@@ -194,4 +188,9 @@ form.onsubmit = async e => {
     showToast('Server error', false);
   }
 }
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+  loadStock();
+});
 </script>
