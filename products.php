@@ -2,8 +2,6 @@
 // products.php
 include 'header.php';
 include 'sidebar.php';
-include 'footer.php';
-
 ?>
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
@@ -151,6 +149,14 @@ include 'footer.php';
         </div>
       </div>
       <input type="hidden" name="stock" id="stockInput" />
+
+      <!-- Location -->
+      <div>
+        <label class="block text-sm font-medium">Location</label>
+        <input type="text" name="location"
+               placeholder="Enter location (e.g., Shelf A, Side B)"
+               class="w-full border px-3 py-2 rounded" />
+      </div>
 
       <!-- Minimum Stock -->
       <div>
@@ -361,6 +367,7 @@ window.startEditProduct = async id => {
     productForm.id.value = p.id;
     productForm.name.value = p.name;
     productForm.description.value = p.description || '';
+    productForm.location.value = p.location || ''; // Populate location
     productForm.min_stock.value = p.min_stock;
     productForm.price.value = p.price;
     productForm.selling_price.value = p.selling_price;
@@ -430,6 +437,7 @@ productForm.onsubmit = async e => {
     name: data.name,
     category_id: +data.category_id,
     description: data.description,
+    location: data.location || null, // Include location in payload
     min_stock: +data.min_stock,
     price: parseFloat(data.price),
     selling_price: parseFloat(data.selling_price),
