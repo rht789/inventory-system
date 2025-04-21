@@ -3,6 +3,7 @@
 include 'header.php';
 include 'sidebar.php';
 include 'footer.php';
+
 ?>
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
