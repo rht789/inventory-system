@@ -1,0 +1,92 @@
+<?php
+session_start();
+require_once 'utils.php';
+require_once '../db.php';
+
+header('Content-Type: application/json');
+
+$action = $_GET['action'] ?? null;
+
+switch ($action) {
+    case 'login':
+        $email = $_POST['email'];
+        $password = $_POST['password'];
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($password, $user['password_hash'])) {
+            // Store full session info
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['username'] = $user['username'];
+
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid credentials']);
+        }
+        break;
+        case 'forgot':
+            $email = $_POST['email'];
+        
+            // Check if user exists with this email
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+        
+            if (!$user) {
+                echo json_encode(['error' => 'No user found with this email.']);
+                break;
+            }
+        
+            // Generate reset token and expiry
+            $token = bin2hex(random_bytes(16));
+            $expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
+        
+            // Update token and expiry in DB
+            $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?");
+            $stmt->execute([$token, $expiry, $email]);
+        
+            // Construct the reset link
+            $link = "http://localhost/inventory-system/resetpassword.php?token=$token";
+            $body = "Click <a href='$link'>here</a> to reset your password.";
+        
+            // Send email
+            if (sendMail($email, "Reset Your Password", $body)) {
+                echo json_encode(['success' => 'Reset email sent.']);
+            } else {
+                echo json_encode(['error' => 'Failed to send email.']);
+            }
+            break;
+        
+        case 'reset':
+            $token = $_POST['token'];
+            $newPassword = $_POST['new_password'];
+    
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE reset_token = ?");
+            $stmt->execute([$token]);
+            $user = $stmt->fetch();
+    
+            if (!$user) {
+                echo json_encode(['error' => 'Invalid or expired token.']);
+                break;
+            }
+    
+            if (strtotime($user['reset_token_expiry']) < time()) {
+                echo json_encode(['error' => 'Token expired.']);
+                break;
+            }
+    
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE reset_token = ?");
+            $stmt->execute([$hashedPassword, $token]);
+    
+            echo json_encode(['success' => 'Password has been reset.']);
+            break;
+    
+
+    default:
+        echo json_encode(['error' => 'Invalid action']);
+}
