@@ -16,7 +16,7 @@ include 'sidebar.php';
   <!-- Filters -->
   <div class="bg-white p-4 rounded-md shadow-sm mb-4">
     <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
-      <input type="text" id="searchStockInput" placeholder="Search By SKU Or Name..." class="border px-4 py-2 rounded w-full md:w-1/3" />
+      <input type="text" id="searchStockInput" placeholder="Search By Name..." class="border px-4 py-2 rounded w-full md:w-1/3" />
       <div class="flex gap-2 w-full md:w-auto">
         <select id="stockStatusSelect" class="border rounded px-3 py-2 text-sm">
           <option value="">All Statuses</option>
@@ -36,15 +36,15 @@ include 'sidebar.php';
   <div class="bg-white rounded shadow-sm overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-gray-100 text-gray-600">
-        <tr class="text-left">
-          <th class="px-4 py-3">Name</th>
-          <th class="px-4 py-3">SKU</th>
-          <th class="px-4 py-3">Size & Stock</th>
-          <th class="px-4 py-3">Location</th>
-          <th class="px-4 py-/3">Total Stock</th>
-          <th class="px-4 py-3">Min Stock</th>
-          <th class="px-4 py-3">Status</th>
-          <th class="px-4 py-3">Actions</th>
+        <tr>
+          <th class="px-4 py-3 text-center">Name</th>
+          <th class="px-4 py-3 text-left">Size & Stock</th>
+          <th class="px-4 py-3 text-center">Location</th>
+          <th class="px-4 py-3 text-center">Total Stock</th>
+          <th class="px-4 py-3 text-center">Min Stock</th>
+          <th class="px-4 py-3 text-center">Status</th>
+          <th class="px-4 py-3 text-center">Barcode</th>
+          <th class="px-4 py-3 text-center">Actions</th>
         </tr>
       </thead>
       <tbody id="stock-list">
@@ -62,41 +62,78 @@ include 'sidebar.php';
       <button onclick="closeAdjustStockModal()"><i class="fas fa-times text-gray-600"></i></button>
     </div>
 
+    <p class="text-sm text-gray-500 mb-4">Make adjustments to your inventory stock levels</p>
+
     <form id="adjustStockForm" class="space-y-4">
       <input type="hidden" name="mode" id="formMode">
-      <select name="product_id" required class="w-full border px-3 py-2 rounded">
-        <option value="">Select Product</option>
-      </select>
+      <input type="hidden" name="product_id" id="productIdInput">
 
-      <select name="product_size_id" required class="w-full border px-3 py-2 rounded">
-        <option value="">Select Size</option>
-      </select>
-
-      <div class="flex items-center gap-2">
-        <input type="radio" name="type" value="in" id="typeIn" checked>
-        <label for="typeIn">Add Stock</label>
-        <input type="radio" name="type" value="out" id="typeOut">
-        <label for="typeOut">Remove Stock</label>
+      <div>
+        <label class="block text-sm font-medium mb-1">Product</label>
+        <div class="relative">
+          <input type="text" id="productSearch" placeholder="Select product" class="w-full border px-3 py-2 rounded" autocomplete="off" required>
+          <ul id="productDropdown" class="absolute z-10 w-full bg-white border rounded shadow-lg max-h-40 overflow-y-auto hidden"></ul>
+        </div>
       </div>
 
-      <div id="batchField" class="hidden">
-        <label class="block text-sm font-medium">Batch Number (Optional)</label>
-        <input type="text" name="batch_number" placeholder="Enter batch number" class="w-full border px-3 py-2 rounded" />
+      <div>
+        <label class="block text-sm font-medium mb-1">Size</label>
+        <select name="product_size_id" id="sizeSelect" class="w-full border px-3 py-2 rounded" required>
+          <!-- Options will be populated dynamically -->
+        </select>
       </div>
 
-      <input type="number" name="quantity" placeholder="Quantity" required class="w-full border px-3 py-2 rounded" min="1" />
-      <input type="text" name="location" placeholder="Location (e.g., Shelf A)" class="w-full border px-3 py-2 rounded" />
-      <input type="text" name="reason" placeholder="Reason for adjustment" required class="w-full border px-3 py-2 rounded" />
+      <div>
+        <label class="block text-sm font-medium mb-1">Quantity</label>
+        <input type="number" name="quantity" placeholder="1" required class="w-full border px-3 py-2 rounded" min="1" />
+      </div>
 
-      <button type="submit" class="bg-black text-white w-full py-2 rounded">
-        Save Stock Adjustment
-      </button>
+      <div>
+        <label class="block text-sm font-medium mb-1">Location</label>
+        <input type="text" name="location" placeholder="e.g., Shelf A1" class="w-full border px-3 py-2 rounded" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Reason</label>
+        <input type="text" name="reason" placeholder="Restock" required class="w-full border px-3 py-2 rounded" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Adjustment Type</label>
+        <div class="flex gap-2">
+          <label class="flex items-center cursor-pointer">
+            <input type="radio" name="type" value="in" class="hidden peer" checked>
+            <span class="peer-checked:bg-gray-600 peer-checked:text-white bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors">Add Stock</span>
+          </label>
+          <label class="flex items-center cursor-pointer">
+            <input type="radio" name="type" value="out" class="hidden peer">
+            <span class="peer-checked:bg-gray-600 peer-checked:text-white bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors">Reduce Stock</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="button" onclick="closeAdjustStockModal()" class="border border-gray-300 px-4 py-2 rounded text-sm">Cancel</button>
+        <button type="submit" class="bg-black text-white px-4 py-2 rounded text-sm">Add Stock</button>
+      </div>
     </form>
   </div>
 </div>
 
+<!-- Barcode Preview Modal -->
+<div id="barcodeModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-lg max-w-lg w-full">
+    <div class="flex justify-end mb-4">
+      <button onclick="closeBarcodeModal()" class="text-gray-600 hover:text-black">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+    <img id="barcodeModalImg" src="" alt="Barcode" class="mx-auto w-full max-h-[80vh] object-contain" />
+  </div>
+</div>
+
 <script type="module">
-import { apiGet, apiPost } from './js/ajax.js';
+import { apiGet } from './js/ajax.js';
 
 const toast = document.getElementById('toast');
 const modal = document.getElementById('adjustStockModal');
@@ -106,7 +143,13 @@ const searchStockInput = document.getElementById('searchStockInput');
 const stockStatusSelect = document.getElementById('stockStatusSelect');
 const locationSelect = document.getElementById('locationSelect');
 const modalTitle = document.getElementById('modalTitle');
-const batchField = document.getElementById('batchField');
+const productSearch = document.getElementById('productSearch');
+const productDropdown = document.getElementById('productDropdown');
+const productIdInput = document.getElementById('productIdInput');
+const sizeSelect = document.getElementById('sizeSelect');
+const barcodeModalImg = document.getElementById('barcodeModalImg');
+
+let products = [];
 
 // Function to show toast notifications
 function showToast(msg, success = true) {
@@ -116,21 +159,26 @@ function showToast(msg, success = true) {
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
-// Open and Close Modal
+// Open and Close Modals
 window.openAdjustStockModal = (productId, mode = 'edit') => {
   modal.classList.remove('hidden');
   form.reset();
   document.getElementById('formMode').value = mode;
   modalTitle.textContent = mode === 'add' ? 'Add Stock' : 'Adjust Stock';
-  batchField.classList.toggle('hidden', mode !== 'add');
-  document.getElementById('typeIn').checked = true; // Default to "Add Stock"
+  productSearch.value = '';
+  productIdInput.value = '';
+  sizeSelect.innerHTML = ''; // Clear size options
   populateProductDropdown(productId);
 };
 
 window.closeAdjustStockModal = () => {
   modal.classList.add('hidden');
   form.reset();
+  productDropdown.classList.add('hidden');
 };
+
+window.openBarcodeModal = () => document.getElementById('barcodeModal').classList.remove('hidden');
+window.closeBarcodeModal = () => document.getElementById('barcodeModal').classList.add('hidden');
 
 // Fetch and load stock data
 async function loadStock() {
@@ -149,83 +197,114 @@ async function loadStock() {
       let status, statusClass;
       if (total === 0) {
         status = 'Stock Out';
-        statusClass = 'text-black bg-white border border-black px-2 py-1 rounded';
+        statusClass = 'bg-gray-300 text-gray-600 px-2 py-1 rounded opacity-75';
       } else if (total <= 2) {
         status = 'Critical';
-        statusClass = 'bg-red-900 text-white px-2 py-1 rounded';
+        statusClass = 'bg-[#fc0f32] text-white px-2 py-1 rounded';
       } else if (total <= p.min_stock) {
         status = 'Low Stock';
-        statusClass = 'bg-yellow-700 text-white px-2 py-1 rounded';
+        statusClass = 'bg-[#dcd906] text-white px-2 py-1 rounded';
       } else {
         status = 'In Stock';
         statusClass = 'bg-green-500 text-white px-2 py-1 rounded';
       }
       return `
         <tr class="border-t hover:bg-gray-50">
-          <td class="px-4 py-3 font-medium">${p.name}</td>
-          <td class="px-4 py-3">${p.barcode || '-'}</td>
+          <td class="px-4 py-3 font-medium text-center">${p.name}</td>
           <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
           <td class="px-4 py-3 text-center">${p.location || '-'}</td>
           <td class="px-4 py-3 font-bold text-center">${total}</td>
           <td class="px-4 py-3 text-center">${p.min_stock}</td>
           <td class="px-4 py-3 text-center"><span class="${statusClass}">${status}</span></td>
           <td class="px-4 py-3 text-center">
+            ${p.barcode ? `<img src="./${p.barcode}" alt="Barcode" class="barcode-img h-8 mx-auto cursor-pointer"/>` : '-'}
+          </td>
+          <td class="px-4 py-3 text-center">
             <button onclick="openAdjustStockModal(${p.id}, 'edit')" class="text-blue-600"><i class="fas fa-edit"></i></button>
           </td>
         </tr>`;
     }).join('');
+
+    // Attach click handlers to barcode images
+    document.querySelectorAll('.barcode-img').forEach(img => {
+      img.onclick = () => {
+        barcodeModalImg.src = img.src;
+        openBarcodeModal();
+      };
+    });
   } catch (err) {
     console.error(err);
     showToast('Error loading stock', false);
   }
 }
 
-// Populate the product dropdown
+// Populate the product dropdown with search functionality
 async function populateProductDropdown(selectedProductId = null) {
-  const productSelect = form.querySelector('select[name="product_id"]');
-  const sizeSelect = form.querySelector('select[name="product_size_id"]');
-  productSelect.innerHTML = '<option value="">Select Product</option>';
-  sizeSelect.innerHTML = '<option value="">Select Size</option>';
-
   try {
-    const products = await apiGet('./api/products.php');
-    products.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      opt.dataset.sizes = JSON.stringify(p.sizes);
-      if (selectedProductId && p.id == selectedProductId) {
-        opt.selected = true;
-      }
-      productSelect.appendChild(opt);
-    });
-
+    products = await apiGet('./api/products.php');
     if (selectedProductId) {
-      const selected = productSelect.options[productSelect.selectedIndex];
-      const sizes = JSON.parse(selected.dataset.sizes || '[]');
-      sizeSelect.innerHTML = '<option value="">Select Size</option>';
-      sizes.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = s.size_name;
-        sizeSelect.appendChild(opt);
-      });
+      const selectedProduct = products.find(p => p.id == selectedProductId);
+      if (selectedProduct) {
+        productSearch.value = selectedProduct.name;
+        productIdInput.value = selectedProduct.id;
+        updateSizes(selectedProduct);
+      }
     }
 
-    productSelect.onchange = () => {
-      const selected = productSelect.options[productSelect.selectedIndex];
-      const sizes = JSON.parse(selected.dataset.sizes || '[]');
-      sizeSelect.innerHTML = '<option value="">Select Size</option>';
-      sizes.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = s.size_name;
-        sizeSelect.appendChild(opt);
+    productSearch.oninput = () => {
+      const query = productSearch.value.toLowerCase();
+      const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+      productDropdown.innerHTML = filtered.map(p => `
+        <li class="px-3 py-2 hover:bg-gray-100 cursor-pointer" data-id="${p.id}">${p.name}</li>
+      `).join('');
+      productDropdown.classList.remove('hidden');
+
+      productDropdown.querySelectorAll('li').forEach(item => {
+        item.onclick = () => {
+          productSearch.value = item.textContent;
+          productIdInput.value = item.dataset.id;
+          productDropdown.classList.add('hidden');
+          const selectedProduct = products.find(p => p.id == item.dataset.id);
+          updateSizes(selectedProduct);
+        };
       });
     };
+
+    productSearch.onclick = () => {
+      productSearch.oninput();
+    };
+
+    document.addEventListener('click', e => {
+      if (!productSearch.contains(e.target) && !productDropdown.contains(e.target)) {
+        productDropdown.classList.add('hidden');
+      }
+    });
   } catch (err) {
     console.error(err);
     showToast('Could not load product list', false);
+  }
+}
+
+// Update sizes based on selected product
+function updateSizes(product) {
+  sizeSelect.innerHTML = ''; // Clear existing options
+  if (product.sizes && product.sizes.length > 0) {
+    product.sizes.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.size_name;
+      sizeSelect.appendChild(opt);
+    });
+    // If there's only one size, select it automatically
+    if (product.sizes.length === 1) {
+      sizeSelect.value = product.sizes[0].id;
+    }
+  } else {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No sizes available';
+    opt.disabled = true;
+    sizeSelect.appendChild(opt);
   }
 }
 
@@ -249,20 +328,47 @@ async function populateLocationDropdown() {
 // Handle form submission for stock adjustment
 form.onsubmit = async e => {
   e.preventDefault();
-  const formData = Object.fromEntries(new FormData(form));
+  const formData = new FormData(form);
+
+  // Validate required fields
+  if (!formData.get('product_id')) {
+    showToast('Please select a product', false);
+    return;
+  }
+  if (!formData.get('product_size_id')) {
+    showToast('Please select a size', false);
+    return;
+  }
+  if (!formData.get('quantity') || formData.get('quantity') <= 0) {
+    showToast('Please enter a valid quantity greater than 0', false);
+    return;
+  }
+  if (!formData.get('reason')) {
+    showToast('Please enter a reason', false);
+    return;
+  }
+
   try {
-    const res = await apiPost('./api/stock.php', formData);
-    if (res.success) {
+    const res = await fetch('./api/stock.php', {
+      method: 'POST',
+      body: formData // Send as FormData to use application/x-www-form-urlencoded
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || `${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    if (data.success) {
       showToast('Stock adjusted!');
       form.reset();
       closeAdjustStockModal();
       loadStock();
     } else {
-      showToast(res.message || 'Adjustment failed', false);
+      showToast(data.message || 'Adjustment failed', false);
     }
   } catch (err) {
     console.error(err);
-    showToast('Server error', false);
+    showToast(err.message || 'An error occurred while adjusting stock', false);
   }
 };
 

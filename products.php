@@ -50,15 +50,15 @@ include 'sidebar.php';
   <div class="bg-white rounded shadow-sm overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-gray-100 text-gray-600">
-        <tr class="text-left">
-          <th class="px-4 py-3">Name</th>
-          <th class="px-4 py-3">Category</th>
-          <th class="px-4 py-3">Size & Stock</th>
-          <th class="px-4 py-3">Total Stock</th>
-          <th class="px-4 py-3">Barcode</th>
-          <th class="px-4 py-3">Cost Price (৳)</th>
-          <th class="px-4 py-3">Selling Price (৳)</th>
-          <th class="px-4 py-3">Actions</th>
+        <tr>
+          <th class="px-4 py-3 text-center">Name</th>
+          <th class="px-4 py-3 text-center">Category</th>
+          <th class="px-4 py-3 text-left">Size & Stock</th>
+          <th class="px-4 py-3 text-center">Total Stock</th>
+          <th class="px-4 py-3 text-center">Barcode</th>
+          <th class="px-4 py-3 text-center">Cost Price (৳)</th>
+          <th class="px-4 py-3 text-center">Selling Price (৳)</th>
+          <th class="px-4 py-3 text-center">Actions</th>
         </tr>
       </thead>
       <tbody id="product-list">
@@ -301,8 +301,8 @@ async function fetchProducts() {
 
       return `
         <tr class="border-t hover:bg-gray-50">
-          <td class="px-4 py-3 font-semibold">${p.name}</td>
-          <td class="px-4 py-3">${p.category_name}</td>
+          <td class="px-4 py-3 font-semibold text-center">${p.name}</td>
+          <td class="px-4 py-3 text-center">${p.category_name}</td>
           <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
           <td class="px-4 py-3 font-bold text-center">${total}</td>
           <td class="px-4 py-3 text-center">
@@ -310,9 +310,9 @@ async function fetchProducts() {
                  alt="Barcode"
                  class="barcode-img h-8 mx-auto cursor-pointer"/>
           </td>
-          <td class="px-4 py-3">৳ ${cost}</td>
-          <td class="px-4 py-3">৳ ${sell}</td>
-          <td class="px-4 py-3">
+          <td class="px-4 py-3 text-center">৳ ${cost}</td>
+          <td class="px-4 py-3 text-center">৳ ${sell}</td>
+          <td class="px-4 py-3 text-center">
             <button onclick="startEditProduct(${p.id})" class="text-blue-600 mr-2">
               <i class="fas fa-edit"></i>
             </button>
