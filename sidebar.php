@@ -1,10 +1,12 @@
 <?php
 $currentPage = basename($_SERVER['PHP_SELF']);
+$settingsPages = ['profile.php', 'password.php', 'preference.php', 'company.php'];
+$isSettingsOpen = in_array($currentPage, $settingsPages) ? 'block' : 'hidden';
 ?>
 
 <aside id="sidebar"
   class="fixed top-0 left-0 z-40 h-full w-64 bg-white border-r transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shadow-md rounded-r-2xl p-4">
-  
+
   <div class="text-xl font-bold text-gray-800 flex items-center justify-between mb-8">
     SmartInventory
     <button class="text-gray-400 hover:text-gray-600 lg:hidden" onclick="document.getElementById('sidebar').classList.add('-translate-x-full')">
@@ -28,11 +30,25 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <a href="reports.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'reports.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-chart-bar w-4"></i> Reports
     </a>
-    <a href="owners.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'owners.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+    <a href="users.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'users.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-user-friends w-4"></i> Users
     </a>
-    <a href="settings.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'settings.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
-      <i class="fa fa-cog w-4"></i> Setting
-    </a>
+
+    <!-- Settings Dropdown -->
+    <div>
+      <button onclick="document.getElementById('settingsSubmenu').classList.toggle('hidden')" 
+              class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-gray-100 <?= in_array($currentPage, $settingsPages) ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+        <div class="flex items-center gap-3">
+          <i class="fa fa-cog w-4"></i> Setting
+        </div>
+        <i class="fa fa-chevron-down text-xs"></i>
+      </button>
+      <div id="settingsSubmenu" class="ml-8 mt-1 text-sm flex flex-col gap-1 <?= $isSettingsOpen ?>">
+        <a href="profile.php" class="px-2 py-1 rounded hover:bg-gray-100 <?= $currentPage == 'profile.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">Profile</a>
+        <a href="password.php" class="px-2 py-1 rounded hover:bg-gray-100 <?= $currentPage == 'password.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">Password</a>
+        <a href="preference.php" class="px-2 py-1 rounded hover:bg-gray-100 <?= $currentPage == 'preference.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">Preferences</a>
+        <a href="company.php" class="px-2 py-1 rounded hover:bg-gray-100 <?= $currentPage == 'company.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">Company</a>
+      </div>
+    </div>
   </nav>
 </aside>
