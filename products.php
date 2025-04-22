@@ -6,12 +6,10 @@ include 'sidebar.php';
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
 
-  <!-- Toast container -->
   <div id="toast"
        class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden">
   </div>
 
-  <!-- Topbar -->
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold">Product Management</h2>
     <div class="flex gap-2">
@@ -26,7 +24,6 @@ include 'sidebar.php';
     </div>
   </div>
 
-  <!-- Filters & Search -->
   <div class="bg-white p-4 rounded-md shadow-sm mb-4">
     <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
       <input type="text" id="searchInput"
@@ -46,7 +43,6 @@ include 'sidebar.php';
     </div>
   </div>
 
-  <!-- Product Table -->
   <div class="bg-white rounded shadow-sm overflow-hidden">
     <table class="w-full text-sm">
       <thead class="bg-gray-100 text-gray-600">
@@ -55,6 +51,7 @@ include 'sidebar.php';
           <th class="px-4 py-3 text-center">Category</th>
           <th class="px-4 py-3 text-left">Size & Stock</th>
           <th class="px-4 py-3 text-center">Total Stock</th>
+          <th class="px-4 py-3 text-center">Batches</th>
           <th class="px-4 py-3 text-center">Barcode</th>
           <th class="px-4 py-3 text-center">Cost Price (৳)</th>
           <th class="px-4 py-3 text-center">Selling Price (৳)</th>
@@ -62,13 +59,11 @@ include 'sidebar.php';
         </tr>
       </thead>
       <tbody id="product-list">
-        <!-- injected by JS -->
       </tbody>
     </table>
   </div>
 </main>
 
-<!-- Category Modal -->
 <div id="categoryModal"
      class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
   <div class="bg-white rounded-lg p-6 w-full max-w-md">
@@ -91,7 +86,6 @@ include 'sidebar.php';
   </div>
 </div>
 
-<!-- Add/Edit Product Modal -->
 <div id="editProductModal"
      class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
   <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
@@ -101,12 +95,11 @@ include 'sidebar.php';
         <i class="fas fa-times text-gray-600"></i>
       </button>
     </div>
-    <p class="text-sm text-gray-500 mb-4">Update product information.</p>
+    <p class="text-sm text-gray-500 mb-4">Add/Update product information.</p>
     <form id="productForm" class="space-y-4">
       <input type="hidden" name="id" />
       <input type="hidden" name="barcode" />
 
-      <!-- Name & Category -->
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium">Product Name</label>
@@ -122,7 +115,6 @@ include 'sidebar.php';
         </div>
       </div>
 
-      <!-- Description -->
       <div>
         <label class="block text-sm font-medium">Description</label>
         <input type="text" name="description"
@@ -130,7 +122,14 @@ include 'sidebar.php';
                class="w-full border px-3 py-2 rounded" />
       </div>
 
-      <!-- Sizes & Stock -->
+      <div>
+        <label class="block text-sm font-medium">Requires Expiry Date</label>
+        <select name="requires_expiry" id="requiresExpirySelect" class="w-full border px-3 py-2 rounded">
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+
       <div>
         <label class="block text-sm font-medium mb-1">Sizes & Stock</label>
         <div class="flex gap-2 mb-2">
@@ -150,7 +149,28 @@ include 'sidebar.php';
       </div>
       <input type="hidden" name="stock" id="stockInput" />
 
-      <!-- Location -->
+      <div id="initialBatchSection">
+        <label class="block text-sm font-medium mb-1">Initial Batch</label>
+        <div class="space-y-2">
+          <div>
+            <label class="block text-sm">Size</label>
+            <select id="initialBatchSize" class="w-full border px-3 py-2 rounded">
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Batch Number</label>
+            <input type="text" name="batch_number"
+                   placeholder="e.g., BATCH-2025-001"
+                   class="w-full border px-3 py-2 rounded" />
+          </div>
+          <div id="initialBatchExpirySection">
+            <label class="block text-sm">Expiry Date</label>
+            <input type="date" name="batch_expiry_date" id="initialBatchExpiryDate"
+                   class="w-full border px-3 py-2 rounded" />
+          </div>
+        </div>
+      </div>
+
       <div>
         <label class="block text-sm font-medium">Location</label>
         <input type="text" name="location"
@@ -158,7 +178,6 @@ include 'sidebar.php';
                class="w-full border px-3 py-2 rounded" />
       </div>
 
-      <!-- Minimum Stock -->
       <div>
         <label class="block text-sm font-medium">Minimum Stock Level</label>
         <input type="number" name="min_stock"
@@ -166,7 +185,6 @@ include 'sidebar.php';
                min="0" value="5" />
       </div>
 
-      <!-- Prices -->
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium">
@@ -196,7 +214,100 @@ include 'sidebar.php';
   </div>
 </div>
 
-<!-- Barcode Preview Modal -->
+<div id="batchModal"
+     class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 w-full max-w-lg overflow-auto max-h-screen">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold" id="batchModalTitle">Manage Batches</h3>
+      <button onclick="closeBatchModal()">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <button onclick="openAddBatchForm()" class="bg-gray-700 text-white px-4 py-2 rounded text-sm mb-4">
+      + Add Batch
+    </button>
+    <form id="addBatchForm" class="space-y-4 hidden">
+      <div>
+        <label class="block text-sm font-medium">Size</label>
+        <select id="batchSizeInput" name="product_size_id" class="w-full border px-3 py-2 rounded" required>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Batch Number</label>
+        <input type="text" id="batchNumberInput" name="batch_number"
+               placeholder="e.g., BATCH-2025-001"
+               class="w-full border px-3 py-2 rounded" required />
+      </div>
+      <div id="batchExpiryDateSection">
+        <label class="block text-sm font-medium">Expiry Date</label>
+        <input type="date" id="batchExpiryDateInput" name="expiry_date"
+               class="w-full border px-3 py-2 rounded" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Stock</label>
+        <input type="number" id="batchStockInput" name="stock"
+               min="0"
+               class="w-full border px-3 py-2 rounded" required />
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeAddBatchForm()" class="border border-gray-300 px-4 py-2 rounded text-sm">Cancel</button>
+        <button type="submit" class="bg-black text-white px-4 py-2 rounded text-sm">Add Batch</button>
+      </div>
+    </form>
+    <table class="w-full text-sm">
+      <thead class="bg-gray-100 text-gray-600">
+        <tr>
+          <th class="px-4 py-3 text-left">Size</th>
+          <th class="px-4 py-3 text-left">Batch Number</th>
+          <th class="px-4 py-3 text-center expiry-column">Expiry Date</th>
+          <th class="px-4 py-3 text-center">Stock</th>
+          <th class="px-4 py-3 text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="batchList"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="editBatchModal"
+     class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Edit Batch</h3>
+      <button onclick="closeEditBatchModal()">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <form id="editBatchForm" class="space-y-4">
+      <input type="hidden" id="editBatchId" />
+      <div>
+        <label class="block text-sm font-medium">Size</label>
+        <input type="text" id="editBatchSizeName" class="w-full border px-3 py-2 rounded" disabled />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Batch Number</label>
+        <input type="text" id="editBatchNumberInput"
+               class="w-full border px-3 py-2 rounded" required />
+      </div>
+      <div id="editBatchExpiryDateSection">
+        <label class="block text-sm font-medium">Expiry Date</label>
+        <input type="date" id="editBatchExpiryDateInput"
+               class="w-full border px-3 py-2 rounded" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Stock</label>
+        <input type="number" id="editBatchStockInput"
+               min="0"
+               class="w-full border px-3 py-2 rounded" required />
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeEditBatchModal()" class="border border-gray-300 px-4 py-2 rounded text-sm">Cancel</button>
+        <button type="submit" class="bg-black text-white px-4 py-2 rounded text-sm">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="barcodeModal"
      class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded shadow-lg max-w-lg w-full">
@@ -217,50 +328,98 @@ include 'sidebar.php';
 <script type="module">
 import { apiGet, apiPost } from './js/ajax.js';
 
-// expose for onclick handlers
-window.openCategoryModal     = () => document.getElementById('categoryModal').classList.remove('hidden');
-window.closeCategoryModal    = () => document.getElementById('categoryModal').classList.add('hidden');
-window.openEditProductModal  = () => {
-    // Reset state for adding a new product
+window.openCategoryModal = () => document.getElementById('categoryModal').classList.remove('hidden');
+window.closeCategoryModal = () => document.getElementById('categoryModal').classList.add('hidden');
+window.openEditProductModal = () => {
     editingProductId = null;
     sizes = [];
     productForm.reset();
     renderSizes();
     document.getElementById('editProductModalTitle').textContent = 'Add Product';
+    document.getElementById('initialBatchSection').classList.remove('hidden');
+    updateInitialBatchSizes();
+    updateExpiryFieldRequirement();
     document.getElementById('editProductModal').classList.remove('hidden');
 };
 window.closeEditProductModal = () => {
     document.getElementById('editProductModal').classList.add('hidden');
-    // Reset state when closing the modal
     editingProductId = null;
     sizes = [];
     productForm.reset();
     renderSizes();
 };
-window.openBarcodeModal      = () => document.getElementById('barcodeModal').classList.remove('hidden');
-window.closeBarcodeModal     = () => document.getElementById('barcodeModal').classList.add('hidden');
+window.openBarcodeModal = () => document.getElementById('barcodeModal').classList.remove('hidden');
+window.closeBarcodeModal = () => document.getElementById('barcodeModal').classList.add('hidden');
+window.openBatchModal = async (productId, productName) => {
+    currentProductId = productId;
+    document.getElementById('batchModalTitle').textContent = `Manage Batches for ${productName}`;
+    const product = (await apiGet(`./api/products.php`)).find(p => p.id === productId);
+    console.log('Product:', product);
+    console.log('requires_expiry:', product.requires_expiry);
+    currentProductRequiresExpiry = product.requires_expiry == '1' || product.requires_expiry === true;
+    console.log('currentProductRequiresExpiry:', currentProductRequiresExpiry);
+    toggleExpiryFields();
+    updateBatchExpiryFieldRequirement();
+    await loadBatches(productId);
+    await populateBatchSizes(productId);
+    document.getElementById('batchModal').classList.remove('hidden');
+};
+window.closeBatchModal = () => {
+    document.getElementById('batchModal').classList.add('hidden');
+    document.getElementById('addBatchForm').classList.add('hidden');
+};
+window.openAddBatchForm = () => {
+    document.getElementById('addBatchForm').classList.remove('hidden');
+    updateBatchExpiryFieldRequirement();
+};
+window.closeAddBatchForm = () => {
+    document.getElementById('addBatchForm').classList.add('hidden');
+    document.getElementById('batchSizeInput').value = '';
+    document.getElementById('batchNumberInput').value = '';
+    document.getElementById('batchExpiryDateInput').value = '';
+    document.getElementById('batchStockInput').value = '';
+};
+window.openEditBatchModal = (batch) => {
+    document.getElementById('editBatchId').value = batch.id;
+    document.getElementById('editBatchSizeName').value = batch.size_name;
+    document.getElementById('editBatchNumberInput').value = batch.batch_number;
+    document.getElementById('editBatchExpiryDateInput').value = batch.expiry_date || '';
+    document.getElementById('editBatchStockInput').value = batch.stock;
+    updateEditBatchExpiryFieldRequirement();
+    document.getElementById('editBatchModal').classList.remove('hidden');
+};
+window.closeEditBatchModal = () => {
+    document.getElementById('editBatchModal').classList.add('hidden');
+};
 
-// DOM refs
 const
-  toast             = document.getElementById('toast'),
-  searchInput       = document.getElementById('searchInput'),
-  stockSelect       = document.getElementById('stockSelect'),
-  categorySelect    = document.getElementById('categorySelect'),
-  productList       = document.getElementById('product-list'),
-  newSizeInput      = document.getElementById('newSizeInput'),
-  addSizeBtn        = document.getElementById('addSizeBtn'),
-  sizeList          = document.getElementById('sizeList'),
-  totalUnitsSpan    = document.getElementById('totalUnits'),
-  stockInput        = document.getElementById('stockInput'),
-  categoryList      = document.getElementById('categoryList'),
-  newCategoryInput  = document.getElementById('newCategoryInput'),
-  addCategoryBtn    = document.getElementById('addCategoryBtn'),
-  productForm       = document.getElementById('productForm'),
-  barcodeModalImg   = document.getElementById('barcodeModalImg');
+  toast = document.getElementById('toast'),
+  searchInput = document.getElementById('searchInput'),
+  stockSelect = document.getElementById('stockSelect'),
+  categorySelect = document.getElementById('categorySelect'),
+  productList = document.getElementById('product-list'),
+  newSizeInput = document.getElementById('newSizeInput'),
+  addSizeBtn = document.getElementById('addSizeBtn'),
+  sizeList = document.getElementById('sizeList'),
+  totalUnitsSpan = document.getElementById('totalUnits'),
+  stockInput = document.getElementById('stockInput'),
+  categoryList = document.getElementById('categoryList'),
+  newCategoryInput = document.getElementById('newCategoryInput'),
+  addCategoryBtn = document.getElementById('addCategoryBtn'),
+  productForm = document.getElementById('productForm'),
+  barcodeModalImg = document.getElementById('barcodeModalImg'),
+  batchList = document.getElementById('batchList'),
+  editBatchForm = document.getElementById('editBatchForm'),
+  addBatchForm = document.getElementById('addBatchForm'),
+  initialBatchSizeSelect = document.getElementById('initialBatchSize'),
+  batchSizeInput = document.getElementById('batchSizeInput'),
+  requiresExpirySelect = document.getElementById('requiresExpirySelect'),
+  initialBatchExpiryDate = document.getElementById('initialBatchExpiryDate'),
+  batchExpiryDateInput = document.getElementById('batchExpiryDateInput'),
+  editBatchExpiryDateInput = document.getElementById('editBatchExpiryDateInput');
 
-let sizes = [], editingProductId = null, editingCategoryId = null;
+let sizes = [], editingProductId = null, editingCategoryId = null, currentProductId = null, currentProductRequiresExpiry = false;
 
-// show toast
 function showToast(msg, success = true) {
   toast.textContent = msg;
   toast.classList.toggle('bg-green-500', success);
@@ -269,35 +428,90 @@ function showToast(msg, success = true) {
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
-// initial load
+function updateInitialBatchSizes() {
+  initialBatchSizeSelect.innerHTML = sizes.length > 0
+    ? sizes.map(s => `<option value="${s.size}">${s.size} (${s.stock} units)</option>`).join('')
+    : '<option value="">No sizes available</option>';
+}
+
+function toggleExpiryFields() {
+  const show = currentProductRequiresExpiry;
+  console.log('toggleExpiryFields - currentProductRequiresExpiry:', currentProductRequiresExpiry);
+  document.getElementById('batchExpiryDateSection').style.display = show ? 'block' : 'none';
+  document.getElementById('editBatchExpiryDateSection').style.display = show ? 'block' : 'none';
+  document.getElementById('initialBatchExpirySection').style.display = show ? 'block' : 'none';
+  document.querySelectorAll('.expiry-column').forEach(el => {
+    el.style.display = show ? 'table-cell' : 'none';
+  });
+}
+
+function updateExpiryFieldRequirement() {
+  const requiresExpiry = requiresExpirySelect.value === '1';
+  console.log('updateExpiryFieldRequirement - requiresExpiry:', requiresExpiry);
+  if (requiresExpiry) {
+    initialBatchExpiryDate.setAttribute('required', 'required');
+  } else {
+    initialBatchExpiryDate.removeAttribute('required');
+  }
+}
+
+function updateBatchExpiryFieldRequirement() {
+  console.log('updateBatchExpiryFieldRequirement - currentProductRequiresExpiry:', currentProductRequiresExpiry);
+  if (currentProductRequiresExpiry) {
+    batchExpiryDateInput.setAttribute('required', 'required');
+  } else {
+    batchExpiryDateInput.removeAttribute('required');
+  }
+}
+
+function updateEditBatchExpiryFieldRequirement() {
+  console.log('updateEditBatchExpiryFieldRequirement - currentProductRequiresExpiry:', currentProductRequiresExpiry);
+  if (currentProductRequiresExpiry) {
+    editBatchExpiryDateInput.setAttribute('required', 'required');
+  } else {
+    editBatchExpiryDateInput.removeAttribute('required');
+  }
+}
+
+async function populateBatchSizes(productId) {
+  const product = (await apiGet(`./api/products.php`)).find(p => p.id === productId);
+  batchSizeInput.innerHTML = product.sizes.map(s => `
+    <option value="${s.id}">${s.size_name} (${s.stock} units)</option>
+  `).join('');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCategories();
   fetchProducts();
 });
 
-// re‑fetch on filter change
 [searchInput, stockSelect, categorySelect].forEach(el =>
   el.addEventListener('input', fetchProducts)
 );
 
-// fetch & render products
+requiresExpirySelect.addEventListener('change', () => {
+  currentProductRequiresExpiry = requiresExpirySelect.value === '1';
+  toggleExpiryFields();
+  updateExpiryFieldRequirement();
+});
+
 async function fetchProducts() {
   try {
     const params = new URLSearchParams({
-      search:       searchInput.value,
+      search: searchInput.value,
       stock_filter: stockSelect.value.toLowerCase().replace(/ /g, '_'),
-      category_id:  categorySelect.value === 'All Categories' ? '' : categorySelect.value
+      category_id: categorySelect.value === 'All Categories' ? '' : categorySelect.value
     });
     const prods = await apiGet(`./api/products.php?${params}`);
     productList.innerHTML = prods.map(p => {
-      const cost   = Number(p.price).toFixed(2);
-      const sell   = Number(p.selling_price).toFixed(2);
+      const cost = Number(p.price).toFixed(2);
+      const sell = Number(p.selling_price).toFixed(2);
       const badges = p.sizes.map(s =>
         `<span class="bg-gray-100 px-2 py-1 rounded text-xs">
            ${s.size_name}:${s.stock}
          </span>`
       ).join('');
-      const total  = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
+      const total = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
 
       return `
         <tr class="border-t hover:bg-gray-50">
@@ -305,6 +519,7 @@ async function fetchProducts() {
           <td class="px-4 py-3 text-center">${p.category_name}</td>
           <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
           <td class="px-4 py-3 font-bold text-center">${total}</td>
+          <td class="px-4 py-3 text-center">${p.batches.length}</td>
           <td class="px-4 py-3 text-center">
             <img src="./${p.barcode}"
                  alt="Barcode"
@@ -316,6 +531,9 @@ async function fetchProducts() {
             <button onclick="startEditProduct(${p.id})" class="text-blue-600 mr-2">
               <i class="fas fa-edit"></i>
             </button>
+            <button onclick="openBatchModal(${p.id}, '${p.name}')" class="text-green-600 mr-2">
+              <i class="fa-solid fa-box-archive"></i>
+            </button>
             <button onclick="deleteProduct(${p.id})" class="text-red-500">
               <i class="fas fa-trash-alt"></i>
             </button>
@@ -323,7 +541,6 @@ async function fetchProducts() {
         </tr>`;
     }).join('');
 
-    // attach click handlers to barcode thumbnails
     document.querySelectorAll('.barcode-img').forEach(img => {
       img.onclick = () => {
         barcodeModalImg.src = img.src;
@@ -336,11 +553,135 @@ async function fetchProducts() {
   }
 }
 
-// delete product
+async function loadBatches(productId) {
+  try {
+    const batches = await apiGet(`./api/products.php?action=get_batches&product_id=${productId}`);
+    batchList.innerHTML = batches.map(b => {
+      const expiry = b.expiry_date ? new Date(b.expiry_date) : null;
+      const today = new Date();
+      const isExpiringSoon = expiry && (expiry - today) / (1000 * 60 * 60 * 24) <= 30;
+      const isExpired = expiry && expiry < today;
+      return `
+        <tr class="border-t">
+          <td class="px-4 py-3 text-left">${b.size_name}</td>
+          <td class="px-4 py-3 text-left">${b.batch_number}</td>
+          <td class="px-4 py-3 text-center expiry-column ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-yellow-500' : ''}">
+            ${b.expiry_date || '-'}
+          </td>
+          <td class="px-4 py-3 text-center ${b.stock === 0 ? 'text-gray-500' : ''}">
+            ${b.stock}
+          </td>
+          <td class="px-4 py-3 text-center">
+            <button onclick='openEditBatchModal(${JSON.stringify(b)})' class="text-blue-600 mr-2">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button onclick="deleteBatch(${b.id})" class="text-red-500">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+  } catch (err) {
+    console.error(err);
+    showToast('Could not load batches', false);
+  }
+}
+
+addBatchForm.onsubmit = async e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(addBatchForm).entries());
+
+  if (parseInt(data.stock) < 0) {
+    showToast('Stock cannot be negative', false);
+    return;
+  }
+
+  try {
+    const res = await apiPost('./api/products.php', {
+      action: 'create_batch',
+      product_id: currentProductId,
+      product_size_id: data.product_size_id,
+      batch_number: data.batch_number,
+      expiry_date: currentProductRequiresExpiry ? data.expiry_date : null,
+      stock: parseInt(data.stock)
+    });
+    if (res.success) {
+      showToast('Batch added!');
+      closeAddBatchForm();
+      await loadBatches(currentProductId);
+      fetchProducts();
+    } else {
+      showToast(res.message || 'Failed to add batch', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Error adding batch', false);
+  }
+};
+
+editBatchForm.onsubmit = async e => {
+  e.preventDefault();
+  const batchId = document.getElementById('editBatchId').value;
+  const batchNumber = document.getElementById('editBatchNumberInput').value.trim();
+  const expiryDate = currentProductRequiresExpiry ? document.getElementById('editBatchExpiryDateInput').value : null;
+  const stock = document.getElementById('editBatchStockInput').value;
+
+  if (!batchNumber || !stock || stock < 0) {
+    showToast('Please enter a valid batch number and stock', false);
+    return;
+  }
+
+  if (currentProductRequiresExpiry && !expiryDate) {
+    showToast('Expiry date is required for this product', false);
+    return;
+  }
+
+  try {
+    const res = await apiPost('./api/products.php', {
+      action: 'update_batch',
+      batch_id: batchId,
+      batch_number: batchNumber,
+      expiry_date: expiryDate || null,
+      stock: parseInt(stock)
+    });
+    if (res.success) {
+      showToast('Batch updated!');
+      closeEditBatchModal();
+      await loadBatches(currentProductId);
+      fetchProducts();
+    } else {
+      showToast(res.message || 'Failed to update batch', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Error updating batch', false);
+  }
+};
+
+window.deleteBatch = async (batchId) => {
+  if (!confirm('Delete this batch?')) return;
+  try {
+    const res = await apiPost('./api/products.php', {
+      action: 'delete_batch',
+      batch_id: batchId
+    });
+    if (res.success) {
+      showToast('Batch deleted');
+      await loadBatches(currentProductId);
+      fetchProducts();
+    } else {
+      showToast(res.message || 'Delete failed', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Delete error', false);
+  }
+};
+
 window.deleteProduct = async id => {
   if (!confirm('Delete this product?')) return;
   try {
-    const res = await apiPost('./api/products.php', { action:'delete', id });
+    const res = await apiPost('./api/products.php', { action: 'delete', id });
     if (res.success) {
       showToast('Product deleted');
       fetchProducts();
@@ -353,46 +694,50 @@ window.deleteProduct = async id => {
   }
 };
 
-// start edit (or add)
 window.startEditProduct = async id => {
-  // Reset state
   sizes = [];
   productForm.reset();
   editingProductId = id || null;
 
   if (id) {
-    // Edit mode: Populate form with product data
     const ps = await apiGet(`./api/products.php`);
     const p = ps.find(x => x.id === id);
     productForm.id.value = p.id;
     productForm.name.value = p.name;
     productForm.description.value = p.description || '';
-    productForm.location.value = p.location || ''; // Populate location
+    productForm.location.value = p.location || '';
     productForm.min_stock.value = p.min_stock;
     productForm.price.value = p.price;
     productForm.selling_price.value = p.selling_price;
     productForm.category_id.value = p.category_id;
+    productForm.requires_expiry.value = p.requires_expiry == '1' ? '1' : '0';
     sizes = p.sizes.map(s => ({ size: s.size_name, stock: +s.stock }));
     document.getElementById('editProductModalTitle').textContent = 'Edit Product';
+    document.getElementById('initialBatchSection').classList.add('hidden');
   } else {
-    // Add mode: Ensure form is fully reset
     document.getElementById('editProductModalTitle').textContent = 'Add Product';
+    document.getElementById('initialBatchSection').classList.remove('hidden');
   }
 
+  currentProductRequiresExpiry = productForm.requires_expiry.value === '1';
+  toggleExpiryFields();
+  updateExpiryFieldRequirement();
   renderSizes();
   document.getElementById('editProductModal').classList.remove('hidden');
 };
 
-// add a size
 addSizeBtn.onclick = () => {
   const sz = newSizeInput.value.trim();
-  if (!sz || sizes.some(x => x.size === sz)) return;
+  if (!sz || sizes.some(x => x.size === sz)) {
+    showToast('Please enter a unique size', false);
+    return;
+  }
   sizes.push({ size: sz, stock: 0 });
   newSizeInput.value = '';
   renderSizes();
+  updateInitialBatchSizes();
 };
 
-// render sizes
 function renderSizes() {
   sizeList.innerHTML = sizes.map((s, i) => `
     <li class="flex items-center gap-2">
@@ -407,42 +752,64 @@ function renderSizes() {
 
   sizeList.querySelectorAll('.sizeStock').forEach(inp => {
     inp.oninput = e => {
-      sizes[+e.target.dataset.idx].stock = +e.target.value;
+      sizes[+e.target.dataset.idx].stock = +e.target.value || 0;
       updateTotal();
+      updateInitialBatchSizes();
     };
   });
   sizeList.querySelectorAll('.removeSize').forEach(btn => {
     btn.onclick = () => {
       sizes.splice(+btn.dataset.idx, 1);
       renderSizes();
+      updateInitialBatchSizes();
     };
   });
   updateTotal();
 }
 
-// update total units
 function updateTotal() {
-  const total = sizes.reduce((sum, s) => sum + s.stock, 0);
+  const total = sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
   totalUnitsSpan.textContent = total;
   stockInput.value = total;
 }
 
-// save (create/update)
 productForm.onsubmit = async e => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(productForm).entries());
+
+  // Validate sizes and stock
+  if (sizes.length === 0) {
+    showToast('Please add at least one size', false);
+    return;
+  }
+  const totalStock = sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
+  if (totalStock <= 0) {
+    showToast('Total stock must be greater than 0', false);
+    return;
+  }
+
+  // Validate expiry date if required
+  const requiresExpiry = data.requires_expiry === '1';
+  if (!editingProductId && requiresExpiry && !data.batch_expiry_date) {
+    showToast('Expiry date is required for the initial batch', false);
+    return;
+  }
+
   const payload = {
     action: editingProductId ? 'update' : undefined,
     id: editingProductId,
     name: data.name,
     category_id: +data.category_id,
-    description: data.description,
-    location: data.location || null, // Include location in payload
-    min_stock: +data.min_stock,
+    description: data.description || null,
+    location: data.location || null,
+    min_stock: +data.min_stock || 5,
     price: parseFloat(data.price),
     selling_price: parseFloat(data.selling_price),
-    stock: +data.stock,
-    sizes
+    stock: totalStock,
+    requires_expiry: requiresExpiry ? 1 : 0, // Convert to 1 or 0
+    batch_number: data.batch_number || null,
+    batch_expiry_date: requiresExpiry ? (data.batch_expiry_date || null) : null,
+    sizes: sizes.map(s => ({ size: s.size, stock: s.stock || 0 }))
   };
 
   try {
@@ -460,7 +827,6 @@ productForm.onsubmit = async e => {
   }
 };
 
-// load categories
 async function loadCategories() {
   try {
     const cats = await apiGet('./api/categories.php');
@@ -491,10 +857,8 @@ async function loadCategories() {
   }
 }
 
-// start editing a category
 window.startEditCategory = id => {
   if (editingCategoryId) {
-    // If another category is being edited, cancel that edit
     cancelEditCategory(editingCategoryId);
   }
   editingCategoryId = id;
@@ -506,7 +870,6 @@ window.startEditCategory = id => {
   li.querySelector('.category-edit-input').focus();
 };
 
-// confirm editing a category
 window.confirmEditCategory = async id => {
   const li = document.querySelector(`li[data-category-id="${id}"]`);
   const newName = li.querySelector('.category-edit-input').value.trim();
@@ -529,7 +892,6 @@ window.confirmEditCategory = async id => {
   }
 };
 
-// cancel editing a category (used when starting a new edit)
 window.cancelEditCategory = id => {
   const li = document.querySelector(`li[data-category-id="${id}"]`);
   li.querySelector('.category-name').classList.remove('hidden');
@@ -538,7 +900,6 @@ window.cancelEditCategory = id => {
   li.querySelector('.confirm-btn').classList.add('hidden');
 };
 
-// add category
 addCategoryBtn.onclick = async () => {
   const name = newCategoryInput.value.trim();
   if (!name) {
@@ -560,7 +921,6 @@ addCategoryBtn.onclick = async () => {
   }
 };
 
-// delete category
 window.deleteCategory = async id => {
   if (!confirm('Delete this category?')) return;
   try {
