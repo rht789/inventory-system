@@ -48,11 +48,24 @@ function generateBatchNumber(PDO $pdo, int $productId) {
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as count 
         FROM batches 
-        WHERE product_id = ? AND batch_number LIKE ?
+        WHERE batch_number LIKE ?
     ");
-    $stmt->execute([$productId, "BATCH-{$year}-%"]);
+    $stmt->execute(["BATCH-{$year}-%"]);
     $count = $stmt->fetchColumn() + 1;
     return sprintf("BATCH-%s-%03d", $year, $count);
+}
+
+/**
+ * Check if a batch number is unique across all products.
+ */
+function isBatchNumberUnique(PDO $pdo, string $batchNumber) {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM batches 
+        WHERE batch_number = ?
+    ");
+    $stmt->execute([$batchNumber]);
+    return $stmt->fetchColumn() == 0;
 }
 
 if ($method === 'GET') {
@@ -63,7 +76,7 @@ if ($method === 'GET') {
             exit;
         }
         $stmt = $pdo->prepare("
-            SELECT b.id, b.batch_number, b.expiry_date, b.stock, b.created_at, b.product_size_id, ps.size_name
+            SELECT b.id, b.batch_number, b.manufactured_date, b.stock, b.created_at, b.product_size_id, ps.size_name
             FROM batches b
             JOIN product_sizes ps ON b.product_size_id = ps.id
             WHERE b.product_id = ?
@@ -99,7 +112,7 @@ if ($method === 'GET') {
     $sql = "
       SELECT
         p.id, p.name, p.price, p.selling_price, p.stock, p.min_stock,
-        p.location, p.image, p.description, p.barcode, p.requires_expiry,
+        p.location, p.image, p.description, p.barcode,
         c.id   AS category_id, c.name AS category_name
       FROM products p
       JOIN categories c ON p.category_id = c.id
@@ -116,7 +129,7 @@ if ($method === 'GET') {
         $p['sizes'] = $sz->fetchAll();
 
         $bt = $pdo->prepare("
-            SELECT b.id, b.batch_number, b.expiry_date, b.stock, b.created_at, b.product_size_id, ps.size_name
+            SELECT b.id, b.batch_number, b.manufactured_date, b.stock, b.created_at, b.product_size_id, ps.size_name
             FROM batches b
             JOIN product_sizes ps ON b.product_size_id = ps.id
             WHERE b.product_id = ?
@@ -137,35 +150,10 @@ if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
     }
 
-    if (!empty($input['action']) && $input['action'] === 'update_expiry_requirement') {
-        if (empty($input['product_id']) || !isset($input['requires_expiry'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Product ID and requires_expiry are required']);
-            exit;
-        }
-
-        try {
-            $upd = $pdo->prepare("
-                UPDATE products 
-                SET requires_expiry = ? 
-                WHERE id = ?
-            ");
-            $upd->execute([
-                (int) $input['requires_expiry'], // Ensure it's 1 or 0
-                $input['product_id']
-            ]);
-            echo json_encode(['success' => true]);
-        } catch (PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Failed to update expiry requirement: ' . $e->getMessage()]);
-        }
-        exit;
-    }
-
     if (!empty($input['action']) && $input['action'] === 'create_batch') {
-        if (empty($input['product_id']) || empty($input['product_size_id']) || empty($input['batch_number']) || empty($input['stock'])) {
+        if (empty($input['product_id']) || empty($input['product_size_id']) || empty($input['batch_number']) || empty($input['stock']) || empty($input['manufactured_date'])) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Product ID, Product Size ID, batch number, and stock are required']);
+            echo json_encode(['success' => false, 'message' => 'Product ID, Product Size ID, batch number, stock, and manufactured date are required']);
             exit;
         }
 
@@ -214,15 +202,21 @@ if ($method === 'POST') {
                     ->execute([$newProductStock, $input['product_id']]);
             }
 
+            // Ensure batch_number is unique
+            $batchNumber = $input['batch_number'];
+            if (!isBatchNumberUnique($pdo, $batchNumber)) {
+                $batchNumber = generateBatchNumber($pdo, $input['product_id']);
+            }
+
             $ins = $pdo->prepare("
-                INSERT INTO batches (product_id, product_size_id, batch_number, expiry_date, stock)
+                INSERT INTO batches (product_id, product_size_id, batch_number, manufactured_date, stock)
                 VALUES (?, ?, ?, ?, ?)
             ");
             $ins->execute([
                 $input['product_id'],
                 $input['product_size_id'],
-                $input['batch_number'],
-                $input['expiry_date'] ?? null,
+                $batchNumber,
+                $input['manufactured_date'],
                 $newBatchStock
             ]);
 
@@ -235,15 +229,15 @@ if ($method === 'POST') {
     }
 
     if (!empty($input['action']) && $input['action'] === 'update_batch') {
-        if (empty($input['batch_id']) || empty($input['batch_number']) || empty($input['stock'])) {
+        if (empty($input['batch_id']) || empty($input['batch_number']) || empty($input['stock']) || empty($input['manufactured_date'])) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Batch ID, batch number, and stock are required']);
+            echo json_encode(['success' => false, 'message' => 'Batch ID, batch number, stock, and manufactured date are required']);
             exit;
         }
 
         try {
             $batch = $pdo->prepare("
-                SELECT product_id, product_size_id, stock 
+                SELECT product_id, product_size_id, stock, batch_number 
                 FROM batches 
                 WHERE id = ?
             ");
@@ -253,6 +247,12 @@ if ($method === 'POST') {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid batch ID']);
                 exit;
+            }
+
+            // Check if the new batch_number is unique (excluding the current batch)
+            $batchNumber = $input['batch_number'];
+            if ($batchNumber !== $batchData['batch_number'] && !isBatchNumberUnique($pdo, $batchNumber)) {
+                $batchNumber = generateBatchNumber($pdo, $batchData['product_id']);
             }
 
             $sizeStock = $pdo->prepare("
@@ -296,12 +296,12 @@ if ($method === 'POST') {
 
             $upd = $pdo->prepare("
                 UPDATE batches 
-                SET batch_number = ?, expiry_date = ?, stock = ?
+                SET batch_number = ?, manufactured_date = ?, stock = ?
                 WHERE id = ?
             ");
             $upd->execute([
-                $input['batch_number'],
-                $input['expiry_date'] ?? null,
+                $batchNumber,
+                $input['manufactured_date'],
                 $newBatchStock,
                 $input['batch_id']
             ]);
@@ -414,8 +414,7 @@ if ($method === 'POST') {
                 location       = :location,
                 image          = :image,
                 description    = :description,
-                barcode        = :barcode,
-                requires_expiry = :requires_expiry
+                barcode        = :barcode
               WHERE id = :id
             ");
             $upd->execute([
@@ -429,8 +428,7 @@ if ($method === 'POST') {
                 'location'       => $input['location']    ?? null,
                 'image'          => $input['image']       ?? null,
                 'description'    => $input['description'] ?? null,
-                'barcode'        => $input['barcode']     ?? null,
-                'requires_expiry' => isset($input['requires_expiry']) ? (int) $input['requires_expiry'] : 0
+                'barcode'        => $input['barcode']     ?? null
             ]);
 
             $gen  = new BarcodeGeneratorPNG();
@@ -462,6 +460,12 @@ if ($method === 'POST') {
         }
     }
 
+    if (empty($input['batch_number']) || empty($input['manufactured_date'])) {
+        http_response_code(422);
+        echo json_encode(['success' => false, "message" => "Batch number and manufactured date are required"]);
+        exit;
+    }
+
     // Validate category_id
     $catStmt = $pdo->prepare("SELECT id FROM categories WHERE id = ?");
     $catStmt->execute([$input['category_id']]);
@@ -475,10 +479,10 @@ if ($method === 'POST') {
         $ins = $pdo->prepare("
           INSERT INTO products
             (name, category_id, price, selling_price, stock,
-             min_stock, location, image, description, barcode, requires_expiry)
+             min_stock, location, image, description, barcode)
           VALUES
             (:name, :category_id, :price, :selling_price, :stock,
-             :min_stock, :location, :image, :description, NULL, :requires_expiry)
+             :min_stock, :location, :image, :description, NULL)
         ");
         $ins->execute([
             'name'           => $input['name'],
@@ -489,8 +493,7 @@ if ($method === 'POST') {
             'min_stock'      => $input['min_stock']   ?? 5,
             'location'       => $input['location']    ?? null,
             'image'          => $input['image']       ?? null,
-            'description'    => $input['description'] ?? null,
-            'requires_expiry' => isset($input['requires_expiry']) ? (int) $input['requires_expiry'] : 0
+            'description'    => $input['description'] ?? null
         ]);
         $newId = $pdo->lastInsertId();
 
@@ -517,15 +520,19 @@ if ($method === 'POST') {
 
             if ($productSizeId) {
                 $batchNumber = $input['batch_number'] ?? generateBatchNumber($pdo, $newId);
+                // Ensure batch_number is unique
+                if (!isBatchNumberUnique($pdo, $batchNumber)) {
+                    $batchNumber = generateBatchNumber($pdo, $newId);
+                }
                 $insBatch = $pdo->prepare("
-                    INSERT INTO batches (product_id, product_size_id, batch_number, expiry_date, stock)
+                    INSERT INTO batches (product_id, product_size_id, batch_number, manufactured_date, stock)
                     VALUES (?, ?, ?, ?, ?)
                 ");
                 $insBatch->execute([
                     $newId,
                     $productSizeId,
                     $batchNumber,
-                    $input['batch_expiry_date'] ?? null,
+                    $input['manufactured_date'],
                     $input['sizes'][0]['stock']
                 ]);
             }

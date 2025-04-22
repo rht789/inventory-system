@@ -123,14 +123,6 @@ include 'sidebar.php';
       </div>
 
       <div>
-        <label class="block text-sm font-medium">Requires Expiry Date</label>
-        <select name="requires_expiry" id="requiresExpirySelect" class="w-full border px-3 py-2 rounded">
-          <option value="1">Yes</option>
-          <option value="0">No</option>
-        </select>
-      </div>
-
-      <div>
         <label class="block text-sm font-medium mb-1">Sizes & Stock</label>
         <div class="flex gap-2 mb-2">
           <input type="text" id="newSizeInput"
@@ -154,7 +146,7 @@ include 'sidebar.php';
         <div class="space-y-2">
           <div>
             <label class="block text-sm">Size</label>
-            <select id="initialBatchSize" class="w-full border px-3 py-2 rounded">
+            <select id="initialBatchSize" name="initial_batch_size" class="w-full border px-3 py-2 rounded">
             </select>
           </div>
           <div>
@@ -163,9 +155,9 @@ include 'sidebar.php';
                    placeholder="e.g., BATCH-2025-001"
                    class="w-full border px-3 py-2 rounded" />
           </div>
-          <div id="initialBatchExpirySection">
-            <label class="block text-sm">Expiry Date</label>
-            <input type="date" name="batch_expiry_date" id="initialBatchExpiryDate"
+          <div>
+            <label class="block text-sm">Manufactured Date</label>
+            <input type="date" name="manufactured_date" id="initialManufacturedDate"
                    class="w-full border px-3 py-2 rounded" />
           </div>
         </div>
@@ -238,10 +230,10 @@ include 'sidebar.php';
                placeholder="e.g., BATCH-2025-001"
                class="w-full border px-3 py-2 rounded" required />
       </div>
-      <div id="batchExpiryDateSection">
-        <label class="block text-sm font-medium">Expiry Date</label>
-        <input type="date" id="batchExpiryDateInput" name="expiry_date"
-               class="w-full border px-3 py-2 rounded" />
+      <div>
+        <label class="block text-sm font-medium">Manufactured Date</label>
+        <input type="date" id="batchManufacturedDateInput" name="manufactured_date"
+               class="w-full border px-3 py-2 rounded" required />
       </div>
       <div>
         <label class="block text-sm font-medium">Stock</label>
@@ -259,7 +251,7 @@ include 'sidebar.php';
         <tr>
           <th class="px-4 py-3 text-left">Size</th>
           <th class="px-4 py-3 text-left">Batch Number</th>
-          <th class="px-4 py-3 text-center expiry-column">Expiry Date</th>
+          <th class="px-4 py-3 text-center">Manufactured Date</th>
           <th class="px-4 py-3 text-center">Stock</th>
           <th class="px-4 py-3 text-center">Actions</th>
         </tr>
@@ -289,10 +281,10 @@ include 'sidebar.php';
         <input type="text" id="editBatchNumberInput"
                class="w-full border px-3 py-2 rounded" required />
       </div>
-      <div id="editBatchExpiryDateSection">
-        <label class="block text-sm font-medium">Expiry Date</label>
-        <input type="date" id="editBatchExpiryDateInput"
-               class="w-full border px-3 py-2 rounded" />
+      <div>
+        <label class="block text-sm font-medium">Manufactured Date</label>
+        <input type="date" id="editBatchManufacturedDateInput"
+               class="w-full border px-3 py-2 rounded" required />
       </div>
       <div>
         <label class="block text-sm font-medium">Stock</label>
@@ -328,6 +320,7 @@ include 'sidebar.php';
 <script type="module">
 import { apiGet, apiPost } from './js/ajax.js';
 
+// Modal control functions
 window.openCategoryModal = () => document.getElementById('categoryModal').classList.remove('hidden');
 window.closeCategoryModal = () => document.getElementById('categoryModal').classList.add('hidden');
 window.openEditProductModal = () => {
@@ -338,7 +331,6 @@ window.openEditProductModal = () => {
     document.getElementById('editProductModalTitle').textContent = 'Add Product';
     document.getElementById('initialBatchSection').classList.remove('hidden');
     updateInitialBatchSizes();
-    updateExpiryFieldRequirement();
     document.getElementById('editProductModal').classList.remove('hidden');
 };
 window.closeEditProductModal = () => {
@@ -353,13 +345,6 @@ window.closeBarcodeModal = () => document.getElementById('barcodeModal').classLi
 window.openBatchModal = async (productId, productName) => {
     currentProductId = productId;
     document.getElementById('batchModalTitle').textContent = `Manage Batches for ${productName}`;
-    const product = (await apiGet(`./api/products.php`)).find(p => p.id === productId);
-    console.log('Product:', product);
-    console.log('requires_expiry:', product.requires_expiry);
-    currentProductRequiresExpiry = product.requires_expiry == '1' || product.requires_expiry === true;
-    console.log('currentProductRequiresExpiry:', currentProductRequiresExpiry);
-    toggleExpiryFields();
-    updateBatchExpiryFieldRequirement();
     await loadBatches(productId);
     await populateBatchSizes(productId);
     document.getElementById('batchModal').classList.remove('hidden');
@@ -370,28 +355,27 @@ window.closeBatchModal = () => {
 };
 window.openAddBatchForm = () => {
     document.getElementById('addBatchForm').classList.remove('hidden');
-    updateBatchExpiryFieldRequirement();
 };
 window.closeAddBatchForm = () => {
     document.getElementById('addBatchForm').classList.add('hidden');
     document.getElementById('batchSizeInput').value = '';
     document.getElementById('batchNumberInput').value = '';
-    document.getElementById('batchExpiryDateInput').value = '';
+    document.getElementById('batchManufacturedDateInput').value = '';
     document.getElementById('batchStockInput').value = '';
 };
 window.openEditBatchModal = (batch) => {
     document.getElementById('editBatchId').value = batch.id;
     document.getElementById('editBatchSizeName').value = batch.size_name;
     document.getElementById('editBatchNumberInput').value = batch.batch_number;
-    document.getElementById('editBatchExpiryDateInput').value = batch.expiry_date || '';
+    document.getElementById('editBatchManufacturedDateInput').value = batch.manufactured_date;
     document.getElementById('editBatchStockInput').value = batch.stock;
-    updateEditBatchExpiryFieldRequirement();
     document.getElementById('editBatchModal').classList.remove('hidden');
 };
 window.closeEditBatchModal = () => {
     document.getElementById('editBatchModal').classList.add('hidden');
 };
 
+// DOM elements
 const
   toast = document.getElementById('toast'),
   searchInput = document.getElementById('searchInput'),
@@ -412,528 +396,472 @@ const
   editBatchForm = document.getElementById('editBatchForm'),
   addBatchForm = document.getElementById('addBatchForm'),
   initialBatchSizeSelect = document.getElementById('initialBatchSize'),
-  batchSizeInput = document.getElementById('batchSizeInput'),
-  requiresExpirySelect = document.getElementById('requiresExpirySelect'),
-  initialBatchExpiryDate = document.getElementById('initialBatchExpiryDate'),
-  batchExpiryDateInput = document.getElementById('batchExpiryDateInput'),
-  editBatchExpiryDateInput = document.getElementById('editBatchExpiryDateInput');
+  batchSizeInput = document.getElementById('batchSizeInput');
 
-let sizes = [], editingProductId = null, editingCategoryId = null, currentProductId = null, currentProductRequiresExpiry = false;
+let sizes = [], editingProductId = null, editingCategoryId = null, currentProductId = null;
 
 function showToast(msg, success = true) {
-  toast.textContent = msg;
-  toast.classList.toggle('bg-green-500', success);
-  toast.classList.toggle('bg-red-500', !success);
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
+    toast.textContent = msg;
+    toast.classList.toggle('bg-green-500', success);
+    toast.classList.toggle('bg-red-500', !success);
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
 function updateInitialBatchSizes() {
-  initialBatchSizeSelect.innerHTML = sizes.length > 0
-    ? sizes.map(s => `<option value="${s.size}">${s.size} (${s.stock} units)</option>`).join('')
-    : '<option value="">No sizes available</option>';
-}
-
-function toggleExpiryFields() {
-  const show = currentProductRequiresExpiry;
-  console.log('toggleExpiryFields - currentProductRequiresExpiry:', currentProductRequiresExpiry);
-  document.getElementById('batchExpiryDateSection').style.display = show ? 'block' : 'none';
-  document.getElementById('editBatchExpiryDateSection').style.display = show ? 'block' : 'none';
-  document.getElementById('initialBatchExpirySection').style.display = show ? 'block' : 'none';
-  document.querySelectorAll('.expiry-column').forEach(el => {
-    el.style.display = show ? 'table-cell' : 'none';
-  });
-}
-
-function updateExpiryFieldRequirement() {
-  const requiresExpiry = requiresExpirySelect.value === '1';
-  console.log('updateExpiryFieldRequirement - requiresExpiry:', requiresExpiry);
-  if (requiresExpiry) {
-    initialBatchExpiryDate.setAttribute('required', 'required');
-  } else {
-    initialBatchExpiryDate.removeAttribute('required');
-  }
-}
-
-function updateBatchExpiryFieldRequirement() {
-  console.log('updateBatchExpiryFieldRequirement - currentProductRequiresExpiry:', currentProductRequiresExpiry);
-  if (currentProductRequiresExpiry) {
-    batchExpiryDateInput.setAttribute('required', 'required');
-  } else {
-    batchExpiryDateInput.removeAttribute('required');
-  }
-}
-
-function updateEditBatchExpiryFieldRequirement() {
-  console.log('updateEditBatchExpiryFieldRequirement - currentProductRequiresExpiry:', currentProductRequiresExpiry);
-  if (currentProductRequiresExpiry) {
-    editBatchExpiryDateInput.setAttribute('required', 'required');
-  } else {
-    editBatchExpiryDateInput.removeAttribute('required');
-  }
+    initialBatchSizeSelect.innerHTML = sizes.length > 0
+        ? sizes.map(s => `<option value="${s.size}">${s.size} (${s.stock} units)</option>`).join('')
+        : '<option value="">No sizes available</option>';
 }
 
 async function populateBatchSizes(productId) {
-  const product = (await apiGet(`./api/products.php`)).find(p => p.id === productId);
-  batchSizeInput.innerHTML = product.sizes.map(s => `
-    <option value="${s.id}">${s.size_name} (${s.stock} units)</option>
-  `).join('');
+    const product = (await apiGet(`./api/products.php`)).find(p => p.id === productId);
+    batchSizeInput.innerHTML = product.sizes.map(s => `
+        <option value="${s.id}">${s.size_name} (${s.stock} units)</option>
+    `).join('');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadCategories();
-  fetchProducts();
+    await loadCategories();
+    fetchProducts();
 });
 
 [searchInput, stockSelect, categorySelect].forEach(el =>
-  el.addEventListener('input', fetchProducts)
+    el.addEventListener('input', fetchProducts)
 );
 
-requiresExpirySelect.addEventListener('change', () => {
-  currentProductRequiresExpiry = requiresExpirySelect.value === '1';
-  toggleExpiryFields();
-  updateExpiryFieldRequirement();
-});
-
 async function fetchProducts() {
-  try {
-    const params = new URLSearchParams({
-      search: searchInput.value,
-      stock_filter: stockSelect.value.toLowerCase().replace(/ /g, '_'),
-      category_id: categorySelect.value === 'All Categories' ? '' : categorySelect.value
-    });
-    const prods = await apiGet(`./api/products.php?${params}`);
-    productList.innerHTML = prods.map(p => {
-      const cost = Number(p.price).toFixed(2);
-      const sell = Number(p.selling_price).toFixed(2);
-      const badges = p.sizes.map(s =>
-        `<span class="bg-gray-100 px-2 py-1 rounded text-xs">
-           ${s.size_name}:${s.stock}
-         </span>`
-      ).join('');
-      const total = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
+    try {
+        const params = new URLSearchParams({
+            search: searchInput.value,
+            stock_filter: stockSelect.value.toLowerCase().replace(/ /g, '_'),
+            category_id: categorySelect.value === 'All Categories' ? '' : categorySelect.value
+        });
+        const prods = await apiGet(`./api/products.php?${params}`);
+        productList.innerHTML = prods.map(p => {
+            const cost = Number(p.price).toFixed(2);
+            const sell = Number(p.selling_price).toFixed(2);
+            const badges = p.sizes.map(s =>
+                `<span class="bg-gray-100 px-2 py-1 rounded text-xs">
+                   ${s.size_name}:${s.stock}
+                 </span>`
+            ).join('');
+            const total = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
 
-      return `
-        <tr class="border-t hover:bg-gray-50">
-          <td class="px-4 py-3 font-semibold text-center">${p.name}</td>
-          <td class="px-4 py-3 text-center">${p.category_name}</td>
-          <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
-          <td class="px-4 py-3 font-bold text-center">${total}</td>
-          <td class="px-4 py-3 text-center">${p.batches.length}</td>
-          <td class="px-4 py-3 text-center">
-            <img src="./${p.barcode}"
-                 alt="Barcode"
-                 class="barcode-img h-8 mx-auto cursor-pointer"/>
-          </td>
-          <td class="px-4 py-3 text-center">৳ ${cost}</td>
-          <td class="px-4 py-3 text-center">৳ ${sell}</td>
-          <td class="px-4 py-3 text-center">
-            <button onclick="startEditProduct(${p.id})" class="text-blue-600 mr-2">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button onclick="openBatchModal(${p.id}, '${p.name}')" class="text-green-600 mr-2">
-              <i class="fa-solid fa-box-archive"></i>
-            </button>
-            <button onclick="deleteProduct(${p.id})" class="text-red-500">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
-        </tr>`;
-    }).join('');
+            return `
+                <tr class="border-t hover:bg-gray-50">
+                  <td class="px-4 py-3 font-semibold text-center">${p.name}</td>
+                  <td class="px-4 py-3 text-center">${p.category_name}</td>
+                  <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
+                  <td class="px-4 py-3 font-bold text-center">${total}</td>
+                  <td class="px-4 py-3 text-center">${p.batches.length}</td>
+                  <td class="px-4 py-3 text-center">
+                    <img src="./${p.barcode}"
+                         alt="Barcode"
+                         class="barcode-img h-8 mx-auto cursor-pointer"/>
+                  </td>
+                  <td class="px-4 py-3 text-center">৳ ${cost}</td>
+                  <td class="px-4 py-3 text-center">৳ ${sell}</td>
+                  <td class="px-4 py-3 text-center">
+                    <button onclick="startEditProduct(${p.id})" class="text-blue-600 mr-2">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="openBatchModal(${p.id}, '${p.name}')" class="text-green-600 mr-2">
+                      <i class="fa-solid fa-box-archive"></i>
+                    </button>
+                    <button onclick="deleteProduct(${p.id})" class="text-red-500">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </td>
+                </tr>`;
+        }).join('');
 
-    document.querySelectorAll('.barcode-img').forEach(img => {
-      img.onclick = () => {
-        barcodeModalImg.src = img.src;
-        openBarcodeModal();
-      };
-    });
-  } catch (err) {
-    console.error(err);
-    showToast(`Could not load products: ${err.message}`, false);
-  }
+        document.querySelectorAll('.barcode-img').forEach(img => {
+            img.onclick = () => {
+                barcodeModalImg.src = img.src;
+                openBarcodeModal();
+            };
+        });
+    } catch (err) {
+        console.error(err);
+        showToast(`Could not load products: ${err.message}`, false);
+    }
 }
 
 async function loadBatches(productId) {
-  try {
-    const batches = await apiGet(`./api/products.php?action=get_batches&product_id=${productId}`);
-    batchList.innerHTML = batches.map(b => {
-      const expiry = b.expiry_date ? new Date(b.expiry_date) : null;
-      const today = new Date();
-      const isExpiringSoon = expiry && (expiry - today) / (1000 * 60 * 60 * 24) <= 30;
-      const isExpired = expiry && expiry < today;
-      return `
-        <tr class="border-t">
-          <td class="px-4 py-3 text-left">${b.size_name}</td>
-          <td class="px-4 py-3 text-left">${b.batch_number}</td>
-          <td class="px-4 py-3 text-center expiry-column ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-yellow-500' : ''}">
-            ${b.expiry_date || '-'}
-          </td>
-          <td class="px-4 py-3 text-center ${b.stock === 0 ? 'text-gray-500' : ''}">
-            ${b.stock}
-          </td>
-          <td class="px-4 py-3 text-center">
-            <button onclick='openEditBatchModal(${JSON.stringify(b)})' class="text-blue-600 mr-2">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button onclick="deleteBatch(${b.id})" class="text-red-500">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
-        </tr>`;
-    }).join('');
-  } catch (err) {
-    console.error(err);
-    showToast('Could not load batches', false);
-  }
+    try {
+        const batches = await apiGet(`./api/products.php?action=get_batches&product_id=${productId}`);
+        batchList.innerHTML = batches.map(b => `
+            <tr class="border-t">
+              <td class="px-4 py-3 text-left">${b.size_name}</td>
+              <td class="px-4 py-3 text-left">${b.batch_number}</td>
+              <td class="px-4 py-3 text-center">${b.manufactured_date}</td>
+              <td class="px-4 py-3 text-center ${b.stock === 0 ? 'text-gray-500' : ''}">
+                ${b.stock}
+              </td>
+              <td class="px-4 py-3 text-center">
+                <button onclick='openEditBatchModal(${JSON.stringify(b)})' class="text-blue-600 mr-2">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteBatch(${b.id})" class="text-red-500">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </td>
+            </tr>`).join('');
+    } catch (err) {
+        console.error(err);
+        showToast('Could not load batches', false);
+    }
 }
 
 addBatchForm.onsubmit = async e => {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(addBatchForm).entries());
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(addBatchForm).entries());
 
-  if (parseInt(data.stock) < 0) {
-    showToast('Stock cannot be negative', false);
-    return;
-  }
-
-  try {
-    const res = await apiPost('./api/products.php', {
-      action: 'create_batch',
-      product_id: currentProductId,
-      product_size_id: data.product_size_id,
-      batch_number: data.batch_number,
-      expiry_date: currentProductRequiresExpiry ? data.expiry_date : null,
-      stock: parseInt(data.stock)
-    });
-    if (res.success) {
-      showToast('Batch added!');
-      closeAddBatchForm();
-      await loadBatches(currentProductId);
-      fetchProducts();
-    } else {
-      showToast(res.message || 'Failed to add batch', false);
+    if (parseInt(data.stock) < 0) {
+        showToast('Stock cannot be negative', false);
+        return;
     }
-  } catch (err) {
-    console.error(err);
-    showToast('Error adding batch', false);
-  }
+
+    try {
+        const res = await apiPost('./api/products.php', {
+            action: 'create_batch',
+            product_id: currentProductId,
+            product_size_id: data.product_size_id,
+            batch_number: data.batch_number,
+            manufactured_date: data.manufactured_date,
+            stock: parseInt(data.stock)
+        });
+        if (res.success) {
+            showToast('Batch added!');
+            closeAddBatchForm();
+            await loadBatches(currentProductId);
+            fetchProducts();
+        } else {
+            showToast(res.message || 'Failed to add batch', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error adding batch', false);
+    }
 };
 
 editBatchForm.onsubmit = async e => {
-  e.preventDefault();
-  const batchId = document.getElementById('editBatchId').value;
-  const batchNumber = document.getElementById('editBatchNumberInput').value.trim();
-  const expiryDate = currentProductRequiresExpiry ? document.getElementById('editBatchExpiryDateInput').value : null;
-  const stock = document.getElementById('editBatchStockInput').value;
+    e.preventDefault();
+    const batchId = document.getElementById('editBatchId').value;
+    const batchNumber = document.getElementById('editBatchNumberInput').value.trim();
+    const manufacturedDate = document.getElementById('editBatchManufacturedDateInput').value;
+    const stock = document.getElementById('editBatchStockInput').value;
 
-  if (!batchNumber || !stock || stock < 0) {
-    showToast('Please enter a valid batch number and stock', false);
-    return;
-  }
-
-  if (currentProductRequiresExpiry && !expiryDate) {
-    showToast('Expiry date is required for this product', false);
-    return;
-  }
-
-  try {
-    const res = await apiPost('./api/products.php', {
-      action: 'update_batch',
-      batch_id: batchId,
-      batch_number: batchNumber,
-      expiry_date: expiryDate || null,
-      stock: parseInt(stock)
-    });
-    if (res.success) {
-      showToast('Batch updated!');
-      closeEditBatchModal();
-      await loadBatches(currentProductId);
-      fetchProducts();
-    } else {
-      showToast(res.message || 'Failed to update batch', false);
+    if (!batchNumber || !stock || stock < 0 || !manufacturedDate) {
+        showToast('Please enter a valid batch number, manufactured date, and stock', false);
+        return;
     }
-  } catch (err) {
-    console.error(err);
-    showToast('Error updating batch', false);
-  }
+
+    try {
+        const res = await apiPost('./api/products.php', {
+            action: 'update_batch',
+            batch_id: batchId,
+            batch_number: batchNumber,
+            manufactured_date: manufacturedDate,
+            stock: parseInt(stock)
+        });
+        if (res.success) {
+            showToast('Batch updated!');
+            closeEditBatchModal();
+            await loadBatches(currentProductId);
+            fetchProducts();
+        } else {
+            showToast(res.message || 'Failed to update batch', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error updating batch', false);
+    }
 };
 
 window.deleteBatch = async (batchId) => {
-  if (!confirm('Delete this batch?')) return;
-  try {
-    const res = await apiPost('./api/products.php', {
-      action: 'delete_batch',
-      batch_id: batchId
-    });
-    if (res.success) {
-      showToast('Batch deleted');
-      await loadBatches(currentProductId);
-      fetchProducts();
-    } else {
-      showToast(res.message || 'Delete failed', false);
+    if (!confirm('Delete this batch?')) return;
+    try {
+        const res = await apiPost('./api/products.php', {
+            action: 'delete_batch',
+            batch_id: batchId
+        });
+        if (res.success) {
+            showToast('Batch deleted');
+            await loadBatches(currentProductId);
+            fetchProducts();
+        } else {
+            showToast(res.message || 'Delete failed', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Delete error', false);
     }
-  } catch (err) {
-    console.error(err);
-    showToast('Delete error', false);
-  }
 };
 
 window.deleteProduct = async id => {
-  if (!confirm('Delete this product?')) return;
-  try {
-    const res = await apiPost('./api/products.php', { action: 'delete', id });
-    if (res.success) {
-      showToast('Product deleted');
-      fetchProducts();
-    } else {
-      showToast(res.message || 'Delete failed', false);
+    if (!confirm('Delete this product?')) return;
+    try {
+        const res = await apiPost('./api/products.php', { action: 'delete', id });
+        if (res.success) {
+            showToast('Product deleted');
+            fetchProducts();
+        } else {
+            showToast(res.message || 'Delete failed', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Delete error: ${err.message}`, false);
     }
-  } catch (err) {
-    console.error(err);
-    showToast(`Delete error: ${err.message}`, false);
-  }
 };
 
 window.startEditProduct = async id => {
-  sizes = [];
-  productForm.reset();
-  editingProductId = id || null;
+    sizes = [];
+    productForm.reset();
+    editingProductId = id || null;
 
-  if (id) {
-    const ps = await apiGet(`./api/products.php`);
-    const p = ps.find(x => x.id === id);
-    productForm.id.value = p.id;
-    productForm.name.value = p.name;
-    productForm.description.value = p.description || '';
-    productForm.location.value = p.location || '';
-    productForm.min_stock.value = p.min_stock;
-    productForm.price.value = p.price;
-    productForm.selling_price.value = p.selling_price;
-    productForm.category_id.value = p.category_id;
-    productForm.requires_expiry.value = p.requires_expiry == '1' ? '1' : '0';
-    sizes = p.sizes.map(s => ({ size: s.size_name, stock: +s.stock }));
-    document.getElementById('editProductModalTitle').textContent = 'Edit Product';
-    document.getElementById('initialBatchSection').classList.add('hidden');
-  } else {
-    document.getElementById('editProductModalTitle').textContent = 'Add Product';
-    document.getElementById('initialBatchSection').classList.remove('hidden');
-  }
+    if (id) {
+        const ps = await apiGet(`./api/products.php`);
+        const p = ps.find(x => x.id === id);
+        productForm.id.value = p.id;
+        productForm.name.value = p.name;
+        productForm.description.value = p.description || '';
+        productForm.location.value = p.location || '';
+        productForm.min_stock.value = p.min_stock;
+        productForm.price.value = p.price;
+        productForm.selling_price.value = p.selling_price;
+        productForm.category_id.value = p.category_id;
+        productForm.barcode.value = p.barcode || ''; // Set barcode value
+        sizes = p.sizes.map(s => ({ size: s.size_name, stock: +s.stock }));
+        document.getElementById('editProductModalTitle').textContent = 'Edit Product';
+        document.getElementById('initialBatchSection').classList.add('hidden');
+        // Clear initial batch fields to avoid validation issues
+        document.getElementById('initialBatchSize').value = '';
+        document.getElementById('initialManufacturedDate').value = '';
+        productForm.batch_number.value = '';
+    } else {
+        document.getElementById('editProductModalTitle').textContent = 'Add Product';
+        document.getElementById('initialBatchSection').classList.remove('hidden');
+    }
 
-  currentProductRequiresExpiry = productForm.requires_expiry.value === '1';
-  toggleExpiryFields();
-  updateExpiryFieldRequirement();
-  renderSizes();
-  document.getElementById('editProductModal').classList.remove('hidden');
+    renderSizes();
+    document.getElementById('editProductModal').classList.remove('hidden');
 };
 
 addSizeBtn.onclick = () => {
-  const sz = newSizeInput.value.trim();
-  if (!sz || sizes.some(x => x.size === sz)) {
-    showToast('Please enter a unique size', false);
-    return;
-  }
-  sizes.push({ size: sz, stock: 0 });
-  newSizeInput.value = '';
-  renderSizes();
-  updateInitialBatchSizes();
+    const sz = newSizeInput.value.trim();
+    if (!sz || sizes.some(x => x.size === sz)) {
+        showToast('Please enter a unique size', false);
+        return;
+    }
+    sizes.push({ size: sz, stock: 0 });
+    newSizeInput.value = '';
+    renderSizes();
+    updateInitialBatchSizes();
 };
 
 function renderSizes() {
-  sizeList.innerHTML = sizes.map((s, i) => `
-    <li class="flex items-center gap-2">
-      <span class="bg-gray-100 px-2 py-1 rounded text-sm">${s.size}</span>
-      <input type="number" min="0" value="${s.stock}"
-             data-idx="${i}"
-             class="border px-2 py-1 rounded w-16 sizeStock"/>
-      <span>units</span>
-      <button data-idx="${i}"
-              class="ml-auto text-red-500 removeSize">×</button>
-    </li>`).join('');
+    sizeList.innerHTML = sizes.map((s, i) => `
+        <li class="flex items-center gap-2">
+          <span class="bg-gray-100 px-2 py-1 rounded text-sm">${s.size}</span>
+          <input type="number" min="0" value="${s.stock}"
+                 data-idx="${i}"
+                 class="border px-2 py-1 rounded w-16 sizeStock"/>
+          <span>units</span>
+          <button data-idx="${i}"
+                  class="ml-auto text-red-500 removeSize">×</button>
+        </li>`).join('');
 
-  sizeList.querySelectorAll('.sizeStock').forEach(inp => {
-    inp.oninput = e => {
-      sizes[+e.target.dataset.idx].stock = +e.target.value || 0;
-      updateTotal();
-      updateInitialBatchSizes();
-    };
-  });
-  sizeList.querySelectorAll('.removeSize').forEach(btn => {
-    btn.onclick = () => {
-      sizes.splice(+btn.dataset.idx, 1);
-      renderSizes();
-      updateInitialBatchSizes();
-    };
-  });
-  updateTotal();
+    sizeList.querySelectorAll('.sizeStock').forEach(inp => {
+        inp.oninput = e => {
+            sizes[+e.target.dataset.idx].stock = +e.target.value || 0;
+            updateTotal();
+            updateInitialBatchSizes();
+        };
+    });
+    sizeList.querySelectorAll('.removeSize').forEach(btn => {
+        btn.onclick = () => {
+            sizes.splice(+btn.dataset.idx, 1);
+            renderSizes();
+            updateInitialBatchSizes();
+        };
+    });
+    updateTotal();
 }
 
 function updateTotal() {
-  const total = sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
-  totalUnitsSpan.textContent = total;
-  stockInput.value = total;
+    const total = sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
+    totalUnitsSpan.textContent = total;
+    stockInput.value = total;
 }
 
 productForm.onsubmit = async e => {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(productForm).entries());
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(productForm).entries());
 
-  // Validate sizes and stock
-  if (sizes.length === 0) {
-    showToast('Please add at least one size', false);
-    return;
-  }
-  const totalStock = sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
-  if (totalStock <= 0) {
-    showToast('Total stock must be greater than 0', false);
-    return;
-  }
-
-  // Validate expiry date if required
-  const requiresExpiry = data.requires_expiry === '1';
-  if (!editingProductId && requiresExpiry && !data.batch_expiry_date) {
-    showToast('Expiry date is required for the initial batch', false);
-    return;
-  }
-
-  const payload = {
-    action: editingProductId ? 'update' : undefined,
-    id: editingProductId,
-    name: data.name,
-    category_id: +data.category_id,
-    description: data.description || null,
-    location: data.location || null,
-    min_stock: +data.min_stock || 5,
-    price: parseFloat(data.price),
-    selling_price: parseFloat(data.selling_price),
-    stock: totalStock,
-    requires_expiry: requiresExpiry ? 1 : 0, // Convert to 1 or 0
-    batch_number: data.batch_number || null,
-    batch_expiry_date: requiresExpiry ? (data.batch_expiry_date || null) : null,
-    sizes: sizes.map(s => ({ size: s.size, stock: s.stock || 0 }))
-  };
-
-  try {
-    const res = await apiPost('./api/products.php', payload);
-    if (res.success) {
-      showToast(editingProductId ? 'Product updated!' : 'Product added!');
-      closeEditProductModal();
-      fetchProducts();
-    } else {
-      showToast(res.message || 'Save failed', false);
+    // Validate sizes and stock
+    if (sizes.length === 0) {
+        showToast('Please add at least one size', false);
+        return;
     }
-  } catch (err) {
-    console.error(err);
-    showToast(`Save error: ${err.message}`, false);
-  }
+    const totalStock = sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
+    if (totalStock <= 0) {
+        showToast('Total stock must be greater than 0', false);
+        return;
+    }
+
+    // For adding a new product, validate batch fields
+    if (!editingProductId) {
+        if (!data.initial_batch_size || !data.batch_number || !data.manufactured_date) {
+            showToast('Initial batch size, batch number, and manufactured date are required for new products', false);
+            return;
+        }
+    }
+
+    const payload = {
+        action: editingProductId ? 'update' : undefined,
+        id: editingProductId,
+        name: data.name,
+        category_id: +data.category_id,
+        description: data.description || null,
+        location: data.location || null,
+        min_stock: +data.min_stock || 5,
+        price: parseFloat(data.price),
+        selling_price: parseFloat(data.selling_price),
+        stock: totalStock,
+        barcode: data.barcode || null, // Include barcode in payload
+        sizes: sizes.map(s => ({ size: s.size, stock: s.stock || 0 }))
+    };
+
+    // Only include batch fields for new products
+    if (!editingProductId) {
+        payload.batch_number = data.batch_number || null;
+        payload.manufactured_date = data.manufactured_date || null;
+    }
+
+    try {
+        const res = await apiPost('./api/products.php', payload);
+        if (res.success) {
+            showToast(editingProductId ? 'Product updated!' : 'Product added!');
+            closeEditProductModal();
+            fetchProducts();
+        } else {
+            showToast(res.message || 'Save failed', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Save error: ${err.message}`, false);
+    }
 };
 
 async function loadCategories() {
-  try {
-    const cats = await apiGet('./api/categories.php');
-    categorySelect.innerHTML =
-      '<option>All Categories</option>' +
-      cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    productForm.category_id.innerHTML =
-      cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    categoryList.innerHTML = cats.map(c => `
-      <li class="flex justify-between items-center py-2" data-category-id="${c.id}">
-        <span class="category-name">${c.name}</span>
-        <input type="text" class="category-edit-input hidden border px-2 py-1 rounded w-2/3" value="${c.name}" />
-        <div class="flex gap-2">
-          <button onclick="startEditCategory(${c.id})" class="edit-btn text-gray-500 cursor-pointer">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button onclick="confirmEditCategory(${c.id})" class="confirm-btn hidden text-green-500 cursor-pointer">
-            <i class="fas fa-check"></i>
-          </button>
-          <button onclick="deleteCategory(${c.id})" class="text-red-500 cursor-pointer">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </li>`).join('');
-  } catch (err) {
-    console.error(err);
-    showToast(`Could not load categories: ${err.message}`, false);
-  }
+    try {
+        const cats = await apiGet('./api/categories.php');
+        categorySelect.innerHTML =
+            '<option>All Categories</option>' +
+            cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        productForm.category_id.innerHTML =
+            cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        categoryList.innerHTML = cats.map(c => `
+            <li class="flex justify-between items-center py-2" data-category-id="${c.id}">
+              <span class="category-name">${c.name}</span>
+              <input type="text" class="category-edit-input hidden border px-2 py-1 rounded w-2/3" value="${c.name}" />
+              <div class="flex gap-2">
+                <button onclick="startEditCategory(${c.id})" class="edit-btn text-gray-500 cursor-pointer">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="confirmEditCategory(${c.id})" class="confirm-btn hidden text-green-500 cursor-pointer">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button onclick="deleteCategory(${c.id})" class="text-red-500 cursor-pointer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </li>`).join('');
+    } catch (err) {
+        console.error(err);
+        showToast(`Could not load categories: ${err.message}`, false);
+    }
 }
 
 window.startEditCategory = id => {
-  if (editingCategoryId) {
-    cancelEditCategory(editingCategoryId);
-  }
-  editingCategoryId = id;
-  const li = document.querySelector(`li[data-category-id="${id}"]`);
-  li.querySelector('.category-name').classList.add('hidden');
-  li.querySelector('.category-edit-input').classList.remove('hidden');
-  li.querySelector('.edit-btn').classList.add('hidden');
-  li.querySelector('.confirm-btn').classList.remove('hidden');
-  li.querySelector('.category-edit-input').focus();
+    if (editingCategoryId) {
+        cancelEditCategory(editingCategoryId);
+    }
+    editingCategoryId = id;
+    const li = document.querySelector(`li[data-category-id="${id}"]`);
+    li.querySelector('.category-name').classList.add('hidden');
+    li.querySelector('.category-edit-input').classList.remove('hidden');
+    li.querySelector('.edit-btn').classList.add('hidden');
+    li.querySelector('.confirm-btn').classList.remove('hidden');
+    li.querySelector('.category-edit-input').focus();
 };
 
 window.confirmEditCategory = async id => {
-  const li = document.querySelector(`li[data-category-id="${id}"]`);
-  const newName = li.querySelector('.category-edit-input').value.trim();
-  if (!newName) {
-    showToast('Category name cannot be empty', false);
-    return;
-  }
-  try {
-    const res = await apiPost('./api/categories.php', { action: 'update', id, name: newName });
-    if (res.success) {
-      showToast('Category updated!');
-      editingCategoryId = null;
-      await loadCategories();
-    } else {
-      showToast(res.message || 'Update failed', false);
+    const li = document.querySelector(`li[data-category-id="${id}"]`);
+    const newName = li.querySelector('.category-edit-input').value.trim();
+    if (!newName) {
+        showToast('Category name cannot be empty', false);
+        return;
     }
-  } catch (err) {
-    console.error(err);
-    showToast(`Update error: ${err.message}`, false);
-  }
+    try {
+        const res = await apiPost('./api/categories.php', { action: 'update', id, name: newName });
+        if (res.success) {
+            showToast('Category updated!');
+            editingCategoryId = null;
+            await loadCategories();
+        } else {
+            showToast(res.message || 'Update failed', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Update error: ${err.message}`, false);
+    }
 };
 
 window.cancelEditCategory = id => {
-  const li = document.querySelector(`li[data-category-id="${id}"]`);
-  li.querySelector('.category-name').classList.remove('hidden');
-  li.querySelector('.category-edit-input').classList.add('hidden');
-  li.querySelector('.edit-btn').classList.remove('hidden');
-  li.querySelector('.confirm-btn').classList.add('hidden');
+    const li = document.querySelector(`li[data-category-id="${id}"]`);
+    li.querySelector('.category-name').classList.remove('hidden');
+    li.querySelector('.category-edit-input').classList.add('hidden');
+    li.querySelector('.edit-btn').classList.remove('hidden');
+    li.querySelector('.confirm-btn').classList.add('hidden');
 };
 
 addCategoryBtn.onclick = async () => {
-  const name = newCategoryInput.value.trim();
-  if (!name) {
-    showToast('Category name cannot be empty', false);
-    return;
-  }
-  try {
-    const res = await apiPost('./api/categories.php', { name });
-    if (res.success) {
-      showToast('Category added!');
-      newCategoryInput.value = '';
-      await loadCategories();
-    } else {
-      showToast(res.message || 'Add failed', false);
+    const name = newCategoryInput.value.trim();
+    if (!name) {
+        showToast('Category name cannot be empty', false);
+        return;
     }
-  } catch (err) {
-    console.error(err);
-    showToast(`Add error: ${err.message}`, false);
-  }
+    try {
+        const res = await apiPost('./api/categories.php', { name });
+        if (res.success) {
+            showToast('Category added!');
+            newCategoryInput.value = '';
+            await loadCategories();
+        } else {
+            showToast(res.message || 'Add failed', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Add error: ${err.message}`, false);
+    }
 };
 
 window.deleteCategory = async id => {
-  if (!confirm('Delete this category?')) return;
-  try {
-    const res = await apiPost('./api/categories.php', { action: 'delete', id });
-    if (res.success) {
-      showToast('Category deleted!');
-      await loadCategories();
-    } else {
-      showToast(res.message || 'Delete failed', false);
+    if (!confirm('Delete this category?')) return;
+    try {
+        const res = await apiPost('./api/categories.php', { action: 'delete', id });
+        if (res.success) {
+            showToast('Category deleted!');
+            await loadCategories();
+        } else {
+            showToast(res.message || 'Delete failed', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Delete error: ${err.message}`, false);
     }
-  } catch (err) {
-    console.error(err);
-    showToast(`Delete error: ${err.message}`, false);
-  }
 };
 </script>
