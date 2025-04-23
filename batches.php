@@ -16,7 +16,7 @@ include 'sidebar.php';
     <h2 class="text-xl font-bold">Batch Management</h2>
     <button onclick="openAddBatchModal()"
             class="bg-black text-white px-4 py-2 rounded text-sm">
-      + Add Batch
+            <i class="fas fa-plus mr-1"></i> Add Batch
     </button>
   </div>
 

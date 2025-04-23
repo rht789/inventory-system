@@ -17,11 +17,11 @@ include 'sidebar.php';
     <div class="flex gap-2">
       <button onclick="openCategoryModal()"
               class="border border-gray-400 rounded px-4 py-2 text-sm hover:bg-gray-100">
-        Manage Categories
+        <i class="fas fa-tags mr-1"></i> Manage Categories
       </button>
       <button onclick="openAddProductModal()"
               class="bg-black text-white px-4 py-2 rounded text-sm">
-        + Add Product
+        <i class="fas fa-plus mr-1"></i> Add Product
       </button>
     </div>
   </div>
