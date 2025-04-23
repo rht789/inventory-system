@@ -1,0 +1,397 @@
+<?php
+// api/sales.php
+
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../authcheck.php';
+
+header('Content-Type: application/json');
+$method = $_SERVER['REQUEST_METHOD'];
+
+// Ensure user is logged in and has appropriate role
+requireLogin();
+allowRoles(['admin', 'staff']);
+
+// Helper function to format order ID (e.g., ORD-015)
+function formatOrderId($id) {
+    return 'ORD-' . str_pad($id, 3, '0', STR_PAD_LEFT);
+}
+
+// Helper function to log audit actions
+function logAudit($pdo, $userId, $saleId, $action) {
+    $stmt = $pdo->prepare("
+        INSERT INTO audit_logs (user_id, sale_id, action, timestamp)
+        VALUES (?, ?, ?, NOW())
+    ");
+    $stmt->execute([$userId, $saleId, $action]);
+}
+
+// Helper function to log stock changes
+function logStock($pdo, $userId, $productId, $changes, $reason) {
+    $stmt = $pdo->prepare("
+        INSERT INTO stock_logs (product_id, changes, reason, user_id, timestamp)
+        VALUES (?, ?, ?, ?, NOW())
+    ");
+    $stmt->execute([$productId, $changes, $reason, $userId]);
+}
+
+// Helper function to update product stock
+function updateProductStock($pdo, $productId) {
+    $stmt = $pdo->prepare("
+        UPDATE products
+        SET stock = (SELECT SUM(stock) FROM product_sizes WHERE product_id = ?)
+        WHERE id = ?
+    ");
+    $stmt->execute([$productId, $productId]);
+}
+
+// Helper function to get or create customer
+function getOrCreateCustomer($pdo, $customerData) {
+    // Check if customer exists based on phone or email
+    $whereConditions = [];
+    $params = [];
+    
+    if (!empty($customerData['phone'])) {
+        $whereConditions[] = "phone = ?";
+        $params[] = $customerData['phone'];
+    }
+    
+    if (!empty($customerData['email'])) {
+        $whereConditions[] = "email = ?";
+        $params[] = $customerData['email'];
+    }
+    
+    $customerId = null;
+    
+    if (!empty($whereConditions)) {
+        $whereClause = implode(" OR ", $whereConditions);
+        $stmt = $pdo->prepare("SELECT id FROM customers WHERE $whereClause LIMIT 1");
+        $stmt->execute($params);
+        $result = $stmt->fetch();
+        
+        if ($result) {
+            $customerId = $result['id'];
+        }
+    }
+    
+    // If customer doesn't exist, create new
+    if (!$customerId) {
+        $stmt = $pdo->prepare("
+            INSERT INTO customers (name, phone, email, address)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            $customerData['name'] ?? 'Guest Customer',
+            $customerData['phone'] ?? null,
+            $customerData['email'] ?? null,
+            $customerData['address'] ?? null
+        ]);
+        
+        $customerId = $pdo->lastInsertId();
+    }
+    
+    return $customerId;
+}
+
+// GET endpoint - Fetch sales with optional filters
+if ($method === 'GET') {
+    $search = $_GET['search'] ?? '';
+    $status = $_GET['status'] ?? '';
+    
+    $conds = [];
+    $params = [];
+    
+    if ($search) {
+        $conds[] = "(s.id LIKE :search OR c.name LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+    
+    if ($status && $status !== 'All Statuses') {
+        $conds[] = "s.status = :status";
+        $params[':status'] = strtolower($status);
+    }
+    
+    $whereClause = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';
+    
+    $sql = "
+        SELECT 
+            s.id, 
+            s.total, 
+            s.status, 
+            s.created_at, 
+            c.name as customer_name
+        FROM sales s
+        JOIN customers c ON s.customer_id = c.id
+        $whereClause
+        ORDER BY s.created_at DESC
+    ";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $sales = $stmt->fetchAll();
+    
+    // For each sale, get its items
+    foreach ($sales as &$sale) {
+        $itemsStmt = $pdo->prepare("
+            SELECT 
+                si.id,
+                si.quantity,
+                si.subtotal,
+                p.name as product_name,
+                ps.size_name
+            FROM sale_items si
+            JOIN products p ON si.product_id = p.id
+            LEFT JOIN product_sizes ps ON si.product_size_id = ps.id
+            WHERE si.sale_id = ?
+        ");
+        $itemsStmt->execute([$sale['id']]);
+        $sale['items'] = $itemsStmt->fetchAll();
+        
+        // Format order ID 
+        $sale['order_id'] = formatOrderId($sale['id']);
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'sales' => $sales
+    ]);
+    exit;
+}
+
+// POST endpoint - Create a new sale
+if ($method === 'POST') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    // Validate required data
+    if (!isset($data['customer']) || !isset($data['items']) || empty($data['items'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Missing required data']);
+        exit;
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Get or create customer
+        $customerId = getOrCreateCustomer($pdo, $data['customer']);
+        
+        // Calculate total
+        $total = 0;
+        foreach ($data['items'] as $item) {
+            $total += $item['subtotal'];
+        }
+        
+        // Apply discount if provided
+        $discountTotal = 0;
+        if (isset($data['discount']) && is_numeric($data['discount']) && $data['discount'] > 0) {
+            $discountTotal = $total * ($data['discount'] / 100);
+            $total -= $discountTotal;
+        }
+        
+        // Create sale record
+        $status = $data['status'] ?? 'pending';
+        $stmt = $pdo->prepare("
+            INSERT INTO sales (user_id, customer_id, total, discount_total, status, created_at)
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$_SESSION['user_id'], $customerId, $total, $discountTotal, $status]);
+        $saleId = $pdo->lastInsertId();
+        
+        // Create sale items and update stock
+        foreach ($data['items'] as $item) {
+            $productId = $item['product_id'];
+            $productSizeId = $item['product_size_id'] ?? null;
+            $quantity = $item['quantity'];
+            $subtotal = $item['subtotal'];
+            $itemDiscount = $item['discount'] ?? 0;
+            
+            // Insert sale item
+            $stmt = $pdo->prepare("
+                INSERT INTO sale_items (sale_id, product_id, product_size_id, quantity, subtotal, discount, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([$saleId, $productId, $productSizeId, $quantity, $subtotal, $itemDiscount]);
+            
+            // Update stock if item is confirmed or pending
+            if ($status !== 'canceled') {
+                // Update product size stock
+                if ($productSizeId) {
+                    $stmt = $pdo->prepare("
+                        UPDATE product_sizes
+                        SET stock = stock - ?
+                        WHERE id = ? AND stock >= ?
+                    ");
+                    $stmt->execute([$quantity, $productSizeId, $quantity]);
+                    
+                    // Check if stock update was successful
+                    if ($stmt->rowCount() === 0) {
+                        throw new Exception("Insufficient stock for product size ID $productSizeId");
+                    }
+                    
+                    // Update product total stock
+                    updateProductStock($pdo, $productId);
+                    
+                    // Log stock change
+                    $changes = "Reduced $quantity Stock";
+                    $reason = "Sale " . formatOrderId($saleId);
+                    logStock($pdo, $_SESSION['user_id'], $productId, $changes, $reason);
+                }
+            }
+        }
+        
+        // Log audit action
+        $action = "Created Sale " . formatOrderId($saleId);
+        logAudit($pdo, $_SESSION['user_id'], $saleId, $action);
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'sale_id' => $saleId,
+            'order_id' => formatOrderId($saleId),
+            'message' => 'Sale created successfully'
+        ]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
+// PUT endpoint - Update sale status
+if ($method === 'PUT') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['id']) || !isset($data['status'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Missing sale ID or status']);
+        exit;
+    }
+    
+    $saleId = $data['id'];
+    $newStatus = strtolower($data['status']);
+    
+    // Validate status
+    $validStatuses = ['pending', 'confirmed', 'delivered', 'canceled'];
+    if (!in_array($newStatus, $validStatuses)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid status']);
+        exit;
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Get current status
+        $stmt = $pdo->prepare("SELECT status FROM sales WHERE id = ?");
+        $stmt->execute([$saleId]);
+        $currentStatus = $stmt->fetchColumn();
+        
+        if (!$currentStatus) {
+            throw new Exception("Sale not found");
+        }
+        
+        // Handle stock changes if status changes to or from 'canceled'
+        if ($currentStatus !== 'canceled' && $newStatus === 'canceled') {
+            // If changing to canceled, restore stock
+            $itemsStmt = $pdo->prepare("
+                SELECT product_id, product_size_id, quantity
+                FROM sale_items
+                WHERE sale_id = ?
+            ");
+            $itemsStmt->execute([$saleId]);
+            $items = $itemsStmt->fetchAll();
+            
+            foreach ($items as $item) {
+                if ($item['product_size_id']) {
+                    // Increase stock in product_sizes
+                    $stmt = $pdo->prepare("
+                        UPDATE product_sizes
+                        SET stock = stock + ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$item['quantity'], $item['product_size_id']]);
+                    
+                    // Update product total stock
+                    updateProductStock($pdo, $item['product_id']);
+                    
+                    // Log stock change
+                    $changes = "Added {$item['quantity']} Stock";
+                    $reason = "Sale " . formatOrderId($saleId) . " Canceled";
+                    logStock($pdo, $_SESSION['user_id'], $item['product_id'], $changes, $reason);
+                }
+            }
+        } else if ($currentStatus === 'canceled' && $newStatus !== 'canceled') {
+            // If changing from canceled, reduce stock again
+            $itemsStmt = $pdo->prepare("
+                SELECT product_id, product_size_id, quantity
+                FROM sale_items
+                WHERE sale_id = ?
+            ");
+            $itemsStmt->execute([$saleId]);
+            $items = $itemsStmt->fetchAll();
+            
+            foreach ($items as $item) {
+                if ($item['product_size_id']) {
+                    // Check if enough stock
+                    $stockStmt = $pdo->prepare("
+                        SELECT stock FROM product_sizes WHERE id = ?
+                    ");
+                    $stockStmt->execute([$item['product_size_id']]);
+                    $currentStock = $stockStmt->fetchColumn();
+                    
+                    if ($currentStock < $item['quantity']) {
+                        throw new Exception("Insufficient stock to reactivate sale");
+                    }
+                    
+                    // Decrease stock in product_sizes
+                    $stmt = $pdo->prepare("
+                        UPDATE product_sizes
+                        SET stock = stock - ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$item['quantity'], $item['product_size_id']]);
+                    
+                    // Update product total stock
+                    updateProductStock($pdo, $item['product_id']);
+                    
+                    // Log stock change
+                    $changes = "Reduced {$item['quantity']} Stock";
+                    $reason = "Sale " . formatOrderId($saleId) . " Reactivated as $newStatus";
+                    logStock($pdo, $_SESSION['user_id'], $item['product_id'], $changes, $reason);
+                }
+            }
+        }
+        
+        // Update sale status
+        $stmt = $pdo->prepare("UPDATE sales SET status = ? WHERE id = ?");
+        $stmt->execute([$newStatus, $saleId]);
+        
+        // Log audit action
+        $action = "Changed status of Sale " . formatOrderId($saleId) . " to " . ucfirst($newStatus);
+        logAudit($pdo, $_SESSION['user_id'], $saleId, $action);
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Sale status updated successfully'
+        ]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
+// Invalid method
+http_response_code(405);
+echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+exit;
