@@ -11,23 +11,27 @@ switch ($action) {
     case 'login':
         $email = $_POST['email'];
         $password = $_POST['password'];
-
+    
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-
+    
         if ($user && password_verify($password, $user['password_hash'])) {
-            // Store full session info
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['email'] = $user['email'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['username'] = $user['username'];
-
+            $_SESSION['user'] = [
+                'id' => $user['id'],
+                'email' => $user['email'],
+                'username' => $user['username'],
+                'role' => $user['role'],
+                'profile_picture' => $user['profile_picture'] ?? 'default.png'
+            ];
             echo json_encode(['success' => true]);
+            
+            
         } else {
             echo json_encode(['error' => 'Invalid credentials']);
         }
         break;
+    
         case 'forgot':
             $email = $_POST['email'];
         
