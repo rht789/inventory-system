@@ -39,7 +39,7 @@
         msg.classList.remove("hidden", "bg-red-500", "bg-green-600");
         msg.classList.add(result.success ? "bg-green-600" : "bg-red-500");
         msg.textContent = result.success ? "Login successful!" : result.error;
-        if (result.success) setTimeout(() => window.location.href = 'dashboard.php', 1500);
+        if (result.success) setTimeout(() => window.location.href = 'orders.php', 1500);
     });
     </script>
 </body>
