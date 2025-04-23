@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+// ✅ Redirect logged-in users
+if (isset($_SESSION['user_id'])) {
+    header("Location: products.php"); // or orders.php or wherever you want
+    exit;
+}
+?>
+
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,7 +51,7 @@
         msg.classList.remove("hidden", "bg-red-500", "bg-green-600");
         msg.classList.add(result.success ? "bg-green-600" : "bg-red-500");
         msg.textContent = result.success ? "Login successful!" : result.error;
-        if (result.success) setTimeout(() => window.location.href = 'orders.php', 1500);
+        if (result.success) setTimeout(() => window.location.href = 'products.php', 1500);
     });
     </script>
 </body>

@@ -23,9 +23,7 @@ switch ($action) {
             $_SESSION['user_username'] = $user['username'];
             $_SESSION['user_role'] = $user['role'];
             $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? 'default.png';
-                // After password verification and user found
-                
-// STORED AS USER ARRAY 
+
             echo json_encode(['success' => true]);
             
             
