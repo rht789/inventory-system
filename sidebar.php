@@ -22,6 +22,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <a href="products.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'products.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-cube w-4"></i> Products
     </a>
+    <a href="batches.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'batches.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+      <i class="fa fa-box-archive w-4"></i> Batches
+    </a>
     <a href="stock.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'stock.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
       <i class="fa fa-boxes w-4"></i> Stock
     </a>
