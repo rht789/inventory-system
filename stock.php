@@ -20,7 +20,14 @@ include 'sidebar.php';
   <!-- Header -->
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold">Stock Management</h2>
-    <button onclick="openAdjustStockModal(null, 'add')" class="bg-black text-white px-4 py-2 rounded text-sm">+ Add Stock</button>
+    <div class="flex gap-2">
+      <button onclick="openStockLogsModal()" class="border border-gray-400 bg-white text-gray-800 px-4 py-2 rounded text-sm">
+        <i class="fas fa-history mr-1"></i> Stock Logs
+      </button>
+      <button onclick="openAdjustStockModal(null, 'add')" class="bg-black text-white px-4 py-2 rounded text-sm">
+        <i class="fas fa-exchange-alt mr-1"></i> Change Stock
+      </button>
+    </div>
   </div>
 
   <!-- Filters -->
@@ -142,11 +149,60 @@ include 'sidebar.php';
   </div>
 </div>
 
+<!-- Stock Logs Modal -->
+<div id="stockLogsModal" class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[80vh] overflow-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Stock Logs</h3>
+      <button onclick="closeStockLogsModal()">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    
+    <div class="mb-4">
+      <div class="flex gap-3 mb-3">
+        <input type="text" id="stockLogsSearch" placeholder="Search by product name or reason..." 
+               class="border px-3 py-2 rounded flex-1">
+        <select id="stockLogsTypeFilter" class="border px-3 py-2 rounded">
+          <option value="">All Changes</option>
+          <option value="Added">Added Stock</option>
+          <option value="Reduced">Reduced Stock</option>
+        </select>
+        <button id="refreshStockLogs" class="bg-gray-100 px-3 py-2 rounded hover:bg-gray-200">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-100 text-gray-600">
+          <tr>
+            <th class="px-4 py-2 text-left">Date & Time</th>
+            <th class="px-4 py-2 text-left">Product</th>
+            <th class="px-4 py-2 text-center">Change</th>
+            <th class="px-4 py-2 text-left">Reason</th>
+            <th class="px-4 py-2 text-left">User</th>
+          </tr>
+        </thead>
+        <tbody id="stockLogsList" class="divide-y">
+          <!-- Stock logs will be populated here -->
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="mt-4 text-center" id="stockLogsPagination">
+      <!-- Pagination will be added here -->
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { apiGet } from './js/ajax.js';
 
 const toast = document.getElementById('toast');
 const modal = document.getElementById('adjustStockModal');
+const stockLogsModal = document.getElementById('stockLogsModal');
 const form  = document.getElementById('adjustStockForm');
 const stockList = document.getElementById('stock-list');
 const searchStockInput = document.getElementById('searchStockInput');
@@ -158,8 +214,15 @@ const productDropdown = document.getElementById('productDropdown');
 const productIdInput = document.getElementById('productIdInput');
 const sizeSelect = document.getElementById('sizeSelect');
 const barcodeModalImg = document.getElementById('barcodeModalImg');
+const stockLogsList = document.getElementById('stockLogsList');
+const stockLogsSearch = document.getElementById('stockLogsSearch');
+const stockLogsTypeFilter = document.getElementById('stockLogsTypeFilter');
+const stockLogsPagination = document.getElementById('stockLogsPagination');
+const refreshStockLogsBtn = document.getElementById('refreshStockLogs');
 
 let products = [];
+let currentPage = 1;
+let logsPerPage = 15;
 
 // Function to show toast notifications
 function showToast(msg, success = true) {
@@ -185,6 +248,16 @@ window.closeAdjustStockModal = () => {
   modal.classList.add('hidden');
   form.reset();
   productDropdown.classList.add('hidden');
+};
+
+window.openStockLogsModal = () => {
+  stockLogsModal.classList.remove('hidden');
+  currentPage = 1;
+  loadStockLogs();
+};
+
+window.closeStockLogsModal = () => {
+  stockLogsModal.classList.add('hidden');
 };
 
 window.openBarcodeModal = () => document.getElementById('barcodeModal').classList.remove('hidden');
@@ -391,5 +464,113 @@ form.onsubmit = async e => {
 document.addEventListener('DOMContentLoaded', () => {
   loadStock();
   populateLocationDropdown();
+  
+  // Add stock logs event listeners
+  stockLogsSearch.addEventListener('input', () => {
+    currentPage = 1;
+    loadStockLogs();
+  });
+  
+  stockLogsTypeFilter.addEventListener('change', () => {
+    currentPage = 1;
+    loadStockLogs();
+  });
+  
+  refreshStockLogsBtn.addEventListener('click', () => {
+    currentPage = 1;
+    loadStockLogs();
+  });
 });
+
+// Function to load stock logs
+async function loadStockLogs() {
+  try {
+    const params = new URLSearchParams({
+      search: stockLogsSearch.value,
+      type: stockLogsTypeFilter.value,
+      page: currentPage,
+      per_page: logsPerPage
+    });
+    
+    const response = await apiGet(`./api/stock.php?action=get_logs&${params}`);
+    
+    if (response.success) {
+      renderStockLogs(response.logs, response.pagination);
+    } else {
+      showToast(response.message || 'Failed to load stock logs', false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Error loading stock logs', false);
+  }
+}
+
+// Function to render stock logs
+function renderStockLogs(logs, pagination) {
+  if (logs.length === 0) {
+    stockLogsList.innerHTML = `
+      <tr>
+        <td colspan="5" class="px-4 py-4 text-center text-gray-500">No stock logs found</td>
+      </tr>
+    `;
+    stockLogsPagination.innerHTML = '';
+    return;
+  }
+  
+  stockLogsList.innerHTML = logs.map(log => {
+    // Determine the CSS class based on the type of change
+    const changeClass = log.changes.includes('Added') 
+      ? 'bg-green-100 text-green-800' 
+      : 'bg-red-100 text-red-800';
+      
+    return `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">${formatDate(log.timestamp)}</td>
+        <td class="px-4 py-3">${log.product_name}</td>
+        <td class="px-4 py-3 text-center">
+          <span class="px-2 py-1 rounded ${changeClass}">${log.changes}</span>
+        </td>
+        <td class="px-4 py-3">${log.reason}</td>
+        <td class="px-4 py-3">${log.username}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Render pagination
+  if (pagination.total_pages > 1) {
+    let paginationHtml = '';
+    for (let i = 1; i <= pagination.total_pages; i++) {
+      const activeClass = i === pagination.current_page 
+        ? 'bg-gray-800 text-white' 
+        : 'bg-gray-200 text-gray-800 hover:bg-gray-300';
+      
+      paginationHtml += `
+        <button onclick="changePage(${i})" class="${activeClass} px-3 py-1 mx-1 rounded">
+          ${i}
+        </button>
+      `;
+    }
+    stockLogsPagination.innerHTML = paginationHtml;
+  } else {
+    stockLogsPagination.innerHTML = '';
+  }
+}
+
+// Pagination function
+window.changePage = (page) => {
+  currentPage = page;
+  loadStockLogs();
+};
+
+// Format date for display
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 </script>

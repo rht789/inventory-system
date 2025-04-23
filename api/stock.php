@@ -103,6 +103,89 @@ if ($method === 'POST') {
 if ($method === 'GET') {
     $action = $_GET['action'] ?? '';
 
+    if ($action === 'get_logs') {
+        try {
+            // Get parameters
+            $search = $_GET['search'] ?? '';
+            $typeFilter = $_GET['type'] ?? '';
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $perPage = isset($_GET['per_page']) ? max(1, (int)$_GET['per_page']) : 15;
+            $offset = ($page - 1) * $perPage;
+            
+            // Base query for counting total logs
+            $countQuery = "
+                SELECT COUNT(*) 
+                FROM stock_logs sl
+                JOIN products p ON sl.product_id = p.id
+                JOIN users u ON sl.user_id = u.id
+                WHERE 1=1
+            ";
+            
+            // Base query for fetching logs
+            $query = "
+                SELECT 
+                    sl.*,
+                    p.name AS product_name,
+                    u.username
+                FROM stock_logs sl
+                JOIN products p ON sl.product_id = p.id
+                JOIN users u ON sl.user_id = u.id
+                WHERE 1=1
+            ";
+            
+            $params = [];
+            
+            // Add search condition if provided
+            if (!empty($search)) {
+                $searchCondition = " AND (p.name LIKE ? OR sl.reason LIKE ?)";
+                $countQuery .= $searchCondition;
+                $query .= $searchCondition;
+                $params[] = "%$search%";
+                $params[] = "%$search%";
+            }
+            
+            // Add type filter if provided
+            if (!empty($typeFilter)) {
+                $typeCondition = " AND sl.changes LIKE ?";
+                $countQuery .= $typeCondition;
+                $query .= $typeCondition;
+                $params[] = "%$typeFilter%";
+            }
+            
+            // Get total count
+            $countStmt = $pdo->prepare($countQuery);
+            $countStmt->execute($params);
+            $totalLogs = $countStmt->fetchColumn();
+            $totalPages = ceil($totalLogs / $perPage);
+            
+            // Add order and limit to main query
+            $query .= " ORDER BY sl.timestamp DESC LIMIT $offset, $perPage";
+            
+            // Execute main query
+            $stmt = $pdo->prepare($query);
+            $stmt->execute($params);
+            $logs = $stmt->fetchAll();
+            
+            // Build pagination info
+            $pagination = [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_logs' => $totalLogs,
+                'total_pages' => $totalPages
+            ];
+            
+            echo json_encode([
+                'success' => true,
+                'logs' => $logs,
+                'pagination' => $pagination
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     if ($action === 'get_locations') {
         try {
             $stmt = $pdo->query("SELECT DISTINCT location FROM products WHERE location IS NOT NULL ORDER BY location ASC");
