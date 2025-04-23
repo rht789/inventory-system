@@ -199,6 +199,7 @@ if ($method === 'GET') {
                     si.product_size_id,
                     si.quantity,
                     si.subtotal,
+                    si.discount,
                     p.name as product_name,
                     p.selling_price as price,
                     ps.size_name
@@ -213,9 +214,14 @@ if ($method === 'GET') {
             // Format order ID
             $sale['order_id'] = formatOrderId($sale['id']);
             
+            // Ensure note is included in the response
+            if (!isset($sale['note'])) {
+                $sale['note'] = null;
+            }
+            
             echo json_encode([
                 'success' => true,
-                'sale' => $sale
+                'data' => $sale
             ]);
         } catch (Exception $e) {
             error_log("Error fetching sale #$saleId: " . $e->getMessage());
@@ -327,17 +333,53 @@ if ($method === 'POST') {
         // Apply discount if provided
         $discountTotal = 0;
         if (isset($data['discount']) && is_numeric($data['discount']) && $data['discount'] > 0) {
-            $discountTotal = $total * ($data['discount'] / 100);
+            // Check if discount is for a specific product
+            if (isset($data['discount_product_id']) && !empty($data['discount_product_id'])) {
+                // Calculate discount only for the specified product
+                $discountTotal = 0;
+                foreach ($data['items'] as $item) {
+                    if ($item['product_id'] == $data['discount_product_id']) {
+                        $discountTotal += $item['discount'];
+                    }
+                }
+            } else {
+                // Apply discount to the entire order
+                $discountTotal = $total * ($data['discount'] / 100);
+            }
             $total -= $discountTotal;
         }
         
+        // Extract note if provided
+        $note = isset($data['note']) ? $data['note'] : null;
+        
+        // Check if note column exists
+        $columnExistStmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = :dbname
+            AND TABLE_NAME = 'sales' 
+            AND COLUMN_NAME = 'note'
+        ");
+        $columnExistStmt->execute([':dbname' => $dbname]);
+        $noteColumnExists = $columnExistStmt->fetchColumn() > 0;
+        
         // Create sale record
         $status = $data['status'] ?? 'pending';
-        $stmt = $pdo->prepare("
-            INSERT INTO sales (user_id, customer_id, total, discount_total, status, created_at)
-            VALUES (?, ?, ?, ?, ?, NOW())
-        ");
-        $stmt->execute([$_SESSION['user_id'], $customerId, $total, $discountTotal, $status]);
+        
+        if ($noteColumnExists) {
+            $stmt = $pdo->prepare("
+                INSERT INTO sales (user_id, customer_id, total, discount_total, status, note, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([$_SESSION['user_id'], $customerId, $total, $discountTotal, $status, $note]);
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO sales (user_id, customer_id, total, discount_total, status, created_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([$_SESSION['user_id'], $customerId, $total, $discountTotal, $status]);
+        }
+        
         $saleId = $pdo->lastInsertId();
         
         // Create sale items and update stock

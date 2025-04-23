@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('timeSelect').addEventListener('change', loadSales);
   document.getElementById('addOrderForm').addEventListener('submit', handleAddOrder);
   document.getElementById('discountPercentage').addEventListener('input', calculateTotals);
+  document.getElementById('discountProduct').addEventListener('change', calculateTotals);
   
   // Add initial product row
   addProductRow();
@@ -173,6 +174,11 @@ function renderSalesList(sales) {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+          <button type="button" class="text-indigo-600 hover:text-indigo-800 transition-colors" onclick="downloadInvoice(${sale.id})" title="Download Invoice">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </button>
           <button type="button" class="text-gray-600 hover:text-gray-800 transition-colors" onclick="editSale(${sale.id})" title="Edit Sale">
@@ -659,15 +665,47 @@ function calculateTotals() {
   
   // Calculate discount
   const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
-  discount = subtotal * (discountPercentage / 100);
+  const discountProductId = document.getElementById('discountProduct').value;
+  
+  if (discountProductId) {
+    // Apply discount to specific product only
+    discount = 0;
+    selectedProducts.forEach(product => {
+      if (product && product.product_id == discountProductId) {
+        discount += product.total * (discountPercentage / 100);
+      }
+    });
+  } else {
+    // Apply discount to all products
+    discount = subtotal * (discountPercentage / 100);
+  }
   
   // Calculate total
   total = subtotal - discount;
   
-  // Update display
-  document.getElementById('subtotalDisplay').textContent = '৳ ' + subtotal.toFixed(2);
-  document.getElementById('discountDisplay').textContent = '৳ ' + discount.toFixed(2);
-  document.getElementById('totalDisplay').textContent = '৳ ' + total.toFixed(2);
+  // Update display - check which elements exist before updating
+  // First try the order form elements
+  let subtotalElement = document.getElementById('orderFormSubtotal');
+  let discountElement = document.getElementById('discountDisplay');
+  let totalElement = document.getElementById('totalDisplay');
+  
+  if (subtotalElement) {
+    subtotalElement.textContent = '৳ ' + subtotal.toFixed(2);
+  }
+  
+  if (discountElement) {
+    discountElement.textContent = '৳ ' + discount.toFixed(2);
+  }
+  
+  if (totalElement) {
+    totalElement.textContent = '৳ ' + total.toFixed(2);
+  }
+  
+  // For backward compatibility, also try to update using the old IDs
+  subtotalElement = document.getElementById('subtotalDisplay');
+  if (subtotalElement) {
+    subtotalElement.textContent = '৳ ' + subtotal.toFixed(2);
+  }
 }
 
 // Update the discount product dropdown
@@ -714,28 +752,46 @@ function handleAddOrder(e) {
     address: document.getElementById('customerAddress').value
   };
   
+  // Get discount info
+  const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
+  const discountProductId = document.getElementById('discountProduct').value;
+  
   // Prepare items data
   const items = selectedProducts.map(product => {
+    // Calculate product-specific discount
+    let itemDiscount = 0;
+    if (discountProductId && product.product_id == discountProductId) {
+      // Apply discount to this specific product
+      itemDiscount = product.total * (discountPercentage / 100);
+    } else if (!discountProductId) {
+      // Apply general discount to all products
+      itemDiscount = product.total * (discountPercentage / 100);
+    }
+    
     return {
       product_id: product.product_id,
       product_size_id: product.product_size_id || null,
       quantity: product.quantity,
       price: product.price,
       subtotal: product.total,
-      discount: 0 // Individual item discounts not implemented yet
+      discount: itemDiscount
     };
   });
   
   // Check if we're editing an existing sale
   const editSaleId = document.getElementById('editSaleId')?.value;
   
+  // Get the note value
+  const noteText = document.getElementById('orderNote').value.trim();
+  
   // Prepare complete order data
   const orderData = {
     customer: customer,
     items: items,
-    discount: parseFloat(document.getElementById('discountPercentage').value) || 0,
+    discount: discountPercentage,
+    discount_product_id: discountProductId || null,
     status: document.getElementById('orderStatus').value,
-    note: document.getElementById('orderNote').value
+    note: noteText
   };
   
   // Add the ID if editing
@@ -787,6 +843,12 @@ function validateOrderForm() {
 
 // Create a new order
 function createOrder(orderData) {
+  // Show loading indicator
+  showToast('Creating order...', 'info');
+  
+  // Log what we're sending (for debugging)
+  console.log('Sending order data:', JSON.stringify(orderData));
+  
   fetch('api/sales.php', {
     method: 'POST',
     headers: {
@@ -835,8 +897,8 @@ function viewSaleDetails(saleId) {
       return response.json();
     })
     .then(data => {
-      if (data.success && data.sale) {
-        displaySaleDetails(data.sale);
+      if (data.success && data.data) {
+        displaySaleDetails(data.data);
       } else {
         showToast(data.message || 'Error loading sale details', 'error');
       }
@@ -921,9 +983,22 @@ function displaySaleDetails(sale) {
   const discountTotal = parseFloat(sale.discount_total) || 0;
   const total = parseFloat(sale.total) || 0;
   
-  document.getElementById('subtotalDisplay').textContent = `৳ ${subtotal.toFixed(2)}`;
-  document.getElementById('discountDisplayView').textContent = `৳ ${discountTotal.toFixed(2)}`;
-  document.getElementById('totalDisplayView').textContent = `৳ ${total.toFixed(2)}`;
+  // Make sure we're getting the elements from the view modal, not the order form
+  const viewModalSubtotal = document.getElementById('subtotalDisplay');
+  const viewModalDiscount = document.getElementById('discountDisplayView');
+  const viewModalTotal = document.getElementById('totalDisplayView');
+  
+  if (viewModalSubtotal) {
+    viewModalSubtotal.textContent = `৳ ${subtotal.toFixed(2)}`;
+  }
+  
+  if (viewModalDiscount) {
+    viewModalDiscount.textContent = `৳ ${discountTotal.toFixed(2)}`;
+  }
+  
+  if (viewModalTotal) {
+    viewModalTotal.textContent = `৳ ${total.toFixed(2)}`;
+  }
   
   // Show/hide note if present
   const noteContainer = document.getElementById('orderNoteContainer');
@@ -950,35 +1025,118 @@ function closeViewOrderModal() {
 }
 
 // Print order details
-function printOrderDetails() {
-  const printContent = document.getElementById('orderDetailContent').cloneNode(true);
+function printReceipt(saleId) {
+  // Show loading toast
+  showToast('Generating receipt...', 'info');
   
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank', 'height=600,width=800');
+  // Fetch sale details
+  fetch(`api/sales.php?id=${saleId}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Error fetching sale details');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (!data.success || !data.data) {
+        showToast('Invalid sale ID', 'error');
+        return;
+      }
+      
+      const sale = data.data;
+      
+      // Generate receipt HTML
+      const receiptHTML = generateReceiptHTML(sale);
+      
+      // Open new window and print
+      const receiptWindow = window.open('', '_blank');
+      if (receiptWindow) {
+        receiptWindow.document.write(receiptHTML);
+        receiptWindow.document.close();
+        // Wait for content to load before printing
+        receiptWindow.onload = function() {
+          receiptWindow.print();
+        };
+      } else {
+        showToast('Please allow popups to print the receipt', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error printing receipt:', error);
+      showToast('Failed to print receipt: ' + error.message, 'error');
+    });
+}
+
+function generateReceiptHTML(sale) {
+  // Format date
+  const date = new Date(sale.created_at);
+  const formattedDate = date.toLocaleDateString();
+  const formattedTime = date.toLocaleTimeString();
   
-  // Add print-specific styling
-  printWindow.document.write(`
+  // Calculate subtotal (total + discount)
+  const subtotal = parseFloat(sale.total) + parseFloat(sale.discount_total);
+  
+  // Format customer info
+  const customerInfo = `
+    <div class="customer-info">
+      <p><strong>Customer:</strong> ${sale.customer_name}</p>
+      ${sale.customer_phone ? `<p><strong>Phone:</strong> ${sale.customer_phone}</p>` : ''}
+      ${sale.customer_email ? `<p><strong>Email:</strong> ${sale.customer_email}</p>` : ''}
+      ${sale.customer_address ? `<p><strong>Address:</strong> ${sale.customer_address}</p>` : ''}
+    </div>
+  `;
+  
+  // Format items
+  let itemsHTML = '';
+  sale.items.forEach(item => {
+    const itemName = item.size_name ? `${item.product_name} (${item.size_name})` : item.product_name;
+    itemsHTML += `
+      <tr>
+        <td>${itemName}</td>
+        <td>${item.quantity}</td>
+        <td>৳ ${(item.subtotal / item.quantity).toFixed(2)}</td>
+        <td>৳ ${parseFloat(item.subtotal).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+  
+  // Complete HTML
+  return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Order Details</title>
+      <title>Sales Receipt</title>
       <style>
         body {
           font-family: Arial, sans-serif;
           margin: 0;
           padding: 20px;
-          color: #333;
+          font-size: 14px;
         }
-        .print-header {
+        .receipt {
+          max-width: 800px;
+          margin: 0 auto;
+          border: 1px solid #ddd;
+          padding: 20px;
+        }
+        .header {
           text-align: center;
           margin-bottom: 20px;
-          padding-bottom: 10px;
           border-bottom: 1px solid #ddd;
+          padding-bottom: 10px;
         }
         .company-name {
           font-size: 24px;
           font-weight: bold;
           margin-bottom: 5px;
+        }
+        .receipt-info {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+        .receipt-info > div {
+          flex: 1;
         }
         table {
           width: 100%;
@@ -992,17 +1150,10 @@ function printOrderDetails() {
         }
         th {
           background-color: #f2f2f2;
-          font-weight: bold;
         }
         .totals {
-          width: 300px;
-          margin-left: auto;
-          margin-right: 0;
-        }
-        .totals div {
-          display: flex;
-          justify-content: space-between;
-          padding: 5px 0;
+          margin-top: 20px;
+          text-align: right;
         }
         .footer {
           margin-top: 30px;
@@ -1010,30 +1161,72 @@ function printOrderDetails() {
           font-size: 12px;
           color: #777;
         }
+        @media print {
+          body {
+            padding: 0;
+            margin: 0;
+          }
+          .receipt {
+            border: none;
+            width: 100%;
+            max-width: none;
+          }
+          .no-print {
+            display: none;
+          }
+        }
       </style>
     </head>
     <body>
-      <div class="print-header">
-        <div class="company-name">Inventory System</div>
-        <div>Order Details</div>
-      </div>
-      ${printContent.outerHTML}
-      <div class="footer">
-        <p>Thank you for your business!</p>
+      <div class="receipt">
+        <div class="header">
+          <div class="company-name">Inventory System</div>
+          <div>Sales Receipt</div>
+        </div>
+        
+        <div class="receipt-info">
+          <div>
+            <p><strong>Receipt #:</strong> ${sale.order_id || sale.id}</p>
+            <p><strong>Date:</strong> ${formattedDate}</p>
+            <p><strong>Time:</strong> ${formattedTime}</p>
+            <p><strong>Status:</strong> ${capitalizeFirstLetter(sale.status)}</p>
+          </div>
+          ${customerInfo}
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHTML}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <p><strong>Subtotal:</strong> ৳ ${subtotal.toFixed(2)}</p>
+          <p><strong>Discount:</strong> ৳ ${parseFloat(sale.discount_total).toFixed(2)}</p>
+          <p><strong>Total:</strong> ৳ ${parseFloat(sale.total).toFixed(2)}</p>
+        </div>
+        
+        ${sale.note ? `<div class="notes"><strong>Notes:</strong> ${sale.note}</div>` : ''}
+        
+        <div class="footer">
+          <p>Thank you for your business!</p>
+        </div>
+        
+        <div class="no-print" style="margin-top: 20px; text-align: center;">
+          <button onclick="window.print()">Print Receipt</button>
+        </div>
       </div>
     </body>
     </html>
-  `);
-  
-  printWindow.document.close();
-  
-  // Print after a short delay to ensure content is loaded
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.addEventListener('afterprint', () => {
-      printWindow.close();
-    });
-  }, 500);
+  `;
 }
 
 // Edit sale (populate the form with sale data and open modal)
@@ -1060,11 +1253,11 @@ function editSale(saleId) {
       return response.json();
     })
     .then(data => {
-      if (data.success && data.sale) {
+      if (data.success && data.data) {
         // Open the add order modal
         openAddOrderModal();
         
-        const sale = data.sale;
+        const sale = data.data;
         
         // Populate customer information - use safe access pattern
         document.getElementById('customerName').value = sale.customer_name || '';
@@ -1233,6 +1426,17 @@ function populateProductItems(items) {
       console.error(`Error populating item ${index}:`, err);
     }
   });
+  
+  // Force a recalculation of totals after all items are populated
+  setTimeout(() => {
+    calculateTotals();
+    
+    // Ensure subtotal is displayed correctly in the form
+    const subtotalElement = document.getElementById('orderFormSubtotal');
+    if (subtotalElement && subtotal > 0) {
+      subtotalElement.textContent = '৳ ' + subtotal.toFixed(2);
+    }
+  }, 500);
 }
 
 // Delete sale
@@ -1284,6 +1488,11 @@ function updateOrder(orderData) {
   
   // Show loading indicator
   showToast('Updating order...', 'info');
+  
+  // Make sure note is properly formatted
+  if (orderData.note === '') {
+    orderData.note = null; // Use null instead of empty string for consistency
+  }
   
   // Log what we're sending to help with debugging
   console.log('Updating order with data:', JSON.stringify(orderData));
@@ -1360,7 +1569,29 @@ function openAddOrderModal() {
   // Add initial product row
   addProductRow();
   
-  // Reset totals
+  // Reset totals display
+  const subtotalElement = document.getElementById('orderFormSubtotal');
+  const discountElement = document.getElementById('discountDisplay');
+  const totalElement = document.getElementById('totalDisplay');
+  
+  if (subtotalElement) {
+    subtotalElement.textContent = '৳ 0.00';
+  }
+  
+  if (discountElement) {
+    discountElement.textContent = '৳ 0.00';
+  }
+  
+  if (totalElement) {
+    totalElement.textContent = '৳ 0.00';
+  }
+  
+  // Reset global totals
+  subtotal = 0;
+  discount = 0;
+  total = 0;
+  
+  // Calculate totals (important for initialization)
   calculateTotals();
 }
 
@@ -1510,8 +1741,15 @@ function finalizeSale() {
     return;
   }
   
+  // Check if we have orderItems element (we might be on sales.php page which doesn't have this)
+  const orderItemsTable = document.querySelector('#orderItems tbody');
+  if (!orderItemsTable) {
+    showToast('Cannot locate order items. Please try again or contact support.', 'error');
+    return;
+  }
+  
   // Validate if sale has items
-  if (!document.querySelector('#orderItems tbody tr')) {
+  if (!orderItemsTable.querySelector('tr')) {
     showToast('Cannot finalize an empty order', 'error');
     return;
   }
@@ -1522,9 +1760,14 @@ function finalizeSale() {
     return;
   }
   
+  // Check if finalizeBtn exists (we might be on the sales.php page)
+  const finalizeBtn = document.getElementById('finalizeBtn');
+  
   // Show loading
   showToast('Finalizing sale...', 'info');
-  document.getElementById('finalizeBtn').disabled = true;
+  if (finalizeBtn) {
+    finalizeBtn.disabled = true;
+  }
   
   const formData = new FormData();
   formData.append('sale_id', currentSaleId);
@@ -1547,23 +1790,46 @@ function finalizeSale() {
     if (data.success) {
       showToast('Sale finalized successfully', 'success');
       
-      // Print receipt option
-      if (confirm('Do you want to print the receipt?')) {
-        printReceipt(currentSaleId);
+      // Print receipt or download invoice options
+      const options = [
+        'Do you want to print the receipt?',
+        'Do you want to download the invoice?',
+        'No action needed'
+      ];
+      
+      const selectedOption = confirm(`Sale finalized successfully. Would you like to print the receipt or download the invoice?\n\nClick OK to select an action, or Cancel to continue without any action.`);
+      
+      if (selectedOption) {
+        const action = prompt('Enter your choice:\n1. Print Receipt\n2. Download Invoice\n3. Cancel', '1');
+        
+        if (action === '1') {
+          printReceipt(currentSaleId);
+        } else if (action === '2') {
+          downloadInvoice(currentSaleId);
+        }
       }
       
       // Reset and start a new sale
       setTimeout(() => {
-        initNewSale();
-      }, 1000);
+        if (typeof initNewSale === 'function') {
+          initNewSale();
+        } else {
+          // If we're on sales.php, just reload the page
+          loadSales();
+        }
+      }, 2000);
     } else {
-      document.getElementById('finalizeBtn').disabled = false;
+      if (finalizeBtn) {
+        finalizeBtn.disabled = false;
+      }
       showToast(data.message || 'Failed to finalize sale', 'error');
     }
   })
   .catch(error => {
     console.error('Error:', error);
-    document.getElementById('finalizeBtn').disabled = false;
+    if (finalizeBtn) {
+      finalizeBtn.disabled = false;
+    }
     showToast('Error finalizing sale: ' + error.message, 'error');
   });
 }
@@ -1582,9 +1848,10 @@ function calculateTotal() {
   return total;
 }
 
-function printReceipt(saleId) {
+// Function to download invoice as PDF
+function downloadInvoice(saleId) {
   // Show loading toast
-  showToast('Generating receipt...', 'info');
+  showToast('Generating invoice...', 'info');
   
   // Fetch sale details
   fetch(`api/sales.php?id=${saleId}`)
@@ -1595,169 +1862,232 @@ function printReceipt(saleId) {
       return response.json();
     })
     .then(data => {
-      if (!data.data) {
+      if (!data.success || !data.data) {
         showToast('Invalid sale ID', 'error');
         return;
       }
       
       const sale = data.data;
       
-      // Generate receipt HTML
-      const receiptHTML = generateReceiptHTML(sale);
+      // Use generateInvoiceHTML function to get the HTML content
+      const invoiceHTML = generateInvoiceHTML(sale);
       
-      // Open new window and print
-      const receiptWindow = window.open('', '_blank');
-      if (receiptWindow) {
-        receiptWindow.document.write(receiptHTML);
-        receiptWindow.document.close();
-        // Wait for content to load before printing
-        receiptWindow.onload = function() {
-          receiptWindow.print();
-        };
-      } else {
-        showToast('Please allow popups to print the receipt', 'error');
-      }
+      // Create a Blob from the HTML content
+      const blob = new Blob([invoiceHTML], { type: 'text/html' });
+      
+      // Create a download link
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(blob);
+      
+      // Set the filename with order ID and date
+      const date = new Date(sale.created_at);
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
+      
+      // Append to the document, click it, and remove it
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      showToast('Invoice downloaded successfully', 'success');
     })
     .catch(error => {
-      console.error('Error printing receipt:', error);
-      showToast('Failed to print receipt: ' + error.message, 'error');
+      console.error('Error downloading invoice:', error);
+      showToast('Failed to download invoice: ' + error.message, 'error');
     });
 }
 
-function generateReceiptHTML(sale) {
+// Generate a professional invoice HTML for download
+function generateInvoiceHTML(sale) {
   // Format date
   const date = new Date(sale.created_at);
   const formattedDate = date.toLocaleDateString();
   const formattedTime = date.toLocaleTimeString();
+  
+  // Format invoice number
+  const invoiceNumber = sale.order_id ? sale.order_id : `INV-${String(sale.id).padStart(3, '0')}`;
   
   // Calculate subtotal (total + discount)
   const subtotal = parseFloat(sale.total) + parseFloat(sale.discount_total);
   
   // Format customer info
   const customerInfo = `
-    <div class="customer-info">
-      <p><strong>Customer:</strong> ${sale.customer_name}</p>
-      ${sale.customer_phone ? `<p><strong>Phone:</strong> ${sale.customer_phone}</p>` : ''}
-      ${sale.customer_email ? `<p><strong>Email:</strong> ${sale.customer_email}</p>` : ''}
-      ${sale.customer_address ? `<p><strong>Address:</strong> ${sale.customer_address}</p>` : ''}
+    <div class="customer-details">
+      <h3>Bill To:</h3>
+      <p><strong>${sale.customer_name || 'Customer'}</strong></p>
+      ${sale.customer_phone ? `<p>Phone: ${sale.customer_phone}</p>` : ''}
+      ${sale.customer_email ? `<p>Email: ${sale.customer_email}</p>` : ''}
+      ${sale.customer_address ? `<p>Address: ${sale.customer_address}</p>` : ''}
     </div>
   `;
   
   // Format items
   let itemsHTML = '';
+  let itemNumber = 1;
+  
   sale.items.forEach(item => {
     const itemName = item.size_name ? `${item.product_name} (${item.size_name})` : item.product_name;
+    const unitPrice = (item.subtotal / item.quantity).toFixed(2);
+    const itemSubtotal = parseFloat(item.subtotal).toFixed(2);
+    
     itemsHTML += `
       <tr>
+        <td>${itemNumber++}</td>
         <td>${itemName}</td>
         <td>${item.quantity}</td>
-        <td>৳ ${(item.subtotal / item.quantity).toFixed(2)}</td>
-        <td>৳ ${parseFloat(item.subtotal).toFixed(2)}</td>
+        <td class="text-right">৳ ${unitPrice}</td>
+        <td class="text-right">৳ ${itemSubtotal}</td>
       </tr>
     `;
   });
   
-  // Complete HTML
+  // Complete HTML with improved styling
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Sales Receipt</title>
+      <meta charset="UTF-8">
+      <title>Invoice #${invoiceNumber}</title>
       <style>
         body {
           font-family: Arial, sans-serif;
           margin: 0;
           padding: 20px;
           font-size: 14px;
+          color: #333;
+          background-color: #f9f9f9;
         }
-        .receipt {
+        .invoice-container {
           max-width: 800px;
           margin: 0 auto;
-          border: 1px solid #ddd;
-          padding: 20px;
+          background-color: #fff;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          padding: 40px;
         }
-        .header {
-          text-align: center;
-          margin-bottom: 20px;
-          border-bottom: 1px solid #ddd;
-          padding-bottom: 10px;
-        }
-        .company-name {
-          font-size: 24px;
-          font-weight: bold;
-          margin-bottom: 5px;
-        }
-        .receipt-info {
+        .invoice-header {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 20px;
+          margin-bottom: 40px;
+          border-bottom: 2px solid #333;
+          padding-bottom: 20px;
         }
-        .receipt-info > div {
+        .company-details {
+          flex: 2;
+        }
+        .company-name {
+          font-size: 28px;
+          font-weight: bold;
+          margin-bottom: 5px;
+          color: #2c3e50;
+        }
+        .invoice-details {
           flex: 1;
+          text-align: right;
+        }
+        .invoice-id {
+          font-size: 20px;
+          font-weight: bold;
+          margin-bottom: 8px;
+          color: #2c3e50;
+        }
+        .invoice-date {
+          margin-bottom: 5px;
+        }
+        .customer-details {
+          margin-bottom: 30px;
+        }
+        h3 {
+          font-size: 16px;
+          margin-bottom: 10px;
+          color: #2c3e50;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 5px;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 20px;
-        }
-        th, td {
-          padding: 8px;
-          text-align: left;
-          border-bottom: 1px solid #ddd;
+          margin-bottom: 30px;
         }
         th {
           background-color: #f2f2f2;
+          text-align: left;
+          padding: 10px;
+          border-bottom: 2px solid #ddd;
+          font-weight: bold;
         }
-        .totals {
-          margin-top: 20px;
+        td {
+          padding: 10px;
+          border-bottom: 1px solid #ddd;
+        }
+        .text-right {
           text-align: right;
         }
+        .totals-table {
+          width: 350px;
+          margin-left: auto;
+          margin-bottom: 30px;
+        }
+        .totals-table td {
+          padding: 5px 10px;
+        }
+        .totals-table .total-row {
+          font-weight: bold;
+          font-size: 16px;
+          border-top: 2px solid #333;
+        }
         .footer {
-          margin-top: 30px;
+          margin-top: 50px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
           text-align: center;
           font-size: 12px;
           color: #777;
         }
+        .notes {
+          margin-top: 30px;
+          padding: 15px;
+          background-color: #f9f9f9;
+          border-radius: 5px;
+        }
         @media print {
           body {
+            background-color: #fff;
+          }
+          .invoice-container {
+            box-shadow: none;
             padding: 0;
-            margin: 0;
-          }
-          .receipt {
-            border: none;
-            width: 100%;
-            max-width: none;
-          }
-          .no-print {
-            display: none;
           }
         }
       </style>
     </head>
     <body>
-      <div class="receipt">
-        <div class="header">
-          <div class="company-name">Inventory System</div>
-          <div>Sales Receipt</div>
-        </div>
-        
-        <div class="receipt-info">
-          <div>
-            <p><strong>Receipt #:</strong> ${sale.order_id || sale.id}</p>
-            <p><strong>Date:</strong> ${formattedDate}</p>
-            <p><strong>Time:</strong> ${formattedTime}</p>
-            <p><strong>Status:</strong> ${sale.status}</p>
+      <div class="invoice-container">
+        <div class="invoice-header">
+          <div class="company-details">
+            <div class="company-name">Inventory System</div>
+            <p>123 Business Street, City</p>
+            <p>Phone: +123-456-7890</p>
+            <p>Email: contact@inventorysystem.com</p>
           </div>
-          ${customerInfo}
+          <div class="invoice-details">
+            <div class="invoice-id">INVOICE #${invoiceNumber}</div>
+            <div class="invoice-date">Date: ${formattedDate}</div>
+            <div>Time: ${formattedTime}</div>
+            <div>Status: ${capitalizeFirstLetter(sale.status)}</div>
+          </div>
         </div>
         
+        ${customerInfo}
+        
+        <h3>Invoice Items</h3>
         <table>
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Qty</th>
-              <th>Unit Price</th>
-              <th>Amount</th>
+              <th width="5%">No.</th>
+              <th width="45%">Item</th>
+              <th width="10%">Qty</th>
+              <th width="20%" class="text-right">Unit Price</th>
+              <th width="20%" class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -1765,20 +2095,31 @@ function generateReceiptHTML(sale) {
           </tbody>
         </table>
         
-        <div class="totals">
-          <p><strong>Subtotal:</strong> ৳ ${subtotal.toFixed(2)}</p>
-          <p><strong>Discount:</strong> ৳ ${parseFloat(sale.discount_total).toFixed(2)}</p>
-          <p><strong>Total:</strong> ৳ ${parseFloat(sale.total).toFixed(2)}</p>
-        </div>
+        <table class="totals-table">
+          <tr>
+            <td>Subtotal:</td>
+            <td class="text-right">৳ ${subtotal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>Discount:</td>
+            <td class="text-right">৳ ${parseFloat(sale.discount_total).toFixed(2)}</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total:</td>
+            <td class="text-right">৳ ${parseFloat(sale.total).toFixed(2)}</td>
+          </tr>
+        </table>
         
-        ${sale.note ? `<div class="notes"><strong>Notes:</strong> ${sale.note}</div>` : ''}
+        ${sale.note ? `
+        <div class="notes">
+          <h3>Notes</h3>
+          <p>${sale.note}</p>
+        </div>
+        ` : ''}
         
         <div class="footer">
           <p>Thank you for your business!</p>
-        </div>
-        
-        <div class="no-print" style="margin-top: 20px; text-align: center;">
-          <button onclick="window.print()">Print Receipt</button>
+          <p>Invoice generated on ${new Date().toLocaleString()}</p>
         </div>
       </div>
     </body>
