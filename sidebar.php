@@ -27,8 +27,8 @@ $role = getUserRole();
     <?php endif; ?>
 
     <?php if (in_array($role, ['admin', 'staff'])): ?>
-      <a href="orders.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'orders.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
-        <i class="fa fa-shopping-cart w-4"></i> Orders
+      <a href="sales.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'sales.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+        <i class="fa fa-shopping-cart w-4"></i> Sales
       </a>
       <a href="products.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'products.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-cube w-4"></i> Products
@@ -36,7 +36,7 @@ $role = getUserRole();
       <a href="stock.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'stock.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-boxes w-4"></i> Stock
       </a>
-      <a href="batch.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'batch.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+      <a href="batches.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'batches.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-layer-group w-4"></i> Batch
       </a>
       <div>
