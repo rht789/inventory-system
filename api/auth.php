@@ -55,7 +55,32 @@ switch ($action) {
         
             // Construct the reset link
             $link = "http://localhost/inventory-system/resetpassword.php?token=$token";
-            $body = "Click <a href='$link'>here</a> to reset your password.";
+            // $body = "Click <a href='$link'>here</a> to reset your password.";
+            $body = "
+                <div style=\"font-family: Arial, sans-serif; font-size: 14px; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 6px;\">
+                <h2 style=\"color: #111; text-align: center;\">Reset Your Password</h2>
+
+                <p>Hello,</p>
+
+                <p>We received a request to reset your password for your <strong>Smart Inventory Management System</strong> account.</p>
+
+                <p>Click the button below to set a new password:</p>
+
+                <p style=\"text-align: center;\">
+                    <a href=\"$link\" style=\"background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;\">Reset Password</a>
+                </p>
+
+                <p>If the button above doesn't work, you can also copy and paste the following URL into your browser:</p>
+                <p style=\"word-break: break-all; background-color: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 13px;\">$link</p>
+
+                <p><strong>Note:</strong> This link is valid for a limited time only. If you didn’t request a password reset, you can safely ignore this email.</p>
+
+                <hr style=\"margin: 20px 0; border: none; border-top: 1px solid #ddd;\">
+                <p style=\"font-size: 12px; color: #888;\">Need help? Contact your system administrator.</p>
+                <p style=\"font-size: 12px; color: #aaa; text-align: center;\">&copy; " . date('Y') . " SmartInventory. All rights reserved.</p>
+                </div>
+                ";
+
         
             // Send email
             if (sendMail($email, "Reset Your Password", $body)) {

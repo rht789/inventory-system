@@ -68,7 +68,7 @@ requireRole('admin');
         <input name="username" type="text" placeholder="Username" required class="w-full border rounded px-3 py-2">
         <input name="email" type="email" placeholder="Email" required class="w-full border rounded px-3 py-2">
         <input name="phone" type="text" placeholder="Phone (Optional)" class="w-full border rounded px-3 py-2">
-        <input name="password" type="password" placeholder="Password" required class="w-full border rounded px-3 py-2">
+        <!-- <input name="password" type="password" placeholder="Password" required class="w-full border rounded px-3 py-2"> -->
         <select name="role" class="w-full border rounded px-3 py-2">
           <option value="staff">Staff</option>
           <option value="admin">Admin</option>
