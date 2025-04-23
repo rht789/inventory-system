@@ -36,7 +36,7 @@ $role = getUserRole();
       <a href="stock.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'stock.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-boxes w-4"></i> Stock
       </a>
-      <a href="batch.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'batch.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+      <a href="batches.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'batches.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-layer-group w-4"></i> Batch
       </a>
       <div>
