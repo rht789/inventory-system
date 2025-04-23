@@ -17,13 +17,15 @@ switch ($action) {
         $user = $stmt->fetch();
     
         if ($user && password_verify($password, $user['password_hash'])) {
-            $_SESSION['user'] = [
-                'id' => $user['id'],
-                'email' => $user['email'],
-                'username' => $user['username'],
-                'role' => $user['role'],
-                'profile_picture' => $user['profile_picture'] ?? 'default.png'
-            ];
+
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_username'] = $user['username'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? 'default.png';
+                // After password verification and user found
+                
+// STORED AS USER ARRAY 
             echo json_encode(['success' => true]);
             
             
