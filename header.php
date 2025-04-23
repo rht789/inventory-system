@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Handle logout logic directly in header
 if (isset($_POST['logout'])) {
@@ -9,7 +11,19 @@ if (isset($_POST['logout'])) {
     exit;
 }
 
-$user = $_SESSION['user'] ?? null;
+// Grab user session data
+$userId = $_SESSION['user_id'] ?? null;
+$username = $_SESSION['user_username'] ?? '';
+$email = $_SESSION['user_email'] ?? '';
+$role = $_SESSION['user_role'] ?? '';
+$profilePicture = $_SESSION['user_profile_picture'] ?? 'default.png';
+
+// Validate and fallback
+$uploadDir = __DIR__ . '/uploads/';
+$webUploadPath = '/uploads/';
+$profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePicture))
+    ? $profilePicture
+    : 'default.png';
 ?>
 
 <!-- Tailwind and Font Awesome -->
@@ -29,20 +43,20 @@ $user = $_SESSION['user'] ?? null;
       <i class="fa fa-bell text-lg"></i>
     </button>
 
-    <?php if ($user): ?>
+    <?php if ($userId): ?>
     <div class="relative">
       <!-- Profile trigger -->
       <button id="profileToggle" class="flex items-center gap-2 focus:outline-none">
-        <img src="/uploads<?= htmlspecialchars($user['profile_picture']) ?>" alt="Profile"
+        <img src="<?= $webUploadPath . htmlspecialchars($profilePictureFile) ?>" alt="Profile Picture"
              class="w-9 h-9 rounded-full border border-gray-300 shadow-sm object-cover" />
         <i class="fa fa-user text-xl text-gray-600"></i>
       </button>
 
       <!-- Dropdown -->
       <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border shadow-lg rounded-lg p-4 z-50 text-sm">
-        <div class="text-gray-800 font-medium truncate"><?= htmlspecialchars($user['email']) ?></div>
-        <div class="text-gray-500 text-xs mb-1 capitalize"><?= htmlspecialchars($user['role']) ?></div>
-        <div class="text-gray-700 mb-3"><?= htmlspecialchars($user['username']) ?></div>
+        <div class="text-gray-800 font-medium truncate"><?= htmlspecialchars($email) ?></div>
+        <div class="text-gray-500 text-xs mb-1 capitalize"><?= htmlspecialchars($role) ?></div>
+        <div class="text-gray-700 mb-3"><?= htmlspecialchars($username) ?></div>
 
         <!-- Logout form -->
         <form method="POST">

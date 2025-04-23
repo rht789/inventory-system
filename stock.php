@@ -1,7 +1,17 @@
 <?php
+include 'authcheck.php'; // Adjust path as needed
+requireLogin();           // Ensures the user is logged in
+allowRoles(['admin', 'staff']); // Both roles can access
+?>
+
+
+
+<?php
 include 'header.php';
 include 'sidebar.php';
 ?>
+
+
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
   <!-- Toast Notification -->
