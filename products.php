@@ -233,7 +233,6 @@ include 'sidebar.php';
     <p class="text-sm text-gray-500 mb-4">Update product information.</p>
     <form id="editProductForm" class="space-y-4">
       <input type="hidden" name="id" />
-      <input type="hidden" name="barcode" />
 
       <!-- Name & Category -->
       <div class="grid grid-cols-2 gap-4">
@@ -518,6 +517,8 @@ window.startEditProduct = async id => {
       showToast('Product not found', false);
       return;
     }
+    
+    // Set form values
     editProductForm.id.value = p.id;
     editProductForm.name.value = p.name;
     editProductForm.description.value = p.description || '';
@@ -526,6 +527,8 @@ window.startEditProduct = async id => {
     editProductForm.price.value = p.price;
     editProductForm.selling_price.value = p.selling_price;
     editProductForm.category_id.value = p.category_id;
+    
+    // Store sizes
     editSizes = p.sizes.map(s => ({ size: s.size_name, stock: +s.stock }));
     renderEditSizes();
     openEditProductModal();
