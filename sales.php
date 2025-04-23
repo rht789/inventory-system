@@ -172,6 +172,109 @@ include 'sidebar.php';
       <p class="mt-4 text-gray-500">Loading sales data...</p>
     </div>
   </div>
+
+  <!-- Order Details Modal -->
+  <div id="viewOrderModal" class="fixed inset-0 hidden bg-gray-900 bg-opacity-70 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800" id="orderDetailTitle">Order Details</h3>
+        <button onclick="closeViewOrderModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div id="orderDetailContent">
+        <!-- Order ID and Status -->
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-medium" id="orderIdDisplay"></h4>
+          <span id="orderStatusBadge" class="px-3 py-1 rounded-full text-xs inline-flex items-center"></span>
+        </div>
+        
+        <!-- Customer and Date Information -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <h5 class="text-sm text-gray-500 font-medium mb-1">Customer</h5>
+            <p class="text-gray-800 font-medium" id="customerNameDisplay"></p>
+          </div>
+          <div>
+            <h5 class="text-sm text-gray-500 font-medium mb-1">Date & Time</h5>
+            <p class="text-gray-800" id="orderDateDisplay"></p>
+          </div>
+          <div>
+            <h5 class="text-sm text-gray-500 font-medium mb-1">Phone</h5>
+            <p class="text-gray-800" id="customerPhoneDisplay"></p>
+          </div>
+          <div>
+            <h5 class="text-sm text-gray-500 font-medium mb-1">Email</h5>
+            <p class="text-gray-800" id="customerEmailDisplay"></p>
+          </div>
+          <div class="md:col-span-2">
+            <h5 class="text-sm text-gray-500 font-medium mb-1">Address</h5>
+            <p class="text-gray-800" id="customerAddressDisplay"></p>
+          </div>
+        </div>
+        
+        <!-- Order Items -->
+        <h5 class="text-sm font-medium text-gray-700 mb-2">Order Items</h5>
+        <div class="overflow-x-auto bg-white rounded-md border border-gray-200 mb-4">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 text-gray-600 font-medium">
+                <th class="px-4 py-2 text-left">Product</th>
+                <th class="px-4 py-2 text-center">Size</th>
+                <th class="px-4 py-2 text-center">Qty</th>
+                <th class="px-4 py-2 text-right">Price</th>
+                <th class="px-4 py-2 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody id="orderItemsDisplay" class="divide-y divide-gray-100">
+              <!-- Items will be inserted here dynamically -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Order Totals -->
+        <div class="flex justify-end">
+          <div class="w-full md:w-64">
+            <div class="flex justify-between py-2 text-gray-600">
+              <span>Subtotal:</span>
+              <span id="subtotalDisplay" class="font-medium"></span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-200">
+              <span>Discount:</span>
+              <span id="discountDisplayView" class="font-medium"></span>
+            </div>
+            <div class="flex justify-between py-2 text-lg">
+              <span class="font-medium">Total:</span>
+              <span id="totalDisplayView" class="font-bold"></span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Order Note (if present) -->
+        <div id="orderNoteContainer" class="mt-6 bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 hidden">
+          <h5 class="text-sm font-medium text-gray-700 mb-1">Note</h5>
+          <p id="orderNoteDisplay" class="text-gray-600 text-sm"></p>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+        <button type="button" onclick="closeViewOrderModal()"
+                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150">
+          Close
+        </button>
+        <button type="button" onclick="printOrderDetails()"
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z" />
+          </svg>
+          Print
+        </button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- Add New Order Modal -->

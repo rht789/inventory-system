@@ -665,9 +665,9 @@ function calculateTotals() {
   total = subtotal - discount;
   
   // Update display
-  document.getElementById('subtotalDisplay').textContent = subtotal.toFixed(2);
-  document.getElementById('discountDisplay').textContent = discount.toFixed(2);
-  document.getElementById('totalDisplay').textContent = total.toFixed(2);
+  document.getElementById('subtotalDisplay').textContent = '৳ ' + subtotal.toFixed(2);
+  document.getElementById('discountDisplay').textContent = '৳ ' + discount.toFixed(2);
+  document.getElementById('totalDisplay').textContent = '৳ ' + total.toFixed(2);
 }
 
 // Update the discount product dropdown
@@ -740,6 +740,7 @@ function handleAddOrder(e) {
   
   // Add the ID if editing
   if (editSaleId) {
+    orderData.id = editSaleId; // Add the sale ID to the request data
     updateOrder(orderData);
   } else {
     createOrder(orderData);
@@ -810,9 +811,229 @@ function createOrder(orderData) {
   });
 }
 
-// View sale details (to be implemented)
+// View sale details
 function viewSaleDetails(saleId) {
-  showToast('View functionality will be implemented in a future update');
+  // Show loading indicator in toast
+  showToast('Loading sale details...', 'info');
+  
+  // Fetch the sale details
+  fetch(`api/sales.php?id=${saleId}`)
+    .then(response => {
+      if (!response.ok) {
+        return response.json()
+          .then(data => {
+            throw new Error(data.message || `Server responded with status ${response.status}`);
+          })
+          .catch(e => {
+            // If JSON parsing fails, throw a more general error with the status
+            if (e instanceof SyntaxError) {
+              throw new Error(`Server error (${response.status}). Please try again or contact support.`);
+            }
+            throw e;
+          });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success && data.sale) {
+        displaySaleDetails(data.sale);
+      } else {
+        showToast(data.message || 'Error loading sale details', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showToast('Failed to load sale details: ' + error.message, 'error');
+    });
+}
+
+// Display sale details in the modal
+function displaySaleDetails(sale) {
+  // Set order ID and status
+  document.getElementById('orderIdDisplay').textContent = `Order #${sale.order_id ? sale.order_id.replace('ORD-', '') : sale.id}`;
+  
+  // Set status badge
+  const statusBadge = document.getElementById('orderStatusBadge');
+  let badgeClass = '';
+  
+  switch(sale.status) {
+    case 'pending':
+      badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      break;
+    case 'confirmed':
+      badgeClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+      break;
+    case 'delivered':
+      badgeClass = 'bg-green-100 text-green-800 border border-green-200';
+      break;
+    case 'canceled':
+      badgeClass = 'bg-red-100 text-red-800 border border-red-200';
+      break;
+    default:
+      badgeClass = 'bg-gray-100 text-gray-800 border border-gray-200';
+  }
+  
+  statusBadge.className = `px-3 py-1 rounded-full text-xs ${badgeClass}`;
+  statusBadge.textContent = capitalizeFirstLetter(sale.status);
+  
+  // Set customer information
+  document.getElementById('customerNameDisplay').textContent = sale.customer_name || 'N/A';
+  document.getElementById('customerPhoneDisplay').textContent = sale.customer_phone || 'N/A';
+  document.getElementById('customerEmailDisplay').textContent = sale.customer_email || 'N/A';
+  document.getElementById('customerAddressDisplay').textContent = sale.customer_address || 'N/A';
+  
+  // Format and set date
+  const date = new Date(sale.created_at);
+  const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+  document.getElementById('orderDateDisplay').textContent = formattedDate;
+  
+  // Clear and populate items table
+  const itemsContainer = document.getElementById('orderItemsDisplay');
+  itemsContainer.innerHTML = '';
+  
+  let subtotal = 0;
+  
+  sale.items.forEach(item => {
+    const row = document.createElement('tr');
+    
+    // Calculate item price (subtotal / quantity)
+    const price = parseFloat(item.subtotal) / parseInt(item.quantity);
+    
+    // Add to subtotal
+    subtotal += parseFloat(item.subtotal);
+    
+    const itemName = item.product_name || 'Unknown Product';
+    const sizeName = item.size_name || '-';
+    const quantity = item.quantity || 0;
+    
+    row.innerHTML = `
+      <td class="px-4 py-3">${itemName}</td>
+      <td class="px-4 py-3 text-center">${sizeName}</td>
+      <td class="px-4 py-3 text-center">${quantity}</td>
+      <td class="px-4 py-3 text-right">৳ ${price.toFixed(2)}</td>
+      <td class="px-4 py-3 text-right">৳ ${parseFloat(item.subtotal).toFixed(2)}</td>
+    `;
+    
+    itemsContainer.appendChild(row);
+  });
+  
+  // Set totals
+  const discountTotal = parseFloat(sale.discount_total) || 0;
+  const total = parseFloat(sale.total) || 0;
+  
+  document.getElementById('subtotalDisplay').textContent = `৳ ${subtotal.toFixed(2)}`;
+  document.getElementById('discountDisplayView').textContent = `৳ ${discountTotal.toFixed(2)}`;
+  document.getElementById('totalDisplayView').textContent = `৳ ${total.toFixed(2)}`;
+  
+  // Show/hide note if present
+  const noteContainer = document.getElementById('orderNoteContainer');
+  const noteDisplay = document.getElementById('orderNoteDisplay');
+  
+  if (sale.note && sale.note.trim() !== '') {
+    noteDisplay.textContent = sale.note;
+    noteContainer.classList.remove('hidden');
+  } else {
+    noteContainer.classList.add('hidden');
+  }
+  
+  // Show the modal
+  openViewOrderModal();
+}
+
+// Open and close view order modal
+function openViewOrderModal() {
+  document.getElementById('viewOrderModal').classList.remove('hidden');
+}
+
+function closeViewOrderModal() {
+  document.getElementById('viewOrderModal').classList.add('hidden');
+}
+
+// Print order details
+function printOrderDetails() {
+  const printContent = document.getElementById('orderDetailContent').cloneNode(true);
+  
+  // Create a new window for printing
+  const printWindow = window.open('', '_blank', 'height=600,width=800');
+  
+  // Add print-specific styling
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Order Details</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          color: #333;
+        }
+        .print-header {
+          text-align: center;
+          margin-bottom: 20px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #ddd;
+        }
+        .company-name {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        th, td {
+          padding: 8px;
+          text-align: left;
+          border-bottom: 1px solid #ddd;
+        }
+        th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+        .totals {
+          width: 300px;
+          margin-left: auto;
+          margin-right: 0;
+        }
+        .totals div {
+          display: flex;
+          justify-content: space-between;
+          padding: 5px 0;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 12px;
+          color: #777;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="print-header">
+        <div class="company-name">Inventory System</div>
+        <div>Order Details</div>
+      </div>
+      ${printContent.outerHTML}
+      <div class="footer">
+        <p>Thank you for your business!</p>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  
+  // Print after a short delay to ensure content is loaded
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.addEventListener('afterprint', () => {
+      printWindow.close();
+    });
+  }, 500);
 }
 
 // Edit sale (populate the form with sale data and open modal)
@@ -824,7 +1045,17 @@ function editSale(saleId) {
   fetch(`api/sales.php?id=${saleId}`)
     .then(response => {
       if (!response.ok) {
-        throw new Error(`Server responded with status ${response.status}`);
+        return response.json()
+          .then(data => {
+            throw new Error(data.message || `Server responded with status ${response.status}`);
+          })
+          .catch(e => {
+            // If JSON parsing fails, throw a more general error with the status
+            if (e instanceof SyntaxError) {
+              throw new Error(`Server error (${response.status}). Please try again or contact support.`);
+            }
+            throw e;
+          });
       }
       return response.json();
     })
@@ -835,7 +1066,7 @@ function editSale(saleId) {
         
         const sale = data.sale;
         
-        // Populate customer information
+        // Populate customer information - use safe access pattern
         document.getElementById('customerName').value = sale.customer_name || '';
         document.getElementById('customerPhone').value = sale.customer_phone || '';
         document.getElementById('customerEmail').value = sale.customer_email || '';
@@ -849,12 +1080,14 @@ function editSale(saleId) {
           // Ensure products are loaded first
           const waitForProducts = () => {
             if (products.length === 0) {
-              loadProducts().then(() => {
-                populateProductItems(sale.items);
-              }).catch(error => {
-                console.error('Error loading products:', error);
-                showToast('Failed to load products', 'error');
-              });
+              loadProducts()
+                .then(() => {
+                  populateProductItems(sale.items);
+                })
+                .catch(error => {
+                  console.error('Error loading products:', error);
+                  showToast('Failed to load products: ' + error.message, 'error');
+                });
             } else {
               populateProductItems(sale.items);
             }
@@ -866,15 +1099,23 @@ function editSale(saleId) {
           addProductRow();
         }
         
-        // Set discount 
+        // Set discount - handle potential missing fields safely
         document.getElementById('discountPercentage').value = 
-          sale.discount_percentage ? parseFloat(sale.discount_percentage).toFixed(2) : '0';
+          (sale.discount_percentage !== undefined && sale.discount_percentage !== null) 
+            ? parseFloat(sale.discount_percentage).toFixed(2) 
+            : '0';
         
-        // Set status
-        document.getElementById('orderStatus').value = sale.status || 'pending';
+        // Set status - default to 'pending' if not available
+        const statusField = document.getElementById('orderStatus');
+        if (statusField) {
+          statusField.value = sale.status || 'pending';
+        }
         
-        // Set note
-        document.getElementById('orderNote').value = sale.note || '';
+        // Set note - handle potentially missing field
+        const noteField = document.getElementById('orderNote');
+        if (noteField) {
+          noteField.value = sale.note || '';
+        }
         
         // Add a hidden input for the sale ID to track that this is an edit
         let hiddenIdInput = document.getElementById('editSaleId');
@@ -889,30 +1130,69 @@ function editSale(saleId) {
         
         // Change the submit button text
         const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
-        submitBtn.textContent = 'Update Order';
+        if (submitBtn) {
+          submitBtn.textContent = 'Update Order';
+        }
         
         showToast('Sale loaded for editing', 'success');
       } else {
-        showToast(data.message || 'Error loading sale', 'error');
+        showToast(data.message || 'Error loading sale data', 'error');
       }
     })
     .catch(error => {
       console.error('Error:', error);
-      showToast('Failed to load sale data: ' + error.message, 'error');
+      
+      // Extract and display useful error message
+      let errorMsg = error.message || 'Unknown error';
+      
+      // Handle database column errors more gracefully
+      if (errorMsg.includes('Unknown column')) {
+        errorMsg = 'Database schema issue detected. The system may need an update.';
+        console.error('Original error:', error.message);
+      }
+      
+      showToast('Failed to load sale data: ' + errorMsg, 'error');
+      
+      // Retry option for critical errors
+      if (confirm('There was a problem loading the sale data. Would you like to try again?')) {
+        editSale(saleId);
+      }
     });
 }
 
 // Helper function to populate product items in the order form
 function populateProductItems(items) {
-  items.forEach((item, index) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    console.log('No items to populate');
     addProductRow();
-    
-    // Set values on the product row
-    const rows = document.querySelectorAll('#productRows tr');
-    const row = rows[index];
-    
-    if (row) {
+    return;
+  }
+  
+  items.forEach((item, index) => {
+    try {
+      addProductRow();
+      
+      // Set values on the product row
+      const rows = document.querySelectorAll('#productRows tr');
+      const row = rows[index];
+      
+      if (!row) {
+        console.error(`Row ${index} not found`);
+        return;
+      }
+      
       const productSelect = row.querySelector('.product-select');
+      if (!productSelect) {
+        console.error(`Product select not found in row ${index}`);
+        return;
+      }
+      
+      // Check if product_id exists
+      if (!item.product_id) {
+        console.error(`Item at index ${index} is missing product_id`);
+        return;
+      }
+      
       productSelect.value = item.product_id;
       
       // Trigger product select handler
@@ -920,27 +1200,37 @@ function populateProductItems(items) {
       
       // Set size if available
       setTimeout(() => {
-        if (item.product_size_id) {
-          const sizeSelect = row.querySelector('.size-select');
-          if (sizeSelect && !sizeSelect.disabled) {
-            sizeSelect.value = item.product_size_id;
-            
-            // Trigger size select handler
-            handleSizeSelect(sizeSelect, index);
+        try {
+          if (item.product_size_id) {
+            const sizeSelect = row.querySelector('.size-select');
+            if (sizeSelect && !sizeSelect.disabled) {
+              sizeSelect.value = item.product_size_id;
+              
+              // Trigger size select handler
+              handleSizeSelect(sizeSelect, index);
+            }
           }
+          
+          // Set quantity (with a slight delay to ensure handlers have finished)
+          setTimeout(() => {
+            try {
+              const quantityInput = row.querySelector('.quantity-input');
+              if (quantityInput && !quantityInput.disabled) {
+                quantityInput.value = item.quantity || 1;
+                
+                // Update row total
+                updateRowTotal(index);
+              }
+            } catch (err) {
+              console.error(`Error setting quantity for item ${index}:`, err);
+            }
+          }, 100);
+        } catch (err) {
+          console.error(`Error setting size for item ${index}:`, err);
         }
-        
-        // Set quantity (with a slight delay to ensure handlers have finished)
-        setTimeout(() => {
-          const quantityInput = row.querySelector('.quantity-input');
-          if (quantityInput && !quantityInput.disabled) {
-            quantityInput.value = item.quantity;
-            
-            // Update row total
-            updateRowTotal(index);
-          }
-        }, 100);
       }, 100);
+    } catch (err) {
+      console.error(`Error populating item ${index}:`, err);
     }
   });
 }
@@ -986,8 +1276,17 @@ function deleteSale(saleId) {
 
 // Update an existing order
 function updateOrder(orderData) {
+  // Validate that we have an ID
+  if (!orderData.id) {
+    showToast('Error: Missing sale ID', 'error');
+    return;
+  }
+  
   // Show loading indicator
   showToast('Updating order...', 'info');
+  
+  // Log what we're sending to help with debugging
+  console.log('Updating order with data:', JSON.stringify(orderData));
   
   fetch('api/sales.php', {
     method: 'PUT',
@@ -998,9 +1297,17 @@ function updateOrder(orderData) {
   })
   .then(response => {
     if (!response.ok) {
-      return response.json().then(data => {
-        throw new Error(data.message || `Server responded with status ${response.status}`);
-      });
+      return response.json()
+        .then(data => {
+          throw new Error(data.message || `Server responded with status ${response.status}`);
+        })
+        .catch(e => {
+          // If JSON parsing fails, throw a more general error with the status
+          if (e instanceof SyntaxError) {
+            throw new Error(`Server error (${response.status}). Please try again or contact support.`);
+          }
+          throw e;
+        });
     }
     return response.json();
   })
@@ -1016,7 +1323,16 @@ function updateOrder(orderData) {
   })
   .catch(error => {
     console.error('Error:', error);
-    showToast('Failed to update order: ' + error.message, 'error');
+    
+    // Extract and display useful error message
+    let errorMsg = error.message || 'Unknown error';
+    
+    // Handle known error types with more user-friendly messages
+    if (errorMsg.includes('Invalid update data')) {
+      errorMsg = 'Invalid update data. Please check all fields and try again.';
+    }
+    
+    showToast('Failed to update order: ' + errorMsg, 'error');
   });
 }
 
@@ -1267,45 +1583,40 @@ function calculateTotal() {
 }
 
 function printReceipt(saleId) {
-  if (!saleId) {
-    showToast('Invalid sale ID', 'error');
-    return;
-  }
-  
-  // Show loading message
-  showToast('Preparing receipt...', 'info');
+  // Show loading toast
+  showToast('Generating receipt...', 'info');
   
   // Fetch sale details
   fetch(`api/sales.php?id=${saleId}`)
     .then(response => {
       if (!response.ok) {
-        return response.json().then(data => {
-          throw new Error(data.message || `Server responded with status ${response.status}`);
-        });
+        throw new Error('Error fetching sale details');
       }
       return response.json();
     })
     .then(data => {
-      if (!data.success || !data.sale) {
-        throw new Error('Failed to retrieve sale data');
+      if (!data.data) {
+        showToast('Invalid sale ID', 'error');
+        return;
       }
       
+      const sale = data.data;
+      
       // Generate receipt HTML
-      const receipt = generateReceiptHTML(data.sale);
+      const receiptHTML = generateReceiptHTML(sale);
       
-      // Create a popup window for the receipt
-      const printWindow = window.open('', '_blank', 'height=600,width=800');
-      printWindow.document.write(receipt);
-      printWindow.document.close();
-      
-      // Print after a short delay to ensure content is loaded
-      setTimeout(() => {
-        printWindow.print();
-        // Close the window after printing (optional - can be commented out to let user close it)
-        printWindow.addEventListener('afterprint', () => {
-          printWindow.close();
-        });
-      }, 500);
+      // Open new window and print
+      const receiptWindow = window.open('', '_blank');
+      if (receiptWindow) {
+        receiptWindow.document.write(receiptHTML);
+        receiptWindow.document.close();
+        // Wait for content to load before printing
+        receiptWindow.onload = function() {
+          receiptWindow.print();
+        };
+      } else {
+        showToast('Please allow popups to print the receipt', 'error');
+      }
     })
     .catch(error => {
       console.error('Error printing receipt:', error);
@@ -1340,8 +1651,8 @@ function generateReceiptHTML(sale) {
       <tr>
         <td>${itemName}</td>
         <td>${item.quantity}</td>
-        <td>$${(item.subtotal / item.quantity).toFixed(2)}</td>
-        <td>$${parseFloat(item.subtotal).toFixed(2)}</td>
+        <td>৳ ${(item.subtotal / item.quantity).toFixed(2)}</td>
+        <td>৳ ${parseFloat(item.subtotal).toFixed(2)}</td>
       </tr>
     `;
   });
@@ -1455,9 +1766,9 @@ function generateReceiptHTML(sale) {
         </table>
         
         <div class="totals">
-          <p><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>
-          <p><strong>Discount:</strong> $${parseFloat(sale.discount_total).toFixed(2)}</p>
-          <p><strong>Total:</strong> $${parseFloat(sale.total).toFixed(2)}</p>
+          <p><strong>Subtotal:</strong> ৳ ${subtotal.toFixed(2)}</p>
+          <p><strong>Discount:</strong> ৳ ${parseFloat(sale.discount_total).toFixed(2)}</p>
+          <p><strong>Total:</strong> ৳ ${parseFloat(sale.total).toFixed(2)}</p>
         </div>
         
         ${sale.note ? `<div class="notes"><strong>Notes:</strong> ${sale.note}</div>` : ''}
@@ -1473,4 +1784,4 @@ function generateReceiptHTML(sale) {
     </body>
     </html>
   `;
-} 
+}

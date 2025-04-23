@@ -7,9 +7,42 @@ require_once __DIR__ . '/../authcheck.php';
 header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Get database name from connection
+$dbname = 'inventory_system'; // Use the same name as in db.php
+
 // Ensure user is logged in and has appropriate role
 requireLogin();
 allowRoles(['admin', 'staff']);
+
+// Function to add note column to sales table if it doesn't exist
+function addNoteColumnIfMissing($pdo) {
+    try {
+        // Check if the column exists
+        $columnExistStmt = $pdo->prepare("
+            SELECT COUNT(*) 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = :dbname
+            AND TABLE_NAME = 'sales' 
+            AND COLUMN_NAME = 'note'
+        ");
+        $columnExistStmt->execute([':dbname' => $GLOBALS['dbname']]);
+        $noteColumnExists = $columnExistStmt->fetchColumn() > 0;
+        
+        // If column doesn't exist, add it
+        if (!$noteColumnExists) {
+            $pdo->exec("ALTER TABLE sales ADD COLUMN note TEXT DEFAULT NULL");
+            return true; // Column was added
+        }
+        
+        return false; // Column already exists
+    } catch (Exception $e) {
+        error_log("Error checking/adding note column: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Try to add the note column at the beginning of the script
+addNoteColumnIfMissing($pdo);
 
 // Helper function to format order ID (e.g., ORD-015)
 function formatOrderId($id) {
@@ -109,14 +142,25 @@ if ($method === 'GET') {
         $saleId = $_GET['id'];
         
         try {
-            // Get the sale
-            $stmt = $pdo->prepare("
+            // First check if the note column exists in the sales table
+            $columnExistStmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = :dbname
+                AND TABLE_NAME = 'sales' 
+                AND COLUMN_NAME = 'note'
+            ");
+            $columnExistStmt->execute([':dbname' => $dbname]);
+            $noteColumnExists = $columnExistStmt->fetchColumn() > 0;
+            
+            // Build query based on column existence
+            $query = "
                 SELECT 
                     s.id, 
                     s.total, 
                     s.status, 
                     s.discount_total,
-                    s.note,
+                    " . ($noteColumnExists ? "s.note," : "'' as note,") . "
                     s.created_at, 
                     c.id as customer_id,
                     c.name as customer_name,
@@ -124,9 +168,12 @@ if ($method === 'GET') {
                     c.email as customer_email,
                     c.address as customer_address
                 FROM sales s
-                JOIN customers c ON s.customer_id = c.id
+                LEFT JOIN customers c ON s.customer_id = c.id
                 WHERE s.id = ?
-            ");
+            ";
+            
+            // Get the sale with proper error handling for missing relation
+            $stmt = $pdo->prepare($query);
             $stmt->execute([$saleId]);
             $sale = $stmt->fetch();
             
@@ -144,7 +191,7 @@ if ($method === 'GET') {
                 $sale['discount_percentage'] = 0;
             }
             
-            // Get the sale items
+            // Get the sale items with proper error handling
             $itemsStmt = $pdo->prepare("
                 SELECT 
                     si.id,
@@ -156,7 +203,7 @@ if ($method === 'GET') {
                     p.selling_price as price,
                     ps.size_name
                 FROM sale_items si
-                JOIN products p ON si.product_id = p.id
+                LEFT JOIN products p ON si.product_id = p.id
                 LEFT JOIN product_sizes ps ON si.product_size_id = ps.id
                 WHERE si.sale_id = ?
             ");
@@ -171,10 +218,11 @@ if ($method === 'GET') {
                 'sale' => $sale
             ]);
         } catch (Exception $e) {
+            error_log("Error fetching sale #$saleId: " . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false, 
-                'message' => $e->getMessage()
+                'message' => 'Error retrieving sale data: ' . $e->getMessage()
             ]);
         }
         exit;
@@ -199,48 +247,57 @@ if ($method === 'GET') {
     
     $whereClause = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';
     
-    $sql = "
-        SELECT 
-            s.id, 
-            s.total, 
-            s.status, 
-            s.created_at, 
-            c.name as customer_name
-        FROM sales s
-        JOIN customers c ON s.customer_id = c.id
-        $whereClause
-        ORDER BY s.created_at DESC
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $sales = $stmt->fetchAll();
-    
-    // For each sale, get its items
-    foreach ($sales as &$sale) {
-        $itemsStmt = $pdo->prepare("
+    try {
+        $sql = "
             SELECT 
-                si.id,
-                si.quantity,
-                si.subtotal,
-                p.name as product_name,
-                ps.size_name
-            FROM sale_items si
-            JOIN products p ON si.product_id = p.id
-            LEFT JOIN product_sizes ps ON si.product_size_id = ps.id
-            WHERE si.sale_id = ?
-        ");
-        $itemsStmt->execute([$sale['id']]);
-        $sale['items'] = $itemsStmt->fetchAll();
+                s.id, 
+                s.total, 
+                s.status, 
+                s.created_at, 
+                COALESCE(c.name, 'Unknown Customer') as customer_name
+            FROM sales s
+            LEFT JOIN customers c ON s.customer_id = c.id
+            $whereClause
+            ORDER BY s.created_at DESC
+        ";
         
-        // Format order ID 
-        $sale['order_id'] = formatOrderId($sale['id']);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $sales = $stmt->fetchAll();
+        
+        // For each sale, get its items
+        foreach ($sales as &$sale) {
+            $itemsStmt = $pdo->prepare("
+                SELECT 
+                    si.id,
+                    si.quantity,
+                    si.subtotal,
+                    p.name as product_name,
+                    ps.size_name
+                FROM sale_items si
+                LEFT JOIN products p ON si.product_id = p.id
+                LEFT JOIN product_sizes ps ON si.product_size_id = ps.id
+                WHERE si.sale_id = ?
+            ");
+            $itemsStmt->execute([$sale['id']]);
+            $sale['items'] = $itemsStmt->fetchAll();
+            
+            // Format order ID 
+            $sale['order_id'] = formatOrderId($sale['id']);
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'sales' => $sales
+        ]);
+    } catch (Exception $e) {
+        error_log("Error fetching sales list: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error retrieving sales data: ' . $e->getMessage() 
+        ]);
     }
-    
-    echo json_encode([
-        'success' => true,
-        'sales' => $sales
-    ]);
     exit;
 }
 
@@ -443,7 +500,23 @@ if ($method === 'DELETE') {
 
 // PUT endpoint - Update sale status or full sale update
 if ($method === 'PUT') {
+    // Log incoming data for debugging
+    error_log("PUT request data: " . file_get_contents('php://input'));
+    
     $data = json_decode(file_get_contents('php://input'), true);
+    
+    // Log decoded data
+    if (!$data) {
+        error_log("Error decoding JSON from PUT request: " . json_last_error_msg());
+        http_response_code(400);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Invalid JSON: ' . json_last_error_msg()
+        ]);
+        exit;
+    }
+    
+    error_log("Decoded PUT data: " . print_r($data, true));
     
     // If only ID and status are provided, this is a status update
     if (isset($data['id']) && isset($data['status']) && count($data) === 2) {
@@ -571,8 +644,33 @@ if ($method === 'PUT') {
     if (isset($data['id']) && isset($data['customer']) && isset($data['items'])) {
         $saleId = $data['id'];
         
+        // Double check that the ID is valid
+        if (!is_numeric($saleId) || $saleId <= 0) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Invalid sale ID'
+            ]);
+            exit;
+        }
+        
         try {
             $pdo->beginTransaction();
+            
+            // Additional validation
+            if (empty($data['items'])) {
+                throw new Exception("Order must contain at least one item");
+            }
+
+            // Validate all items have required fields
+            foreach ($data['items'] as $index => $item) {
+                if (!isset($item['product_id']) || !is_numeric($item['product_id'])) {
+                    throw new Exception("Item #" . ($index + 1) . " has invalid product ID");
+                }
+                if (!isset($item['quantity']) || !is_numeric($item['quantity']) || $item['quantity'] <= 0) {
+                    throw new Exception("Item #" . ($index + 1) . " has invalid quantity");
+                }
+            }
             
             // Get current sale status to handle stock changes
             $stmt = $pdo->prepare("SELECT status FROM sales WHERE id = ?");
@@ -639,12 +737,35 @@ if ($method === 'PUT') {
             $status = $data['status'] ?? $currentStatus; // Keep current status if not provided
             $note = $data['note'] ?? null;
             
-            $stmt = $pdo->prepare("
-                UPDATE sales 
-                SET customer_id = ?, total = ?, discount_total = ?, status = ?, note = ?
-                WHERE id = ?
+            // Check if note column exists
+            $columnExistStmt = $pdo->prepare("
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = :dbname
+                AND TABLE_NAME = 'sales' 
+                AND COLUMN_NAME = 'note'
             ");
-            $stmt->execute([$customerId, $total, $discountTotal, $status, $note, $saleId]);
+            $columnExistStmt->execute([':dbname' => $dbname]);
+            $noteColumnExists = $columnExistStmt->fetchColumn() > 0;
+            
+            // Build the query based on column existence
+            if ($noteColumnExists) {
+                $updateQuery = "
+                    UPDATE sales 
+                    SET customer_id = ?, total = ?, discount_total = ?, status = ?, note = ?
+                    WHERE id = ?
+                ";
+                $stmt = $pdo->prepare($updateQuery);
+                $stmt->execute([$customerId, $total, $discountTotal, $status, $note, $saleId]);
+            } else {
+                $updateQuery = "
+                    UPDATE sales 
+                    SET customer_id = ?, total = ?, discount_total = ?, status = ?
+                    WHERE id = ?
+                ";
+                $stmt = $pdo->prepare($updateQuery);
+                $stmt->execute([$customerId, $total, $discountTotal, $status, $saleId]);
+            }
             
             // Delete all existing sale items
             $stmt = $pdo->prepare("DELETE FROM sale_items WHERE sale_id = ?");
