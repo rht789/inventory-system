@@ -10,34 +10,106 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
+<main class="lg:ml-64 min-h-screen p-6 bg-gray-50">
   <!-- Toast container -->
   <div id="toast"
-       class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden">
+       class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg hidden z-50">
   </div>
 
-  <!-- Topbar -->
-  <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-bold">Sales Management</h2>
-    <div class="flex gap-2">
+  <!-- Topbar with statistics cards -->
+  <div class="mb-8">
+    <div class="flex flex-wrap justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">Sales Management</h2>
       <button onclick="openAddOrderModal()"
-              class="bg-black text-white px-4 py-2 rounded text-sm">
-        <i class="fas fa-plus mr-1"></i> Add Order
+              class="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2.5 rounded-md text-sm font-medium transition duration-200 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Add Order
       </button>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-800 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('All Statuses')">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 font-medium">Total Sales</p>
+            <p class="text-2xl font-bold text-gray-800" id="totalSalesCount">0</p>
+          </div>
+          <div class="bg-gray-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-700 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Delivered')">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 font-medium">Delivered Orders</p>
+            <p class="text-2xl font-bold text-gray-800" id="deliveredOrdersCount">0</p>
+          </div>
+          <div class="bg-gray-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-600 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Pending')">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 font-medium">Pending Orders</p>
+            <p class="text-2xl font-bold text-gray-800" id="pendingOrdersCount">0</p>
+          </div>
+          <div class="bg-gray-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-500 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Canceled')">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-500 font-medium">Canceled Orders</p>
+            <p class="text-2xl font-bold text-gray-800" id="canceledOrdersCount">0</p>
+          </div>
+          <div class="bg-gray-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Filters & Search -->
-  <div class="bg-white p-4 rounded-md shadow-sm mb-4">
+  <div class="bg-white rounded-lg shadow-sm p-5 mb-6">
     <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
-      <input type="text" id="searchInput"
-             placeholder="Search Orders..."
-             class="border px-4 py-2 rounded w-full md:w-1/3" />
-      <div class="flex gap-2 w-full md:w-auto">
-        <select id="timeSelect" class="border rounded px-3 py-2 text-sm">
+      <div class="relative flex-1">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <input type="text" id="searchInput"
+               placeholder="Search by order ID or customer name..."
+               class="pl-10 w-full border border-gray-300 rounded-md py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" />
+      </div>
+      <div class="flex flex-col md:flex-row gap-4">
+        <select id="timeSelect" class="border border-gray-300 rounded-md px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
           <option>All Time</option>
+          <option>Today</option>
+          <option>This Week</option>
+          <option>This Month</option>
         </select>
-        <select id="statusSelect" class="border rounded px-3 py-2 text-sm">
+        <select id="statusSelect" class="border border-gray-300 rounded-md px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
           <option>All Statuses</option>
           <option>Pending</option>
           <option>Confirmed</option>
@@ -49,161 +121,229 @@ include 'sidebar.php';
   </div>
 
   <!-- Sales Table -->
-  <div class="bg-white rounded shadow-sm overflow-hidden">
-    <div class="text-sm p-4 font-medium">Sales List</div>
-    <table class="w-full text-sm">
-      <thead class="bg-gray-100 text-gray-600">
-        <tr>
-          <th class="px-4 py-3 text-left">Sales ID</th>
-          <th class="px-4 py-3 text-left">Customer</th>
-          <th class="px-4 py-3 text-left">Product(s)</th>
-          <th class="px-4 py-3 text-right">Total</th>
-          <th class="px-4 py-3 text-center">Status</th>
-          <th class="px-4 py-3 text-center">Date & Time</th>
-          <th class="px-4 py-3 text-center">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="sales-list">
-        <!-- injected by JS -->
-      </tbody>
-    </table>
+  <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <div class="p-5 border-b border-gray-100">
+      <h3 class="font-medium text-gray-700">Sales List</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-600">
+          <tr>
+            <th class="px-6 py-4 text-left font-medium">Sales ID</th>
+            <th class="px-6 py-4 text-left font-medium">Customer</th>
+            <th class="px-6 py-4 text-left font-medium">Product(s)</th>
+            <th class="px-6 py-4 text-right font-medium">Total</th>
+            <th class="px-6 py-4 text-center font-medium">Status</th>
+            <th class="px-6 py-4 text-center font-medium">Date & Time</th>
+            <th class="px-6 py-4 text-center font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sales-list" class="divide-y divide-gray-100">
+          <!-- injected by JS -->
+        </tbody>
+      </table>
+    </div>
+    <!-- Empty state placeholder for when no sales are found -->
+    <div id="empty-sales-placeholder" class="hidden p-8 text-center">
+      <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-1">No sales records found</h3>
+      <p class="text-gray-500 mb-6">Your sales will appear here once you add them.</p>
+      <button onclick="openAddOrderModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200">
+        Add Your First Order
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="sales-loading" class="hidden p-8 text-center">
+      <div class="animate-spin mx-auto h-8 w-8 border-4 border-indigo-500 rounded-full border-t-transparent"></div>
+      <p class="mt-4 text-gray-500">Loading sales data...</p>
+    </div>
   </div>
 </main>
 
 <!-- Add New Order Modal -->
 <div id="addOrderModal"
-     class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-3xl overflow-auto max-h-screen">
-    <div class="flex justify-between items-center mb-2">
-      <h3 class="text-lg font-semibold">Add New Order</h3>
-      <button onclick="closeAddOrderModal()">
-        <i class="fas fa-times text-gray-600"></i>
+     class="fixed inset-0 hidden bg-gray-900 bg-opacity-70 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-6xl overflow-auto max-h-[90vh]">
+    <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+      <h3 class="text-xl font-semibold text-gray-800">Add New Order</h3>
+      <button onclick="closeAddOrderModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
     </div>
-    <p class="text-sm text-gray-500 mb-4">Add a new sales order</p>
-    <form id="addOrderForm" class="space-y-4">
-      
-      <!-- Customer Information -->
-      <div>
-        <h4 class="font-medium mb-2">Customer Information</h4>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm">Customer Name</label>
-            <input type="text" name="customer_name" id="customerName"
-                   class="w-full border px-3 py-2 rounded" required />
+
+    <form id="addOrderForm" class="space-y-6">
+      <!-- Two column layout for main content -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="space-y-6">
+          <!-- Customer Information -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Customer Information
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                <input type="text" name="customer_name" id="customerName"
+                       class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" required />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input type="text" name="customer_phone" id="customerPhone"
+                       class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" name="customer_email" id="customerEmail"
+                       class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <input type="text" name="customer_address" id="customerAddress"
+                       class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" />
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm">Phone Name</label>
-            <input type="text" name="customer_phone" id="customerPhone"
-                   class="w-full border px-3 py-2 rounded" />
+          
+          <!-- Products -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="font-medium text-gray-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                Products
+              </h4>
+              <button type="button" onclick="addProductRow()" 
+                      class="bg-gray-200 text-gray-700 hover:bg-gray-300 px-3 py-1.5 rounded-md text-sm font-medium transition duration-150 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Product
+              </button>
+            </div>
+            <div class="overflow-x-auto bg-white rounded-md border border-gray-200">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-50 text-gray-600">
+                    <th class="px-4 py-3 text-left font-medium">Product</th>
+                    <th class="px-4 py-3 text-left font-medium">Size</th>
+                    <th class="px-4 py-3 text-center font-medium w-20">Quantity</th>
+                    <th class="px-4 py-3 text-right font-medium w-24">Price</th>
+                    <th class="px-4 py-3 text-right font-medium w-24">Total</th>
+                    <th class="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody id="productRows" class="divide-y divide-gray-100">
+                  <!-- Product rows will be added here -->
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm">Email</label>
-            <input type="email" name="customer_email" id="customerEmail"
-                   class="w-full border px-3 py-2 rounded" />
+        </div>
+        
+        <div class="space-y-6">
+          <!-- Discount and Order Summary -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Discount
+            </h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
+                <input type="number" name="discount_percentage" id="discountPercentage"
+                       min="0" max="100" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" value="0" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Apply To</label>
+                <select name="discount_product" id="discountProduct"
+                        class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+                  <option value="">All Products</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm">Address</label>
-            <input type="text" name="customer_address" id="customerAddress"
-                   class="w-full border px-3 py-2 rounded" />
+          
+          <!-- Order Summary -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Order Summary
+            </h4>
+            <div class="bg-white p-3 rounded-md border border-gray-200">
+              <div class="flex justify-between py-2 border-b border-gray-100">
+                <span class="text-gray-600">Subtotal:</span>
+                <span class="font-medium" id="subtotalDisplay">0.00</span>
+              </div>
+              <div class="flex justify-between py-2 border-b border-gray-100">
+                <span class="text-gray-600">Discount:</span>
+                <span class="font-medium text-gray-700" id="discountDisplay">0.00</span>
+              </div>
+              <div class="flex justify-between py-2 text-lg">
+                <span class="font-medium text-gray-700">Total:</span>
+                <span class="font-bold text-gray-800" id="totalDisplay">0.00</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Order Details -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Order Details
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" id="orderStatus"
+                        class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="canceled">Canceled</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input type="text" disabled
+                       value="<?php echo date('F jS, Y'); ?>"
+                       class="w-full border border-gray-200 rounded-md py-2 px-3 bg-gray-100 text-gray-500" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
+              <textarea name="note" id="orderNote"
+                        class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 h-20"
+                        placeholder="Enter any additional notes about this order"></textarea>
+            </div>
           </div>
         </div>
       </div>
       
-      <!-- Products -->
-      <div>
-        <div class="flex justify-between items-center mb-2">
-          <h4 class="font-medium">Products</h4>
-          <button type="button" onclick="addProductRow()" 
-                  class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs">
-            + Add Product
-          </button>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-gray-50">
-                <th class="px-2 py-2 text-left">Product</th>
-                <th class="px-2 py-2 text-left">Size</th>
-                <th class="px-2 py-2 text-center w-20">Quantity</th>
-                <th class="px-2 py-2 text-right w-24">Price</th>
-                <th class="px-2 py-2 text-right w-24">Total</th>
-                <th class="w-10"></th>
-              </tr>
-            </thead>
-            <tbody id="productRows">
-              <!-- Product rows will be added here -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      <!-- Discount -->
-      <div>
-        <h4 class="font-medium mb-2">Discount</h4>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm">Discount %</label>
-            <input type="number" name="discount_percentage" id="discountPercentage"
-                   min="0" max="100" class="w-full border px-3 py-2 rounded" value="0" />
-          </div>
-          <div>
-            <label class="block text-sm">Amount</label>
-            <select name="discount_product" id="discountProduct"
-                    class="w-full border px-3 py-2 rounded">
-              <option value="">Select product</option>
-            </select>
-          </div>
-        </div>
-        <div class="flex justify-end mt-2 text-sm">
-          <div class="grid grid-cols-2 gap-8">
-            <div class="text-right">Subtotal:</div>
-            <div class="text-right font-medium" id="subtotalDisplay">0.00</div>
-            <div class="text-right">Discount:</div>
-            <div class="text-right font-medium" id="discountDisplay">0.00</div>
-            <div class="text-right font-bold">Total:</div>
-            <div class="text-right font-bold" id="totalDisplay">0.00</div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Order Details -->
-      <div>
-        <h4 class="font-medium mb-2">Order Details</h4>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm">Status</label>
-            <select name="status" id="orderStatus"
-                    class="w-full border px-3 py-2 rounded">
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="delivered">Delivered</option>
-              <option value="canceled">Canceled</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm">Date</label>
-            <input type="text" disabled
-                   value="<?php echo date('F jS, Y'); ?>"
-                   class="w-full border px-3 py-2 rounded bg-gray-50" />
-          </div>
-        </div>
-        <div class="mt-2">
-          <label class="block text-sm">Note(optional)</label>
-          <textarea name="note" id="orderNote"
-                    class="w-full border px-3 py-2 rounded h-20"
-                    placeholder="please write your text here"></textarea>
-        </div>
-      </div>
-      
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-3 border-t border-gray-200 pt-4">
         <button type="button" onclick="closeAddOrderModal()"
-                class="px-4 py-2 border rounded">
+                class="px-4 py-2.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-150">
           Cancel
         </button>
         <button type="submit"
-                class="bg-black text-white px-6 py-2 rounded">
-          Add
+                class="px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-150">
+          Create Order
         </button>
       </div>
     </form>

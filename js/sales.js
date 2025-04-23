@@ -10,6 +10,9 @@ let total = 0;
 
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function() {
+  // Show loading state
+  showLoadingState(true);
+  
   // Load initial data
   loadSales();
   loadProducts();
@@ -17,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add event listeners
   document.getElementById('searchInput').addEventListener('input', debounce(loadSales, 300));
   document.getElementById('statusSelect').addEventListener('change', loadSales);
+  document.getElementById('timeSelect').addEventListener('change', loadSales);
   document.getElementById('addOrderForm').addEventListener('submit', handleAddOrder);
   document.getElementById('discountPercentage').addEventListener('input', calculateTotals);
   
@@ -35,45 +39,109 @@ function debounce(func, delay) {
   };
 }
 
+// Show or hide loading state
+function showLoadingState(isLoading) {
+  const loadingElement = document.getElementById('sales-loading');
+  const emptyElement = document.getElementById('empty-sales-placeholder');
+  const tableElement = document.querySelector('.overflow-x-auto');
+  
+  if (isLoading) {
+    loadingElement.classList.remove('hidden');
+    emptyElement.classList.add('hidden');
+    tableElement.classList.add('hidden');
+  } else {
+    loadingElement.classList.add('hidden');
+    // Other visibility will be handled by renderSalesList
+  }
+}
+
 // Load sales data with filters
 function loadSales() {
+  showLoadingState(true);
+  
   const search = document.getElementById('searchInput').value;
   const status = document.getElementById('statusSelect').value;
+  const timeFilter = document.getElementById('timeSelect').value;
   
-  fetch(`api/sales.php?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`)
+  let timeParam = '';
+  
+  // Convert time filter to API parameter
+  if (timeFilter === 'Today') {
+    timeParam = 'today';
+  } else if (timeFilter === 'This Week') {
+    timeParam = 'week';
+  } else if (timeFilter === 'This Month') {
+    timeParam = 'month';
+  }
+  
+  const url = `api/sales.php?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}${timeParam ? '&time=' + timeParam : ''}`;
+  
+  fetch(url)
     .then(response => response.json())
     .then(data => {
+      showLoadingState(false);
+      
       if (data.success) {
         renderSalesList(data.sales);
+        updateStatistics(data.sales);
       } else {
         showToast(data.message || 'Error loading sales', 'error');
       }
     })
     .catch(error => {
+      showLoadingState(false);
       console.error('Error:', error);
       showToast('Failed to load sales data', 'error');
     });
 }
 
+// Update statistics based on sales data
+function updateStatistics(sales) {
+  // Default all counts to 0
+  let totalCount = 0;
+  let pendingCount = 0;
+  let deliveredCount = 0;
+  let canceledCount = 0;
+  
+  if (sales && sales.length) {
+    totalCount = sales.length;
+    
+    // Count by status
+    sales.forEach(sale => {
+      if (sale.status === 'pending') pendingCount++;
+      if (sale.status === 'delivered') deliveredCount++;
+      if (sale.status === 'canceled') canceledCount++;
+    });
+  }
+  
+  // Update the counters in the UI
+  document.getElementById('totalSalesCount').textContent = totalCount;
+  document.getElementById('pendingOrdersCount').textContent = pendingCount;
+  document.getElementById('deliveredOrdersCount').textContent = deliveredCount;
+  document.getElementById('canceledOrdersCount').textContent = canceledCount;
+}
+
 // Render sales list in the table
 function renderSalesList(sales) {
   const tableBody = document.getElementById('sales-list');
+  const emptyElement = document.getElementById('empty-sales-placeholder');
+  const tableElement = document.querySelector('.overflow-x-auto');
+  
   tableBody.innerHTML = '';
   
   if (!sales || sales.length === 0) {
-    const emptyRow = document.createElement('tr');
-    emptyRow.innerHTML = `
-      <td colspan="7" class="px-4 py-8 text-center text-gray-500">
-        No sales records found
-      </td>
-    `;
-    tableBody.appendChild(emptyRow);
+    tableElement.classList.add('hidden');
+    emptyElement.classList.remove('hidden');
     return;
   }
   
+  // Show table and hide empty state
+  tableElement.classList.remove('hidden');
+  emptyElement.classList.add('hidden');
+  
   sales.forEach(sale => {
     const row = document.createElement('tr');
-    row.className = 'border-b border-gray-100';
+    row.className = 'hover:bg-gray-50 transition-colors duration-150';
     
     // Format products string
     const productsText = sale.items.map(item => {
@@ -90,25 +158,32 @@ function renderSalesList(sales) {
     const statusBadge = getStatusBadge(sale.status);
     
     row.innerHTML = `
-      <td class="px-4 py-3">${sale.order_id}</td>
-      <td class="px-4 py-3">${sale.customer_name}</td>
-      <td class="px-4 py-3">${productsText}</td>
-      <td class="px-4 py-3 text-right">৳ ${parseFloat(sale.total).toFixed(2)}</td>
-      <td class="px-4 py-3 text-center">${statusBadge}</td>
-      <td class="px-4 py-3 text-center">
+      <td class="px-6 py-4 whitespace-nowrap">${sale.order_id}</td>
+      <td class="px-6 py-4">${sale.customer_name}</td>
+      <td class="px-6 py-4">${productsText}</td>
+      <td class="px-6 py-4 text-right font-medium">৳ ${parseFloat(sale.total).toFixed(2)}</td>
+      <td class="px-6 py-4 text-center">${statusBadge}</td>
+      <td class="px-6 py-4 text-center text-gray-500">
         ${formattedDate}<br>
         ${formattedTime}
       </td>
-      <td class="px-4 py-3 text-center">
-        <div class="flex justify-center gap-2">
-          <button type="button" class="text-blue-500 hover:text-blue-700" onclick="viewSaleDetails(${sale.id})">
-            <i class="fas fa-eye"></i>
+      <td class="px-6 py-4 text-center">
+        <div class="flex justify-center gap-3">
+          <button type="button" class="text-blue-600 hover:text-blue-800 transition-colors" onclick="viewSaleDetails(${sale.id})" title="View Details">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
           </button>
-          <button type="button" class="text-gray-500 hover:text-gray-700" onclick="editSale(${sale.id})">
-            <i class="fas fa-edit"></i>
+          <button type="button" class="text-gray-600 hover:text-gray-800 transition-colors" onclick="editSale(${sale.id})" title="Edit Sale">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
           </button>
-          <button type="button" class="text-red-500 hover:text-red-700" onclick="deleteSale(${sale.id})">
-            <i class="fas fa-trash"></i>
+          <button type="button" class="text-red-600 hover:text-red-800 transition-colors" onclick="deleteSale(${sale.id})" title="Delete Sale">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         </div>
       </td>
@@ -131,22 +206,22 @@ function getStatusBadge(status) {
   
   switch(status) {
     case 'pending':
-      badgeClass = 'bg-yellow-100 text-yellow-800';
+      badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       break;
     case 'confirmed':
-      badgeClass = 'bg-blue-100 text-blue-800';
+      badgeClass = 'bg-blue-100 text-blue-800 border border-blue-200';
       break;
     case 'delivered':
-      badgeClass = 'bg-green-100 text-green-800';
+      badgeClass = 'bg-green-100 text-green-800 border border-green-200';
       break;
     case 'canceled':
-      badgeClass = 'bg-red-100 text-red-800';
+      badgeClass = 'bg-red-100 text-red-800 border border-red-200';
       break;
     default:
-      badgeClass = 'bg-gray-100 text-gray-800';
+      badgeClass = 'bg-gray-100 text-gray-800 border border-gray-200';
   }
   
-  return `<span class="px-2 py-1 rounded-full text-xs ${badgeClass}">${capitalizeFirstLetter(status)}</span>`;
+  return `<span class="px-3 py-1 rounded-full text-xs inline-flex items-center ${badgeClass}">${capitalizeFirstLetter(status)}</span>`;
 }
 
 // Open status dropdown for changing order status
@@ -159,23 +234,33 @@ function openStatusDropdown(saleId, currentStatus, statusCell) {
   
   // Create dropdown
   const dropdown = document.createElement('div');
-  dropdown.className = 'status-dropdown absolute bg-white shadow-md rounded-md py-1 z-20';
-  dropdown.style.minWidth = '120px';
+  dropdown.className = 'status-dropdown absolute bg-white shadow-lg rounded-md py-1 z-20 border border-gray-200';
+  dropdown.style.minWidth = '140px';
   
   const statuses = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'delivered', label: 'Delivered' },
-    { value: 'canceled', label: 'Canceled' }
+    { value: 'pending', label: 'Pending', class: 'text-yellow-700' },
+    { value: 'confirmed', label: 'Confirmed', class: 'text-blue-700' },
+    { value: 'delivered', label: 'Delivered', class: 'text-green-700' },
+    { value: 'canceled', label: 'Canceled', class: 'text-red-700' }
   ];
   
   statuses.forEach(status => {
     const option = document.createElement('div');
-    option.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+    option.className = `px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm ${status.class}`;
     if (status.value === currentStatus) {
       option.className += ' font-medium';
     }
-    option.textContent = status.label;
+    
+    const innerContent = document.createElement('div');
+    innerContent.className = 'flex items-center';
+    innerContent.innerHTML = `
+      ${status.value === currentStatus ? 
+        '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>' 
+        : '<div class="w-4 mr-2"></div>'}
+      ${status.label}
+    `;
+    
+    option.appendChild(innerContent);
     
     option.addEventListener('click', () => {
       updateSaleStatus(saleId, status.value);
@@ -187,7 +272,7 @@ function openStatusDropdown(saleId, currentStatus, statusCell) {
   
   // Position dropdown
   const rect = statusCell.getBoundingClientRect();
-  dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+  dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`;
   dropdown.style.left = `${rect.left + window.scrollX}px`;
   
   // Add click outside listener
@@ -203,6 +288,9 @@ function openStatusDropdown(saleId, currentStatus, statusCell) {
 
 // Update the status of a sale
 function updateSaleStatus(saleId, newStatus) {
+  // Show loading indicator in toast
+  showToast('Updating status...', 'info');
+  
   fetch('api/sales.php', {
     method: 'PUT',
     headers: {
@@ -369,35 +457,37 @@ function addProductRow() {
   const rowIndex = productRows.children.length;
   
   newRow.innerHTML = `
-    <td class="px-2 py-2">
-      <select name="product_id[]" class="product-select w-full border px-2 py-1 rounded" 
+    <td class="px-4 py-3">
+      <select name="product_id[]" class="product-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
               onchange="handleProductSelect(this, ${rowIndex})">
         <option value="">Select product</option>
         ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
       </select>
     </td>
-    <td class="px-2 py-2">
-      <select name="product_size_id[]" class="size-select w-full border px-2 py-1 rounded" 
+    <td class="px-4 py-3">
+      <select name="product_size_id[]" class="size-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
               onchange="handleSizeSelect(this, ${rowIndex})" disabled>
         <option value="">Select size</option>
       </select>
     </td>
-    <td class="px-2 py-2">
+    <td class="px-4 py-3">
       <input type="number" name="quantity[]" min="1" value="1" 
-             class="quantity-input w-full border px-2 py-1 rounded text-center"
+             class="quantity-input w-full border border-gray-300 rounded-md py-2 px-3 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
              onchange="updateRowTotal(${rowIndex})" disabled />
     </td>
-    <td class="px-2 py-2">
+    <td class="px-4 py-3">
       <input type="number" name="price[]" step="0.01" value="0.00" 
-             class="price-input w-full border px-2 py-1 rounded text-right" readonly />
+             class="price-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50" readonly />
     </td>
-    <td class="px-2 py-2">
+    <td class="px-4 py-3">
       <input type="number" name="total[]" step="0.01" value="0.00" 
-             class="total-input w-full border px-2 py-1 rounded text-right" readonly />
+             class="total-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 font-medium" readonly />
     </td>
-    <td class="px-2 py-2 text-center">
-      <button type="button" class="text-red-500 hover:text-red-700" onclick="removeProductRow(this)">
-        <i class="fas fa-times"></i>
+    <td class="px-4 py-3 text-center">
+      <button type="button" class="text-red-500 hover:text-red-700 transition-colors" onclick="removeProductRow(this)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
       </button>
     </td>
   `;
@@ -741,9 +831,13 @@ function showToast(message, type = 'success') {
   
   // Set toast color based on type
   if (type === 'success') {
-    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50';
+  } else if (type === 'error') {
+    toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50';
+  } else if (type === 'info') {
+    toast.className = 'fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-md shadow-lg z-50';
   } else {
-    toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg';
+    toast.className = 'fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md shadow-lg z-50';
   }
   
   // Show the toast
