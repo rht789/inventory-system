@@ -221,7 +221,16 @@ function getStatusBadge(status) {
       badgeClass = 'bg-gray-100 text-gray-800 border border-gray-200';
   }
   
-  return `<span class="px-3 py-1 rounded-full text-xs inline-flex items-center ${badgeClass}">${capitalizeFirstLetter(status)}</span>`;
+  return `
+    <div class="group cursor-pointer flex items-center justify-center">
+      <span class="px-3 py-1 rounded-full text-xs inline-flex items-center ${badgeClass}">
+        ${capitalizeFirstLetter(status)}
+      </span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  `;
 }
 
 // Open status dropdown for changing order status
@@ -717,6 +726,9 @@ function handleAddOrder(e) {
     };
   });
   
+  // Check if we're editing an existing sale
+  const editSaleId = document.getElementById('editSaleId')?.value;
+  
   // Prepare complete order data
   const orderData = {
     customer: customer,
@@ -726,8 +738,12 @@ function handleAddOrder(e) {
     note: document.getElementById('orderNote').value
   };
   
-  // Submit order
-  createOrder(orderData);
+  // Add the ID if editing
+  if (editSaleId) {
+    updateOrder(orderData);
+  } else {
+    createOrder(orderData);
+  }
 }
 
 // Validate the order form
@@ -799,14 +815,209 @@ function viewSaleDetails(saleId) {
   showToast('View functionality will be implemented in a future update');
 }
 
-// Edit sale (to be implemented)
+// Edit sale (populate the form with sale data and open modal)
 function editSale(saleId) {
-  showToast('Edit functionality will be implemented in a future update');
+  // Show loading indicator in toast
+  showToast('Loading sale data...', 'info');
+  
+  // Fetch the sale details
+  fetch(`api/sales.php?id=${saleId}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success && data.sale) {
+        // Open the add order modal
+        openAddOrderModal();
+        
+        const sale = data.sale;
+        
+        // Populate customer information
+        document.getElementById('customerName').value = sale.customer_name || '';
+        document.getElementById('customerPhone').value = sale.customer_phone || '';
+        document.getElementById('customerEmail').value = sale.customer_email || '';
+        document.getElementById('customerAddress').value = sale.customer_address || '';
+        
+        // Clear product rows and add new ones for each item
+        document.getElementById('productRows').innerHTML = '';
+        selectedProducts = [];
+        
+        if (sale.items && sale.items.length > 0) {
+          // Ensure products are loaded first
+          const waitForProducts = () => {
+            if (products.length === 0) {
+              loadProducts().then(() => {
+                populateProductItems(sale.items);
+              }).catch(error => {
+                console.error('Error loading products:', error);
+                showToast('Failed to load products', 'error');
+              });
+            } else {
+              populateProductItems(sale.items);
+            }
+          };
+          
+          waitForProducts();
+        } else {
+          // If no items, add at least one empty row
+          addProductRow();
+        }
+        
+        // Set discount 
+        document.getElementById('discountPercentage').value = 
+          sale.discount_percentage ? parseFloat(sale.discount_percentage).toFixed(2) : '0';
+        
+        // Set status
+        document.getElementById('orderStatus').value = sale.status || 'pending';
+        
+        // Set note
+        document.getElementById('orderNote').value = sale.note || '';
+        
+        // Add a hidden input for the sale ID to track that this is an edit
+        let hiddenIdInput = document.getElementById('editSaleId');
+        if (!hiddenIdInput) {
+          hiddenIdInput = document.createElement('input');
+          hiddenIdInput.type = 'hidden';
+          hiddenIdInput.id = 'editSaleId';
+          hiddenIdInput.name = 'edit_sale_id';
+          document.getElementById('addOrderForm').appendChild(hiddenIdInput);
+        }
+        hiddenIdInput.value = saleId;
+        
+        // Change the submit button text
+        const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
+        submitBtn.textContent = 'Update Order';
+        
+        showToast('Sale loaded for editing', 'success');
+      } else {
+        showToast(data.message || 'Error loading sale', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showToast('Failed to load sale data: ' + error.message, 'error');
+    });
 }
 
-// Delete sale (to be implemented)
+// Helper function to populate product items in the order form
+function populateProductItems(items) {
+  items.forEach((item, index) => {
+    addProductRow();
+    
+    // Set values on the product row
+    const rows = document.querySelectorAll('#productRows tr');
+    const row = rows[index];
+    
+    if (row) {
+      const productSelect = row.querySelector('.product-select');
+      productSelect.value = item.product_id;
+      
+      // Trigger product select handler
+      handleProductSelect(productSelect, index);
+      
+      // Set size if available
+      setTimeout(() => {
+        if (item.product_size_id) {
+          const sizeSelect = row.querySelector('.size-select');
+          if (sizeSelect && !sizeSelect.disabled) {
+            sizeSelect.value = item.product_size_id;
+            
+            // Trigger size select handler
+            handleSizeSelect(sizeSelect, index);
+          }
+        }
+        
+        // Set quantity (with a slight delay to ensure handlers have finished)
+        setTimeout(() => {
+          const quantityInput = row.querySelector('.quantity-input');
+          if (quantityInput && !quantityInput.disabled) {
+            quantityInput.value = item.quantity;
+            
+            // Update row total
+            updateRowTotal(index);
+          }
+        }, 100);
+      }, 100);
+    }
+  });
+}
+
+// Delete sale
 function deleteSale(saleId) {
-  showToast('Delete functionality will be implemented in a future update');
+  if (!confirm('Are you sure you want to delete this sale? This action cannot be undone.')) {
+    return;
+  }
+  
+  // Show loading indicator in toast
+  showToast('Deleting sale...', 'info');
+  
+  fetch('api/sales.php', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id: saleId })
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.message || `Server responded with status ${response.status}`);
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showToast('Sale deleted successfully');
+      loadSales(); // Refresh the list
+      loadProducts(); // Refresh products to update stock counts
+    } else {
+      showToast(data.message || 'Error deleting sale', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showToast('Failed to delete sale: ' + error.message, 'error');
+  });
+}
+
+// Update an existing order
+function updateOrder(orderData) {
+  // Show loading indicator
+  showToast('Updating order...', 'info');
+  
+  fetch('api/sales.php', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(orderData)
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.message || `Server responded with status ${response.status}`);
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showToast('Order updated successfully');
+      closeAddOrderModal();
+      loadSales(); // Refresh the sales list
+      loadProducts(); // Refresh products to get updated stock values
+    } else {
+      showToast(data.message || 'Error updating order', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showToast('Failed to update order: ' + error.message, 'error');
+  });
 }
 
 // Open the add order modal
@@ -817,6 +1028,18 @@ function openAddOrderModal() {
   document.getElementById('addOrderForm').reset();
   document.getElementById('productRows').innerHTML = '';
   selectedProducts = [];
+  
+  // Remove any existing edit sale ID
+  const editSaleIdInput = document.getElementById('editSaleId');
+  if (editSaleIdInput) {
+    editSaleIdInput.remove();
+  }
+  
+  // Reset submit button text
+  const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.textContent = 'Create Order';
+  }
   
   // Add initial product row
   addProductRow();
@@ -858,4 +1081,396 @@ function showToast(message, type = 'success') {
 // Utility function to capitalize the first letter of a string
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Fetch product data by ID
+function getProduct(productId) {
+  if (!productId) return;
+  
+  showToast('Loading product information...', 'info');
+  
+  fetch(`api/products.php?id=${productId}`)
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.message || `Server responded with status ${response.status}`);
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Fill in product details
+      document.getElementById('unitPrice').value = data.product.price;
+      
+      // Set max quantity based on current stock
+      const quantityInput = document.getElementById('quantity');
+      quantityInput.max = data.product.quantity;
+      
+      // Reset quantity to 1 or max if stock is less
+      const newQuantity = Math.min(1, data.product.quantity);
+      quantityInput.value = newQuantity;
+      
+      // Update subtotal
+      calculateSubtotal();
+    } else {
+      showToast(data.message || 'Failed to load product details', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showToast('Error loading product: ' + error.message, 'error');
+  });
+}
+
+function addToOrder() {
+  const productId = document.getElementById('product').value;
+  const quantity = parseInt(document.getElementById('quantity').value);
+  const unitPrice = parseFloat(document.getElementById('unitPrice').value);
+
+  // Validate inputs
+  if (!productId) {
+    showToast('Please select a product', 'error');
+    return;
+  }
+  
+  if (!quantity || quantity <= 0) {
+    showToast('Please enter a valid quantity', 'error');
+    return;
+  }
+  
+  if (!unitPrice || unitPrice <= 0) {
+    showToast('Invalid unit price', 'error');
+    return;
+  }
+
+  // Show loading indicator
+  showToast('Adding to order...', 'info');
+  
+  const formData = new FormData();
+  formData.append('sale_id', currentSaleId);
+  formData.append('product_id', productId);
+  formData.append('quantity', quantity);
+  formData.append('unit_price', unitPrice);
+  formData.append('action', 'add_item');
+
+  fetch('api/sales.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.message || `Server responded with status ${response.status}`);
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showToast('Item added to order', 'success');
+      
+      // Reset form
+      document.getElementById('product').value = '';
+      document.getElementById('quantity').value = '1';
+      document.getElementById('unitPrice').value = '';
+      
+      // Refresh order items and product list
+      loadSaleItems(currentSaleId);
+      loadProducts(); // Refresh product list to show updated quantities
+    } else {
+      showToast(data.message || 'Failed to add item to order', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showToast('Error adding item: ' + error.message, 'error');
+  });
+}
+
+function finalizeSale() {
+  // Confirm with user before finalizing
+  if (!confirm('Are you sure you want to finalize this sale? This action cannot be undone.')) {
+    return;
+  }
+  
+  // Validate if sale has items
+  if (!document.querySelector('#orderItems tbody tr')) {
+    showToast('Cannot finalize an empty order', 'error');
+    return;
+  }
+  
+  const totalAmount = calculateTotal();
+  if (totalAmount <= 0) {
+    showToast('Invalid order total', 'error');
+    return;
+  }
+  
+  // Show loading
+  showToast('Finalizing sale...', 'info');
+  document.getElementById('finalizeBtn').disabled = true;
+  
+  const formData = new FormData();
+  formData.append('sale_id', currentSaleId);
+  formData.append('total_amount', totalAmount);
+  formData.append('action', 'finalize_sale');
+
+  fetch('api/sales.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.message || `Server responded with status ${response.status}`);
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showToast('Sale finalized successfully', 'success');
+      
+      // Print receipt option
+      if (confirm('Do you want to print the receipt?')) {
+        printReceipt(currentSaleId);
+      }
+      
+      // Reset and start a new sale
+      setTimeout(() => {
+        initNewSale();
+      }, 1000);
+    } else {
+      document.getElementById('finalizeBtn').disabled = false;
+      showToast(data.message || 'Failed to finalize sale', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    document.getElementById('finalizeBtn').disabled = false;
+    showToast('Error finalizing sale: ' + error.message, 'error');
+  });
+}
+
+function calculateTotal() {
+  let total = 0;
+  const rows = document.querySelectorAll('#orderItems tbody tr');
+  
+  rows.forEach(row => {
+    const subtotal = parseFloat(row.querySelector('td:last-child').textContent.replace('$', ''));
+    if (!isNaN(subtotal)) {
+      total += subtotal;
+    }
+  });
+  
+  return total;
+}
+
+function printReceipt(saleId) {
+  if (!saleId) {
+    showToast('Invalid sale ID', 'error');
+    return;
+  }
+  
+  // Show loading message
+  showToast('Preparing receipt...', 'info');
+  
+  // Fetch sale details
+  fetch(`api/sales.php?id=${saleId}`)
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.message || `Server responded with status ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (!data.success || !data.sale) {
+        throw new Error('Failed to retrieve sale data');
+      }
+      
+      // Generate receipt HTML
+      const receipt = generateReceiptHTML(data.sale);
+      
+      // Create a popup window for the receipt
+      const printWindow = window.open('', '_blank', 'height=600,width=800');
+      printWindow.document.write(receipt);
+      printWindow.document.close();
+      
+      // Print after a short delay to ensure content is loaded
+      setTimeout(() => {
+        printWindow.print();
+        // Close the window after printing (optional - can be commented out to let user close it)
+        printWindow.addEventListener('afterprint', () => {
+          printWindow.close();
+        });
+      }, 500);
+    })
+    .catch(error => {
+      console.error('Error printing receipt:', error);
+      showToast('Failed to print receipt: ' + error.message, 'error');
+    });
+}
+
+function generateReceiptHTML(sale) {
+  // Format date
+  const date = new Date(sale.created_at);
+  const formattedDate = date.toLocaleDateString();
+  const formattedTime = date.toLocaleTimeString();
+  
+  // Calculate subtotal (total + discount)
+  const subtotal = parseFloat(sale.total) + parseFloat(sale.discount_total);
+  
+  // Format customer info
+  const customerInfo = `
+    <div class="customer-info">
+      <p><strong>Customer:</strong> ${sale.customer_name}</p>
+      ${sale.customer_phone ? `<p><strong>Phone:</strong> ${sale.customer_phone}</p>` : ''}
+      ${sale.customer_email ? `<p><strong>Email:</strong> ${sale.customer_email}</p>` : ''}
+      ${sale.customer_address ? `<p><strong>Address:</strong> ${sale.customer_address}</p>` : ''}
+    </div>
+  `;
+  
+  // Format items
+  let itemsHTML = '';
+  sale.items.forEach(item => {
+    const itemName = item.size_name ? `${item.product_name} (${item.size_name})` : item.product_name;
+    itemsHTML += `
+      <tr>
+        <td>${itemName}</td>
+        <td>${item.quantity}</td>
+        <td>$${(item.subtotal / item.quantity).toFixed(2)}</td>
+        <td>$${parseFloat(item.subtotal).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+  
+  // Complete HTML
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Sales Receipt</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          font-size: 14px;
+        }
+        .receipt {
+          max-width: 800px;
+          margin: 0 auto;
+          border: 1px solid #ddd;
+          padding: 20px;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 10px;
+        }
+        .company-name {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        .receipt-info {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+        .receipt-info > div {
+          flex: 1;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        th, td {
+          padding: 8px;
+          text-align: left;
+          border-bottom: 1px solid #ddd;
+        }
+        th {
+          background-color: #f2f2f2;
+        }
+        .totals {
+          margin-top: 20px;
+          text-align: right;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 12px;
+          color: #777;
+        }
+        @media print {
+          body {
+            padding: 0;
+            margin: 0;
+          }
+          .receipt {
+            border: none;
+            width: 100%;
+            max-width: none;
+          }
+          .no-print {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="receipt">
+        <div class="header">
+          <div class="company-name">Inventory System</div>
+          <div>Sales Receipt</div>
+        </div>
+        
+        <div class="receipt-info">
+          <div>
+            <p><strong>Receipt #:</strong> ${sale.order_id || sale.id}</p>
+            <p><strong>Date:</strong> ${formattedDate}</p>
+            <p><strong>Time:</strong> ${formattedTime}</p>
+            <p><strong>Status:</strong> ${sale.status}</p>
+          </div>
+          ${customerInfo}
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHTML}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <p><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>
+          <p><strong>Discount:</strong> $${parseFloat(sale.discount_total).toFixed(2)}</p>
+          <p><strong>Total:</strong> $${parseFloat(sale.total).toFixed(2)}</p>
+        </div>
+        
+        ${sale.note ? `<div class="notes"><strong>Notes:</strong> ${sale.note}</div>` : ''}
+        
+        <div class="footer">
+          <p>Thank you for your business!</p>
+        </div>
+        
+        <div class="no-print" style="margin-top: 20px; text-align: center;">
+          <button onclick="window.print()">Print Receipt</button>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 } 
