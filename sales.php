@@ -31,56 +31,56 @@ include 'sidebar.php';
     
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-800 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('All Statuses')">
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-indigo-500 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('All Statuses')">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 font-medium">Total Sales</p>
             <p class="text-2xl font-bold text-gray-800" id="totalSalesCount">0</p>
           </div>
-          <div class="bg-gray-100 rounded-full p-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="bg-indigo-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
           </div>
         </div>
       </div>
       
-      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-700 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Delivered')">
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-green-500 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Delivered')">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 font-medium">Delivered Orders</p>
             <p class="text-2xl font-bold text-gray-800" id="deliveredOrdersCount">0</p>
           </div>
-          <div class="bg-gray-100 rounded-full p-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="bg-green-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
       </div>
       
-      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-600 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Pending')">
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-yellow-500 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Pending')">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 font-medium">Pending Orders</p>
             <p class="text-2xl font-bold text-gray-800" id="pendingOrdersCount">0</p>
           </div>
-          <div class="bg-gray-100 rounded-full p-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="bg-yellow-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
       </div>
       
-      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-500 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Canceled')">
+      <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-red-500 hover:shadow-md transition duration-200 cursor-pointer" onclick="filterByStatus('Canceled')">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-500 font-medium">Canceled Orders</p>
             <p class="text-2xl font-bold text-gray-800" id="canceledOrdersCount">0</p>
           </div>
-          <div class="bg-gray-100 rounded-full p-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="bg-red-100 rounded-full p-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -168,8 +168,8 @@ include 'sidebar.php';
 <!-- Add New Order Modal -->
 <div id="addOrderModal"
      class="fixed inset-0 hidden bg-gray-900 bg-opacity-70 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-6xl overflow-auto max-h-[90vh]">
-    <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+  <div class="bg-white rounded-lg shadow-xl p-4 sm:p-5 w-full max-w-7xl max-h-[96vh] overflow-auto">
+    <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
       <h3 class="text-xl font-semibold text-gray-800">Add New Order</h3>
       <button onclick="closeAddOrderModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -178,19 +178,19 @@ include 'sidebar.php';
       </button>
     </div>
 
-    <form id="addOrderForm" class="space-y-6">
+    <form id="addOrderForm" class="space-y-4">
       <!-- Two column layout for main content -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-4">
+        <div class="lg:col-span-3 space-y-5">
           <!-- Customer Information -->
           <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+            <h4 class="font-medium text-gray-700 mb-2 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               Customer Information
             </h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
                 <input type="text" name="customer_name" id="customerName"
@@ -231,19 +231,19 @@ include 'sidebar.php';
                 Add Product
               </button>
             </div>
-            <div class="overflow-x-auto bg-white rounded-md border border-gray-200">
+            <div class="overflow-x-auto bg-white rounded-md border border-gray-300 shadow-sm">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="bg-gray-50 text-gray-600">
-                    <th class="px-4 py-3 text-left font-medium">Product</th>
-                    <th class="px-4 py-3 text-left font-medium">Size</th>
+                  <tr class="bg-gray-100 text-gray-700 border-b border-gray-300">
+                    <th class="px-4 py-3 text-left font-medium w-1/3">Product</th>
+                    <th class="px-4 py-3 text-left font-medium w-1/5">Size</th>
                     <th class="px-4 py-3 text-center font-medium w-20">Quantity</th>
                     <th class="px-4 py-3 text-right font-medium w-24">Price</th>
                     <th class="px-4 py-3 text-right font-medium w-24">Total</th>
-                    <th class="w-10"></th>
+                    <th class="w-12"></th>
                   </tr>
                 </thead>
-                <tbody id="productRows" class="divide-y divide-gray-100">
+                <tbody id="productRows" class="divide-y divide-gray-200 min-h-[150px]">
                   <!-- Product rows will be added here -->
                 </tbody>
               </table>
@@ -251,10 +251,10 @@ include 'sidebar.php';
           </div>
         </div>
         
-        <div class="space-y-6">
+        <div class="lg:col-span-2 space-y-5">
           <!-- Discount and Order Summary -->
           <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+            <h4 class="font-medium text-gray-700 mb-2 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
@@ -267,11 +267,12 @@ include 'sidebar.php';
                        min="0" max="100" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500" value="0" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Apply To</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Apply To <span class="text-xs text-gray-500">(Optional)</span></label>
                 <select name="discount_product" id="discountProduct"
                         class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
                   <option value="">All Products</option>
                 </select>
+                <p class="text-xs text-gray-500 mt-1">Select a specific product or leave empty for all</p>
               </div>
             </div>
           </div>

@@ -456,34 +456,36 @@ function addProductRow() {
   const newRow = document.createElement('tr');
   const rowIndex = productRows.children.length;
   
+  newRow.className = 'hover:bg-gray-50 transition-colors duration-150';
+  
   newRow.innerHTML = `
-    <td class="px-4 py-3">
-      <select name="product_id[]" class="product-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+    <td class="px-4 py-3 w-1/3">
+      <select name="product_id[]" class="product-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white" 
               onchange="handleProductSelect(this, ${rowIndex})">
         <option value="">Select product</option>
         ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
       </select>
     </td>
-    <td class="px-4 py-3">
-      <select name="product_size_id[]" class="size-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+    <td class="px-4 py-3 w-1/5">
+      <select name="product_size_id[]" class="size-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white" 
               onchange="handleSizeSelect(this, ${rowIndex})" disabled>
         <option value="">Select size</option>
       </select>
     </td>
-    <td class="px-4 py-3">
+    <td class="px-4 py-3 w-20">
       <input type="number" name="quantity[]" min="1" value="1" 
-             class="quantity-input w-full border border-gray-300 rounded-md py-2 px-3 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+             class="quantity-input w-full border border-gray-300 rounded-md py-2 px-3 text-center focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white"
              onchange="updateRowTotal(${rowIndex})" disabled />
     </td>
-    <td class="px-4 py-3">
+    <td class="px-4 py-3 w-24">
       <input type="number" name="price[]" step="0.01" value="0.00" 
-             class="price-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50" readonly />
+             class="price-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-gray-50" readonly />
     </td>
-    <td class="px-4 py-3">
+    <td class="px-4 py-3 w-24">
       <input type="number" name="total[]" step="0.01" value="0.00" 
-             class="total-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 font-medium" readonly />
+             class="total-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-gray-50 font-medium" readonly />
     </td>
-    <td class="px-4 py-3 text-center">
+    <td class="px-4 py-3 text-center w-12">
       <button type="button" class="text-red-500 hover:text-red-700 transition-colors" onclick="removeProductRow(this)">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -538,6 +540,9 @@ function handleProductSelect(select, rowIndex) {
     quantityInput.max = product.stock || 999;
     updateRowTotal(rowIndex);
   }
+  
+  // Highlight the row to make it more visible
+  row.classList.add('bg-gray-50');
   
   // Update discount product dropdown
   updateDiscountProductDropdown();
@@ -777,7 +782,8 @@ function createOrder(orderData) {
     if (data.success) {
       showToast('Order created successfully');
       closeAddOrderModal();
-      loadSales(); // Refresh the list
+      loadSales(); // Refresh the sales list
+      loadProducts(); // Refresh products to get updated stock values
     } else {
       showToast(data.message || 'Error creating order', 'error');
     }
