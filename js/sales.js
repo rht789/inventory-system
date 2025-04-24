@@ -24,9 +24,21 @@ document.addEventListener('DOMContentLoaded', function() {
   // Show loading state
   showLoadingState(true);
   
-  // Load initial data
-  loadSales();
-  loadProducts();
+  // Load initial data - products first to ensure global products array is populated
+  loadProducts()
+    .then(() => {
+      console.log('Products loaded, now loading sales...');
+      return loadSales();
+    })
+    .then(() => {
+      console.log('Initial data loading complete');
+      showLoadingState(false);
+    })
+    .catch(error => {
+      console.error('Error during initialization:', error);
+      showToast('Error loading initial data: ' + error.message, 'error');
+      showLoadingState(false);
+    });
   
   // Add event listeners
   document.getElementById('searchInput').addEventListener('input', debounce(loadSales, 300));
@@ -35,9 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('addOrderForm').addEventListener('submit', handleAddOrder);
   document.getElementById('discountPercentage').addEventListener('input', calculateTotals);
   document.getElementById('discountProduct').addEventListener('change', calculateTotals);
-  
-  // Add initial product row
-  addProductRow();
   
   // Initialize bulk actions
   initBulkActions();
@@ -980,8 +989,12 @@ function editSale(saleId) {
   // Show loading indicator in toast
   showToast('Loading sale data...', 'info');
   
-  // Fetch the sale details
-  fetch(`api/sales.php?id=${saleId}`)
+  // First, load products to ensure they're available
+  loadProducts()
+    .then(() => {
+      // Then fetch the sale details
+      return fetch(`api/sales.php?id=${saleId}`);
+    })
     .then(response => {
       if (!response.ok) {
         return response.json()
@@ -1016,23 +1029,8 @@ function editSale(saleId) {
         selectedProducts = [];
         
         if (sale.items && sale.items.length > 0) {
-          // Ensure products are loaded first
-          const waitForProducts = () => {
-            if (products.length === 0) {
-              loadProducts()
-                .then(() => {
-                  populateProductItems(sale.items);
-                })
-                .catch(error => {
-                  console.error('Error loading products:', error);
-                  showToast('Failed to load products: ' + error.message, 'error');
-                });
-            } else {
-              populateProductItems(sale.items);
-            }
-          };
-          
-          waitForProducts();
+          // Directly populate items since products are already loaded
+          populateProductItems(sale.items);
         } else {
           // If no items, add at least one empty row
           addProductRow();
@@ -1101,30 +1099,27 @@ function editSale(saleId) {
 
 // Helper function to populate product items in the order form
 function populateProductItems(items) {
+  console.log('Populating items:', items);
+  
   if (!Array.isArray(items) || items.length === 0) {
     console.log('No items to populate');
     addProductRow();
     return;
   }
   
+  // Clear existing rows first
+  document.getElementById('productRows').innerHTML = '';
+  
+  // Create a new row for each item
   items.forEach((item, index) => {
+    console.log(`Processing item ${index}:`, item);
+    
     try {
-      addProductRow();
+      // Add a new row
+      const row = addProductRow();
       
-      // Set values on the product row
-      const rows = document.querySelectorAll('#productRows tr');
-      const row = rows[index];
-      
-      if (!row) {
-        console.error(`Row ${index} not found`);
-        return;
-      }
-      
+      // Get elements from the row
       const productSelect = row.querySelector('.product-select');
-      if (!productSelect) {
-        console.error(`Product select not found in row ${index}`);
-        return;
-      }
       
       // Check if product_id exists
       if (!item.product_id) {
@@ -1132,42 +1127,67 @@ function populateProductItems(items) {
         return;
       }
       
+      console.log(`Setting product ${item.product_id} for item ${index}`);
+      
+      // Set product and trigger change event
       productSelect.value = item.product_id;
       
-      // Trigger product select handler
-      handleProductSelect(productSelect, index);
+      // Manually trigger the change event to populate sizes
+      const changeEvent = new Event('change', { bubbles: true });
+      productSelect.dispatchEvent(changeEvent);
       
-      // Set size if available
+      // Wait for size select to be populated
       setTimeout(() => {
         try {
-          if (item.product_size_id) {
-            const sizeSelect = row.querySelector('.size-select');
-            if (sizeSelect && !sizeSelect.disabled) {
-              sizeSelect.value = item.product_size_id;
-              
-              // Trigger size select handler
-              handleSizeSelect(sizeSelect, index);
-            }
-          }
+          // Find the size select in the current row
+          const sizeSelect = row.querySelector('.size-select');
           
-          // Set quantity (with a slight delay to ensure handlers have finished)
-          setTimeout(() => {
-            try {
-              const quantityInput = row.querySelector('.quantity-input');
-              if (quantityInput && !quantityInput.disabled) {
-                quantityInput.value = item.quantity || 1;
-                
-                // Update row total
-                updateRowTotal(index);
+          if (item.product_size_id && sizeSelect && !sizeSelect.disabled) {
+            console.log(`Setting size ${item.product_size_id} for item ${index}`);
+            sizeSelect.value = item.product_size_id;
+            
+            // Trigger change event
+            const sizeChangeEvent = new Event('change', { bubbles: true });
+            sizeSelect.dispatchEvent(sizeChangeEvent);
+            
+            // Set quantity with a delay to ensure size change is processed
+            setTimeout(() => {
+              try {
+                const quantityInput = row.querySelector('.quantity-input');
+                if (quantityInput && !quantityInput.disabled) {
+                  console.log(`Setting quantity ${item.quantity} for item ${index}`);
+                  quantityInput.value = item.quantity || 1;
+                  
+                  // Update row total
+                  const quantityChangeEvent = new Event('input', { bubbles: true });
+                  quantityInput.dispatchEvent(quantityChangeEvent);
+                }
+              } catch (err) {
+                console.error(`Error setting quantity for item ${index}:`, err);
               }
-            } catch (err) {
-              console.error(`Error setting quantity for item ${index}:`, err);
-            }
-          }, 100);
+            }, 300);
+          } else {
+            // If no size or sizes are disabled, set quantity directly
+            setTimeout(() => {
+              try {
+                const quantityInput = row.querySelector('.quantity-input');
+                if (quantityInput && !quantityInput.disabled) {
+                  console.log(`Setting quantity ${item.quantity} directly for item ${index}`);
+                  quantityInput.value = item.quantity || 1;
+                  
+                  // Update row total
+                  const quantityChangeEvent = new Event('input', { bubbles: true });
+                  quantityInput.dispatchEvent(quantityChangeEvent);
+                }
+              } catch (err) {
+                console.error(`Error setting quantity for item ${index}:`, err);
+              }
+            }, 300);
+          }
         } catch (err) {
           console.error(`Error setting size for item ${index}:`, err);
         }
-      }, 100);
+      }, 300);
     } catch (err) {
       console.error(`Error populating item ${index}:`, err);
     }
@@ -1175,14 +1195,9 @@ function populateProductItems(items) {
   
   // Force a recalculation of totals after all items are populated
   setTimeout(() => {
+    console.log('Calculating final totals');
     calculateTotals();
-    
-    // Ensure subtotal is displayed correctly in the form
-    const subtotalElement = document.getElementById('orderFormSubtotal');
-    if (subtotalElement && subtotal > 0) {
-      subtotalElement.textContent = '৳ ' + subtotal.toFixed(2);
-    }
-  }, 500);
+  }, 1000);
 }
 
 // Delete sale
@@ -1312,33 +1327,44 @@ function openAddOrderModal() {
     submitBtn.textContent = 'Create Order';
   }
   
-  // Add initial product row
-  addProductRow();
+  // Show loading indicator
+  showToast('Loading product data...', 'info');
   
-  // Reset totals display
-  const subtotalElement = document.getElementById('orderFormSubtotal');
-  const discountElement = document.getElementById('discountDisplay');
-  const totalElement = document.getElementById('totalDisplay');
-  
-  if (subtotalElement) {
-    subtotalElement.textContent = '৳ 0.00';
-  }
-  
-  if (discountElement) {
-    discountElement.textContent = '৳ 0.00';
-  }
-  
-  if (totalElement) {
-    totalElement.textContent = '৳ 0.00';
-  }
-  
-  // Reset global totals
-  subtotal = 0;
-  discount = 0;
-  total = 0;
-  
-  // Calculate totals (important for initialization)
-  calculateTotals();
+  // First load products, then add product row
+  loadProducts()
+    .then(() => {
+      // Add initial product row
+      addProductRow();
+      
+      // Reset totals display
+      const subtotalElement = document.getElementById('orderFormSubtotal');
+      const discountElement = document.getElementById('discountDisplay');
+      const totalElement = document.getElementById('totalDisplay');
+      
+      if (subtotalElement) {
+        subtotalElement.textContent = '৳ 0.00';
+      }
+      
+      if (discountElement) {
+        discountElement.textContent = '৳ 0.00';
+      }
+      
+      if (totalElement) {
+        totalElement.textContent = '৳ 0.00';
+      }
+      
+      // Reset global totals
+      subtotal = 0;
+      discount = 0;
+      total = 0;
+      
+      // Calculate totals (important for initialization)
+      calculateTotals();
+    })
+    .catch(error => {
+      console.error('Error initializing form:', error);
+      showToast('Error loading products. Please try again.', 'error');
+    });
 }
 
 // Close the add order modal
@@ -1871,4 +1897,544 @@ function generateInvoiceHTML(sale) {
     </body>
     </html>
   `;
+}
+
+/**
+ * Loads products from the API
+ * @returns {Promise} - Promise that resolves to products data
+ */
+function loadProducts() {
+  console.log('Loading products...');
+  return fetch('api/products.php')
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.message || `Server responded with status ${response.status}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      // API returns the products array directly, not inside a 'products' property
+      if (Array.isArray(data)) {
+        console.log('Products loaded:', data.length);
+        // Store products in global variable
+        products = data;
+        
+        // Update product dropdown in the form
+        const discountProductSelect = document.getElementById('discountProduct');
+        if (discountProductSelect) {
+          // Save current value
+          const currentValue = discountProductSelect.value;
+          
+          // Clear existing options (except first one)
+          while (discountProductSelect.options.length > 1) {
+            discountProductSelect.remove(1);
+          }
+          
+          // Add product options
+          products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = product.name;
+            discountProductSelect.appendChild(option);
+          });
+          
+          // Restore previous selection if it exists
+          if (currentValue) {
+            discountProductSelect.value = currentValue;
+          }
+        }
+        
+        return products;
+      } else if (data.success && data.products) {
+        // Fallback for alternative API response format
+        console.log('Alternative format products loaded:', data.products.length);
+        products = data.products;
+        return products;
+      } else {
+        console.error('Unexpected API response format:', data);
+        throw new Error('Unexpected API response format');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading products:', error);
+      showToast('Failed to load products: ' + error.message, 'error');
+      return [];
+    });
+}
+
+/**
+ * Adds a new product row to the order form
+ * Creates a new row with product selection, size, quantity, and price
+ */
+function addProductRow() {
+  const productRows = document.getElementById('productRows');
+  const rowIndex = productRows.children.length;
+  
+  // Create the row
+  const row = document.createElement('tr');
+  row.className = 'product-row';
+  row.dataset.index = rowIndex;
+  
+  // Create the row content with all required cells and inputs
+  row.innerHTML = `
+    <td class="px-4 py-2">
+      <select class="product-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-sm" required>
+        <option value="">Select Product</option>
+        ${products.map(product => `<option value="${product.id}">${product.name}</option>`).join('')}
+      </select>
+    </td>
+    <td class="px-4 py-2">
+      <select class="size-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-sm" disabled>
+        <option value="">Select Size</option>
+      </select>
+    </td>
+    <td class="px-4 py-2">
+      <input type="number" class="quantity-input w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-sm text-center" 
+             value="1" min="1" max="100" disabled required>
+    </td>
+    <td class="px-4 py-2">
+      <input type="number" class="price-input w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-sm text-right" 
+             value="0.00" min="0" step="0.01" disabled required>
+    </td>
+    <td class="px-4 py-2 text-right font-medium row-total">
+      ৳ 0.00
+    </td>
+    <td class="px-4 py-2 text-center">
+      <button type="button" class="remove-row-btn text-red-500 hover:text-red-700" ${rowIndex === 0 ? 'disabled style="opacity: 0.5;"' : ''}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+    </td>
+  `;
+  
+  productRows.appendChild(row);
+  
+  // Add event listeners to the new row elements
+  const productSelect = row.querySelector('.product-select');
+  const sizeSelect = row.querySelector('.size-select');
+  const quantityInput = row.querySelector('.quantity-input');
+  const priceInput = row.querySelector('.price-input');
+  const removeButton = row.querySelector('.remove-row-btn');
+  
+  // Product selection handler
+  productSelect.addEventListener('change', function() {
+    handleProductSelect(this, rowIndex);
+  });
+  
+  // Size selection handler
+  sizeSelect.addEventListener('change', function() {
+    handleSizeSelect(this, rowIndex);
+  });
+  
+  // Quantity change handler
+  quantityInput.addEventListener('input', function() {
+    handleQuantityChange(this, rowIndex);
+  });
+  
+  // Price change handler
+  priceInput.addEventListener('input', function() {
+    handlePriceChange(this, rowIndex);
+  });
+  
+  // Remove row handler
+  if (removeButton) {
+    removeButton.addEventListener('click', function() {
+      handleRemoveRow(this, rowIndex);
+    });
+  }
+  
+  // Add some spacing for better UX
+  selectedProducts[rowIndex] = null;
+  return row;
+}
+
+/**
+ * Handles product selection in the order form
+ * Loads size options for the selected product
+ * 
+ * @param {HTMLElement} selectElement - The product select element
+ * @param {number} rowIndex - Index of the row in the form
+ */
+function handleProductSelect(selectElement, rowIndex) {
+  const row = selectElement.closest('tr');
+  const sizeSelect = row.querySelector('.size-select');
+  const quantityInput = row.querySelector('.quantity-input');
+  const priceInput = row.querySelector('.price-input');
+  
+  // Clear selected product data
+  selectedProducts[rowIndex] = null;
+  
+  // Reset and disable size, quantity, and price fields
+  sizeSelect.innerHTML = '<option value="">Select Size</option>';
+  sizeSelect.disabled = true;
+  quantityInput.value = 1;
+  quantityInput.disabled = true;
+  priceInput.value = "0.00";
+  priceInput.disabled = true;
+  
+  // Update row total
+  updateRowTotal(rowIndex);
+  
+  // If no product selected, exit
+  if (!selectElement.value) {
+    return;
+  }
+  
+  // Find the selected product
+  const productId = parseInt(selectElement.value);
+  const product = products.find(p => p.id === productId);
+  
+  if (!product) {
+    console.error('Product not found:', productId);
+    return;
+  }
+  
+  // If product has sizes, populate size options
+  if (product.sizes && product.sizes.length > 0) {
+    product.sizes.forEach(size => {
+      const option = document.createElement('option');
+      option.value = size.id;
+      option.textContent = size.size_name;
+      option.dataset.price = size.price || product.selling_price;
+      option.dataset.stock = size.stock || 0;
+      sizeSelect.appendChild(option);
+    });
+    sizeSelect.disabled = false;
+  } else {
+    // If no sizes, enable quantity and set price directly
+    quantityInput.disabled = false;
+    quantityInput.max = product.stock || 100;
+    priceInput.value = parseFloat(product.selling_price).toFixed(2);
+    priceInput.disabled = false;
+    
+    // Store selected product data
+    selectedProducts[rowIndex] = {
+      product_id: productId,
+      product_name: product.name,
+      product_size_id: null,
+      size_name: null,
+      price: parseFloat(product.selling_price),
+      quantity: parseInt(quantityInput.value),
+      total: parseFloat(product.selling_price) * parseInt(quantityInput.value)
+    };
+    
+    // Update row total
+    updateRowTotal(rowIndex);
+  }
+  
+  // Update totals after product selection
+  calculateTotals();
+}
+
+/**
+ * Handles size selection in the order form
+ * Sets price based on the selected size and enables quantity input
+ * 
+ * @param {HTMLElement} selectElement - The size select element
+ * @param {number} rowIndex - Index of the row in the form
+ */
+function handleSizeSelect(selectElement, rowIndex) {
+  const row = selectElement.closest('tr');
+  const productSelect = row.querySelector('.product-select');
+  const quantityInput = row.querySelector('.quantity-input');
+  const priceInput = row.querySelector('.price-input');
+  
+  // Reset quantity and price inputs
+  quantityInput.value = 1;
+  quantityInput.disabled = true;
+  priceInput.value = "0.00";
+  priceInput.disabled = true;
+  
+  // Clear selected product data
+  selectedProducts[rowIndex] = null;
+  
+  // If no size selected, exit
+  if (!selectElement.value) {
+    updateRowTotal(rowIndex);
+    return;
+  }
+  
+  // Get selected option
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const price = parseFloat(selectedOption.dataset.price);
+  const stock = parseInt(selectedOption.dataset.stock);
+  
+  // Enable quantity input with max limit
+  quantityInput.max = stock;
+  quantityInput.disabled = false;
+  
+  // Set price for the selected size
+  priceInput.value = price.toFixed(2);
+  priceInput.disabled = false;
+  
+  // Find the selected product
+  const productId = parseInt(productSelect.value);
+  const product = products.find(p => p.id === productId);
+  
+  // Store selected product data
+  selectedProducts[rowIndex] = {
+    product_id: productId,
+    product_name: product ? product.name : 'Unknown Product',
+    product_size_id: parseInt(selectElement.value),
+    size_name: selectedOption.textContent,
+    price: price,
+    quantity: parseInt(quantityInput.value),
+    total: price * parseInt(quantityInput.value)
+  };
+  
+  // Update row total
+  updateRowTotal(rowIndex);
+  
+  // Update totals
+  calculateTotals();
+}
+
+/**
+ * Handles quantity changes in the order form
+ * Updates row total and overall totals
+ * 
+ * @param {HTMLElement} inputElement - The quantity input element
+ * @param {number} rowIndex - Index of the row in the form
+ */
+function handleQuantityChange(inputElement, rowIndex) {
+  // Ensure non-negative integer value
+  let quantity = parseInt(inputElement.value) || 0;
+  if (quantity < 1) {
+    quantity = 1;
+    inputElement.value = 1;
+  }
+  
+  const max = parseInt(inputElement.max) || 100;
+  if (quantity > max) {
+    quantity = max;
+    inputElement.value = max;
+    showToast(`Maximum available quantity is ${max}`, 'warning');
+  }
+  
+  // Update selected product data
+  if (selectedProducts[rowIndex]) {
+    selectedProducts[rowIndex].quantity = quantity;
+    selectedProducts[rowIndex].total = selectedProducts[rowIndex].price * quantity;
+  }
+  
+  // Update row total
+  updateRowTotal(rowIndex);
+  
+  // Update totals
+  calculateTotals();
+}
+
+/**
+ * Handles price changes in the order form
+ * Updates row total and overall totals
+ * 
+ * @param {HTMLElement} inputElement - The price input element
+ * @param {number} rowIndex - Index of the row in the form
+ */
+function handlePriceChange(inputElement, rowIndex) {
+  // Ensure non-negative value
+  let price = parseFloat(inputElement.value) || 0;
+  if (price < 0) {
+    price = 0;
+    inputElement.value = "0.00";
+  }
+  
+  // Format price to 2 decimal places
+  inputElement.value = price.toFixed(2);
+  
+  // Update selected product data
+  if (selectedProducts[rowIndex]) {
+    selectedProducts[rowIndex].price = price;
+    selectedProducts[rowIndex].total = price * selectedProducts[rowIndex].quantity;
+  }
+  
+  // Update row total
+  updateRowTotal(rowIndex);
+  
+  // Update totals
+  calculateTotals();
+}
+
+/**
+ * Handles removing a row from the order form
+ * Updates row indices and recalculates totals
+ * 
+ * @param {HTMLElement} buttonElement - The remove button element
+ * @param {number} rowIndex - Index of the row to remove
+ */
+function handleRemoveRow(buttonElement, rowIndex) {
+  const row = buttonElement.closest('tr');
+  const productRows = document.getElementById('productRows');
+  
+  // Can't remove the last row
+  if (productRows.children.length <= 1) {
+    showToast('Cannot remove the last row', 'warning');
+    return;
+  }
+  
+  // Remove row and update selectedProducts array
+  row.remove();
+  selectedProducts.splice(rowIndex, 1);
+  
+  // Update indices for remaining rows
+  Array.from(productRows.children).forEach((row, index) => {
+    row.dataset.index = index;
+    
+    // Update event listeners with new indices
+    const productSelect = row.querySelector('.product-select');
+    const sizeSelect = row.querySelector('.size-select');
+    const quantityInput = row.querySelector('.quantity-input');
+    const priceInput = row.querySelector('.price-input');
+    const removeButton = row.querySelector('.remove-row-btn');
+    
+    // Remove old event listeners (not strictly necessary due to closure scope)
+    
+    // Add new event listeners with updated index
+    productSelect.addEventListener('change', function() {
+      handleProductSelect(this, index);
+    });
+    
+    sizeSelect.addEventListener('change', function() {
+      handleSizeSelect(this, index);
+    });
+    
+    quantityInput.addEventListener('input', function() {
+      handleQuantityChange(this, index);
+    });
+    
+    priceInput.addEventListener('input', function() {
+      handlePriceChange(this, index);
+    });
+    
+    removeButton.addEventListener('click', function() {
+      handleRemoveRow(this, index);
+    });
+    
+    // Disable remove button for the first row
+    if (index === 0) {
+      removeButton.disabled = true;
+      removeButton.style.opacity = '0.5';
+    } else {
+      removeButton.disabled = false;
+      removeButton.style.opacity = '1';
+    }
+  });
+  
+  // Update totals
+  calculateTotals();
+}
+
+/**
+ * Updates the total for a specific row
+ * 
+ * @param {number} rowIndex - Index of the row to update
+ */
+function updateRowTotal(rowIndex) {
+  const rows = document.querySelectorAll('#productRows tr');
+  if (rowIndex >= rows.length) return;
+  
+  const row = rows[rowIndex];
+  const totalCell = row.querySelector('.row-total');
+  
+  if (selectedProducts[rowIndex]) {
+    totalCell.textContent = '৳ ' + selectedProducts[rowIndex].total.toFixed(2);
+  } else {
+    totalCell.textContent = '৳ 0.00';
+  }
+}
+
+/**
+ * Handles the add order form submission
+ * Creates a new order or updates an existing one
+ * 
+ * @param {Event} e - The form submission event
+ */
+function handleAddOrder(e) {
+  e.preventDefault();
+  
+  // Check if we have products selected
+  const hasProducts = selectedProducts.some(product => product !== null);
+  if (!hasProducts) {
+    showToast('Please add at least one product to the order', 'error');
+    return;
+  }
+  
+  // Get customer information
+  const customerName = document.getElementById('customerName').value;
+  if (!customerName) {
+    showToast('Customer name is required', 'error');
+    return;
+  }
+  
+  // Prepare the order data
+  const orderData = {
+    customer_name: customerName,
+    customer_phone: document.getElementById('customerPhone').value,
+    customer_email: document.getElementById('customerEmail').value,
+    customer_address: document.getElementById('customerAddress').value,
+    status: document.getElementById('orderStatus').value,
+    discount_percentage: parseFloat(document.getElementById('discountPercentage').value) || 0,
+    note: document.getElementById('orderNote').value,
+    items: selectedProducts.filter(product => product !== null).map(product => ({
+      product_id: product.product_id,
+      product_size_id: product.product_size_id,
+      quantity: product.quantity,
+      price: product.price
+    }))
+  };
+  
+  // Check if this is an edit (update) or a new order
+  const editSaleId = document.getElementById('editSaleId');
+  
+  if (editSaleId && editSaleId.value) {
+    // This is an edit/update
+    orderData.id = editSaleId.value;
+    updateOrder(orderData);
+  } else {
+    // This is a new order
+    createOrder(orderData);
+  }
+}
+
+/**
+ * Creates a new order via API
+ * 
+ * @param {Object} orderData - The order data to send
+ */
+function createOrder(orderData) {
+  // Show loading indicator
+  showToast('Creating order...', 'info');
+  
+  fetch('api/sales.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(orderData)
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.message || `Server responded with status ${response.status}`);
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showToast('Order created successfully', 'success');
+      closeAddOrderModal();
+      loadSales(); // Refresh the sales list
+      loadProducts(); // Refresh products to get updated stock values
+    } else {
+      showToast(data.message || 'Error creating order', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showToast('Failed to create order: ' + error.message, 'error');
+  });
 }
