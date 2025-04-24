@@ -114,6 +114,9 @@ try {
         if ($status) {
             $whereConditions[] = "s.status = ?";
             $params[] = $status;
+        } else {
+            // If no specific status filter is set, we'll still show all statuses in the report
+            // But will only count delivered orders for revenue calculation later
         }
         
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
@@ -192,15 +195,24 @@ try {
         // Calculate summary
         $totalSales = count($sales);
         $totalRevenue = 0;
+        $deliveredSalesCount = 0;
+        
         foreach ($sales as $sale) {
-            $totalRevenue += $sale['total'];
+            // Only count revenue from delivered orders
+            if (strtolower($sale['status']) === 'delivered') {
+                $totalRevenue += $sale['total'];
+                $deliveredSalesCount++;
+            }
         }
-        $averageSale = $totalSales > 0 ? $totalRevenue / $totalSales : 0;
+        
+        // Calculate average based on delivered sales only
+        $averageSale = $deliveredSalesCount > 0 ? $totalRevenue / $deliveredSalesCount : 0;
         
         $response['summary'] = [
             'totalSales' => $totalSales,
             'totalRevenue' => $totalRevenue,
-            'averageSale' => $averageSale
+            'averageSale' => $averageSale,
+            'deliveredSales' => $deliveredSalesCount
         ];
     } 
     elseif ($reportType === 'product_sales') {
@@ -237,6 +249,9 @@ try {
             $whereConditions[] = "si.product_id = ?";
             $params[] = $productId;
         }
+        
+        // Add condition for delivered orders
+        $whereConditions[] = "s.status = 'delivered'";
         
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
         $havingClause = !empty($havingConditions) ? "HAVING " . implode(" AND ", $havingConditions) : "";
@@ -321,6 +336,18 @@ try {
             $params[] = $userId;
         }
         
+        // Add movement type filter
+        if (isset($_GET['movementType']) && !empty($_GET['movementType'])) {
+            $movementType = $_GET['movementType'];
+            if ($movementType === 'in') {
+                $whereConditions[] = "sl.changes > 0";
+            } else if ($movementType === 'out') {
+                $whereConditions[] = "sl.changes < 0";
+            } else if ($movementType === 'adjustment') {
+                $whereConditions[] = "sl.changes = 0";
+            }
+        }
+        
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
         
         $query = "
@@ -360,19 +387,30 @@ try {
         $totalMovements = count($movements);
         $totalStockIn = 0;
         $totalStockOut = 0;
+        $totalStockInQuantity = 0;
+        $totalStockOutQuantity = 0;
+        $totalAdjustmentQuantity = 0;
         
         foreach ($movements as $movement) {
             if (strpos(strtolower($movement['type']), 'in') !== false) {
                 $totalStockIn++;
+                $totalStockInQuantity += $movement['quantity'];
             } else if (strpos(strtolower($movement['type']), 'out') !== false) {
                 $totalStockOut++;
+                $totalStockOutQuantity += $movement['quantity'];
+            } else {
+                // Adjustment
+                $totalAdjustmentQuantity += $movement['quantity'];
             }
         }
         
         $response['summary'] = [
             'totalMovements' => $totalMovements,
             'totalStockIn' => $totalStockIn,
-            'totalStockOut' => $totalStockOut
+            'totalStockOut' => $totalStockOut,
+            'totalStockInQuantity' => $totalStockInQuantity,
+            'totalStockOutQuantity' => $totalStockOutQuantity,
+            'totalAdjustmentQuantity' => $totalAdjustmentQuantity
         ];
     } 
     elseif ($reportType === 'batch') {

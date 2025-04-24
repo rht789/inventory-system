@@ -400,19 +400,20 @@ function loadCategories() {
       return response.json();
     })
     .then(data => {
-      if (data.success) {
-        const categorySelect = document.getElementById('categoryFilter');
-        // Clear existing options except the first one
-        categorySelect.innerHTML = '<option value="">All Categories</option>';
-        
-        // Add category options
-        data.categories.forEach(category => {
-          const option = document.createElement('option');
-          option.value = category.id;
-          option.textContent = category.name;
-          categorySelect.appendChild(option);
-        });
-      }
+      const categorySelect = document.getElementById('categoryFilter');
+      // Clear existing options except the first one
+      categorySelect.innerHTML = '<option value="">All Categories</option>';
+      
+      // Check if data is an array (direct array response) or has a success property with categories array
+      const categories = Array.isArray(data) ? data : (data.success && data.categories ? data.categories : []);
+      
+      // Add category options
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        categorySelect.appendChild(option);
+      });
     })
     .catch(error => {
       console.error('Error loading categories:', error);
@@ -435,29 +436,30 @@ function loadProducts(categoryId) {
       return response.json();
     })
     .then(data => {
-      if (data.success) {
-        // Update all product dropdowns
-        const productSelects = [
-          document.getElementById('productFilter'),
-          document.getElementById('stockProductFilter'),
-          document.getElementById('batchProductFilter')
-        ];
-        
-        productSelects.forEach(select => {
-          if (select) {
-            // Clear existing options except the first one
-            select.innerHTML = '<option value="">All Products</option>';
-            
-            // Add product options
-            data.products.forEach(product => {
-              const option = document.createElement('option');
-              option.value = product.id;
-              option.textContent = product.name;
-              select.appendChild(option);
-            });
-          }
-        });
-      }
+      // Update all product dropdowns
+      const productSelects = [
+        document.getElementById('productFilter'),
+        document.getElementById('stockProductFilter'),
+        document.getElementById('batchProductFilter')
+      ];
+      
+      // Check if data is an array (direct array response) or has a success property with products array
+      const products = Array.isArray(data) ? data : (data.success && data.products ? data.products : []);
+      
+      productSelects.forEach(select => {
+        if (select) {
+          // Clear existing options except the first one
+          select.innerHTML = '<option value="">All Products</option>';
+          
+          // Add product options
+          products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = product.name;
+            select.appendChild(option);
+          });
+        }
+      });
     })
     .catch(error => {
       console.error('Error loading products:', error);
@@ -475,19 +477,37 @@ function loadUsers() {
       return response.json();
     })
     .then(data => {
-      if (data.success) {
-        const userSelect = document.getElementById('userFilter');
-        // Clear existing options except the first one
-        userSelect.innerHTML = '<option value="">All Users</option>';
-        
-        // Add user options
-        data.users.forEach(user => {
-          const option = document.createElement('option');
-          option.value = user.id;
-          option.textContent = `${user.name} (${user.role})`;
-          userSelect.appendChild(option);
-        });
+      const userSelect = document.getElementById('userFilter');
+      // Clear existing options except the first one
+      userSelect.innerHTML = '<option value="">All Users</option>';
+      
+      // Check the structure of the data
+      // The users API returns { admin: [...], staff: [...] }
+      let users = [];
+      
+      if (data.success && data.users) {
+        // If API returns success with users array
+        users = data.users;
+      } else if (data.admin || data.staff) {
+        // API returns grouped users by role
+        if (Array.isArray(data.admin)) {
+          users = users.concat(data.admin);
+        }
+        if (Array.isArray(data.staff)) {
+          users = users.concat(data.staff);
+        }
+      } else if (Array.isArray(data)) {
+        // Direct array of users
+        users = data;
       }
+      
+      // Add user options
+      users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.username} (${user.role || 'User'})`;
+        userSelect.appendChild(option);
+      });
     })
     .catch(error => {
       console.error('Error loading users:', error);
@@ -518,8 +538,8 @@ function showToast(message, type = 'success') {
 
 // Generate report based on selected filters
 function generateReport(autoDownload = false) {
-  const reportType = document.getElementById('reportType').value;
-  const timeRange = document.getElementById('timeRange').value;
+    const reportType = document.getElementById('reportType').value;
+    const timeRange = document.getElementById('timeRange').value;
   
   // Get common filters
   const params = new URLSearchParams();
@@ -541,7 +561,7 @@ function generateReport(autoDownload = false) {
   }
   
   // Add report-specific filters
-  if (reportType === 'sales') {
+    if (reportType === 'sales') {
     const customerId = document.getElementById('customerFilter').value;
     const status = document.getElementById('statusFilter').value;
     
@@ -589,8 +609,8 @@ function generateReport(autoDownload = false) {
     })
     .then(data => {
       console.log('API Response:', data);
-      
-      if (data.success) {
+
+    if (data.success) {
         // If report generation was successful
         // Show report summary
         const reportSummary = document.getElementById('reportSummary');
@@ -637,7 +657,7 @@ function displayReportData(data, reportType) {
     displayStockMovementReport(data, reportContent);
   } else if (reportType === 'batch') {
     displayBatchReport(data, reportContent);
-  } else {
+    } else {
     reportContent.innerHTML = '<div class="text-center p-8 text-gray-500">Unknown report type selected.</div>';
   }
 }
@@ -655,14 +675,15 @@ function displaySalesReport(data, container) {
         <p class="text-xl font-bold">${data.summary.totalSales || 0}</p>
       </div>
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Total Revenue</p>
-        <p class="text-xl font-bold">$${parseFloat(data.summary.totalRevenue || 0).toFixed(2)}</p>
+        <p class="text-gray-500 text-sm">Total Revenue <span class="text-xs text-gray-500">(delivered only)</span></p>
+        <p class="text-xl font-bold">৳${parseFloat(data.summary.totalRevenue || 0).toFixed(2)}</p>
       </div>
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Average Sale</p>
-        <p class="text-xl font-bold">$${parseFloat(data.summary.averageSale || 0).toFixed(2)}</p>
+        <p class="text-gray-500 text-sm">Average Sale <span class="text-xs text-gray-500">(delivered only)</span></p>
+        <p class="text-xl font-bold">৳${parseFloat(data.summary.averageSale || 0).toFixed(2)}</p>
       </div>
     </div>
+    <div class="text-xs text-gray-500 mt-2 italic">Note: Revenue is calculated only from delivered orders.</div>
   `;
   container.appendChild(summaryDiv);
   
@@ -684,8 +705,8 @@ function displaySalesReport(data, container) {
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-        </tr>
-      </thead>
+                    </tr>
+                </thead>
       <tbody class="bg-white divide-y divide-gray-200">
   `;
   
@@ -703,7 +724,7 @@ function displaySalesReport(data, container) {
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.item_count || 0}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">$${parseFloat(sale.total || 0).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">৳${parseFloat(sale.total || 0).toFixed(2)}</td>
         </tr>
       `;
     });
@@ -714,7 +735,7 @@ function displaySalesReport(data, container) {
     tableHTML += `
       <tr>
         <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No sales data found for the selected filters.</td>
-      </tr>
+                        </tr>
     `;
     
     // Log to console for debugging
@@ -722,9 +743,9 @@ function displaySalesReport(data, container) {
   }
   
   tableHTML += `
-      </tbody>
-    </table>
-  `;
+                </tbody>
+            </table>
+        `;
   
   tableDiv.innerHTML = tableHTML;
   container.appendChild(tableDiv);
@@ -739,18 +760,19 @@ function displayProductSalesReport(data, container) {
     <h3 class="text-lg font-semibold mb-4">Summary</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Total Products Sold</p>
+        <p class="text-gray-500 text-sm">Total Products Sold <span class="text-xs text-gray-500">(delivered only)</span></p>
         <p class="text-xl font-bold">${data.summary.totalQuantity || 0}</p>
       </div>
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Total Revenue</p>
-        <p class="text-xl font-bold">$${parseFloat(data.summary.totalRevenue || 0).toFixed(2)}</p>
+        <p class="text-gray-500 text-sm">Total Revenue <span class="text-xs text-gray-500">(delivered only)</span></p>
+        <p class="text-xl font-bold">৳${parseFloat(data.summary.totalRevenue || 0).toFixed(2)}</p>
       </div>
       <div class="bg-gray-50 p-4 rounded">
         <p class="text-gray-500 text-sm">Products Tracked</p>
         <p class="text-xl font-bold">${data.summary.productCount || 0}</p>
       </div>
     </div>
+    <div class="text-xs text-gray-500 mt-2 italic">Note: Only sales with "delivered" status are included in calculations.</div>
   `;
   container.appendChild(summaryDiv);
   
@@ -784,8 +806,8 @@ function displayProductSalesReport(data, container) {
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.name || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.category || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.quantity_sold || 0}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">$${parseFloat(product.revenue || 0).toFixed(2)}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${parseFloat(product.average_price || 0).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">৳${parseFloat(product.revenue || 0).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">৳${parseFloat(product.average_price || 0).toFixed(2)}</td>
         </tr>
       `;
     });
@@ -796,7 +818,7 @@ function displayProductSalesReport(data, container) {
     tableHTML += `
       <tr>
         <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No product sales data found for the selected filters.</td>
-      </tr>
+                        </tr>
     `;
     
     // Log to console for debugging
@@ -804,9 +826,9 @@ function displayProductSalesReport(data, container) {
   }
   
   tableHTML += `
-      </tbody>
-    </table>
-  `;
+                </tbody>
+            </table>
+        `;
   
   tableDiv.innerHTML = tableHTML;
   container.appendChild(tableDiv);
@@ -819,7 +841,7 @@ function displayStockMovementReport(data, container) {
   summaryDiv.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
   summaryDiv.innerHTML = `
     <h3 class="text-lg font-semibold mb-4">Summary</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
       <div class="bg-gray-50 p-4 rounded">
         <p class="text-gray-500 text-sm">Total Movements</p>
         <p class="text-xl font-bold">${data.summary.totalMovements || 0}</p>
@@ -831,6 +853,24 @@ function displayStockMovementReport(data, container) {
       <div class="bg-gray-50 p-4 rounded">
         <p class="text-gray-500 text-sm">Stock Out</p>
         <p class="text-xl font-bold">${data.summary.totalStockOut || 0}</p>
+      </div>
+      <div class="bg-gray-50 p-4 rounded">
+        <p class="text-gray-500 text-sm">Total Items Moved</p>
+        <p class="text-xl font-bold">${(data.summary.totalStockInQuantity || 0) + (data.summary.totalStockOutQuantity || 0) + (data.summary.totalAdjustmentQuantity || 0)}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-green-50 p-4 rounded">
+        <p class="text-gray-600 text-sm">Total Items In</p>
+        <p class="text-xl font-bold">${data.summary.totalStockInQuantity || 0}</p>
+      </div>
+      <div class="bg-red-50 p-4 rounded">
+        <p class="text-gray-600 text-sm">Total Items Out</p>
+        <p class="text-xl font-bold">${data.summary.totalStockOutQuantity || 0}</p>
+      </div>
+      <div class="bg-blue-50 p-4 rounded">
+        <p class="text-gray-600 text-sm">Total Adjustments</p>
+        <p class="text-xl font-bold">${data.summary.totalAdjustmentQuantity || 0}</p>
       </div>
     </div>
   `;
@@ -850,6 +890,7 @@ function displayStockMovementReport(data, container) {
         <tr>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
@@ -866,6 +907,7 @@ function displayStockMovementReport(data, container) {
         <tr>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.date || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${movement.product_name || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.size_name || 'Default'}</td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getMovementTypeColor(movement.type)}">
               ${movement.type || ''}
@@ -883,7 +925,7 @@ function displayStockMovementReport(data, container) {
   } else {
     tableHTML += `
       <tr>
-        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No stock movements found for the selected filters.</td>
+        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">No stock movements found for the selected filters.</td>
       </tr>
     `;
     
@@ -892,9 +934,9 @@ function displayStockMovementReport(data, container) {
   }
   
   tableHTML += `
-      </tbody>
-    </table>
-  `;
+                </tbody>
+            </table>
+        `;
   
   tableDiv.innerHTML = tableHTML;
   container.appendChild(tableDiv);
@@ -941,8 +983,8 @@ function displayBatchReport(data, container) {
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacture Date</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-        </tr>
-      </thead>
+                    </tr>
+                </thead>
       <tbody class="bg-white divide-y divide-gray-200">
   `;
   
@@ -970,7 +1012,7 @@ function displayBatchReport(data, container) {
     tableHTML += `
       <tr>
         <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No batch data found for the selected filters.</td>
-      </tr>
+                        </tr>
     `;
     
     // Log to console for debugging
@@ -978,9 +1020,9 @@ function displayBatchReport(data, container) {
   }
   
   tableHTML += `
-      </tbody>
-    </table>
-  `;
+                </tbody>
+            </table>
+        `;
   
   tableDiv.innerHTML = tableHTML;
   container.appendChild(tableDiv);
