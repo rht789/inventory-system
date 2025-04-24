@@ -122,13 +122,37 @@ include 'sidebar.php';
 
   <!-- Sales Table -->
   <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-    <div class="p-5 border-b border-gray-100">
+    <div class="p-5 border-b border-gray-100 flex justify-between items-center">
       <h3 class="font-medium text-gray-700">Sales List</h3>
+      
+      <!-- Bulk Actions -->
+      <div id="bulkActionsContainer" class="flex items-center space-x-4 opacity-50 pointer-events-none transition-opacity duration-200">
+        <span class="text-sm text-gray-500 font-medium" id="selectedCount">0 selected</span>
+        <select id="bulkActionSelect" class="border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-sm">
+          <option value="">Bulk Actions</option>
+          <option value="status_pending">Change Status: Pending</option>
+          <option value="status_confirmed">Change Status: Confirmed</option>
+          <option value="status_delivered">Change Status: Delivered</option>
+          <option value="status_canceled">Change Status: Canceled</option>
+          <option value="delete">Delete Selected</option>
+        </select>
+        <button id="applyBulkAction" 
+                class="bg-gray-800 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled>
+          Apply
+        </button>
+      </div>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 text-gray-600">
           <tr>
+            <th class="px-3 py-4">
+              <div class="flex items-center">
+                <input type="checkbox" id="selectAllSales" 
+                       class="w-4 h-4 text-gray-800 border-gray-300 rounded focus:ring-gray-500 focus:ring-offset-1">
+              </div>
+            </th>
             <th class="px-6 py-4 text-left font-medium">Sales ID</th>
             <th class="px-6 py-4 text-left font-medium">Customer</th>
             <th class="px-6 py-4 text-left font-medium">Product(s)</th>
@@ -469,6 +493,9 @@ include 'sidebar.php';
     </form>
   </div>
 </div>
+
+<!-- Include jsPDF library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script src="js/sales.js"></script>
 

@@ -237,6 +237,7 @@ if ($method === 'GET') {
     // List sales with filters
     $search = $_GET['search'] ?? '';
     $status = $_GET['status'] ?? '';
+    $timeFilter = $_GET['time'] ?? '';
     
     $conds = [];
     $params = [];
@@ -249,6 +250,17 @@ if ($method === 'GET') {
     if ($status && $status !== 'All Statuses') {
         $conds[] = "s.status = :status";
         $params[':status'] = strtolower($status);
+    }
+    
+    // Add time filter conditions
+    if ($timeFilter) {
+        if ($timeFilter === 'today') {
+            $conds[] = "DATE(s.created_at) = CURDATE()";
+        } elseif ($timeFilter === 'week') {
+            $conds[] = "s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+        } elseif ($timeFilter === 'month') {
+            $conds[] = "s.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+        }
     }
     
     $whereClause = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';

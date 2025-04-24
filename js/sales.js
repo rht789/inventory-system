@@ -27,7 +27,182 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Add initial product row
   addProductRow();
+  
+  // Initialize bulk actions
+  initBulkActions();
 });
+
+// Initialize bulk actions
+function initBulkActions() {
+  const selectAllCheckbox = document.getElementById('selectAllSales');
+  const bulkActionSelect = document.getElementById('bulkActionSelect');
+  const applyBulkActionBtn = document.getElementById('applyBulkAction');
+  
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      const isChecked = this.checked;
+      const checkboxes = document.querySelectorAll('.sale-checkbox');
+      
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = isChecked;
+      });
+      
+      updateBulkActionsVisibility();
+    });
+  }
+  
+  if (bulkActionSelect) {
+    bulkActionSelect.addEventListener('change', function() {
+      applyBulkActionBtn.disabled = !this.value;
+    });
+  }
+  
+  if (applyBulkActionBtn) {
+    applyBulkActionBtn.addEventListener('click', function() {
+      handleBulkAction();
+    });
+  }
+}
+
+// Initialize checkboxes for sales rows
+function initCheckboxes() {
+  const checkboxes = document.querySelectorAll('.sale-checkbox');
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      updateBulkActionsVisibility();
+      
+      // Update "select all" checkbox state
+      const selectAllCheckbox = document.getElementById('selectAllSales');
+      const allCheckboxes = document.querySelectorAll('.sale-checkbox');
+      const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+      
+      if (selectAllCheckbox) {
+        selectAllCheckbox.checked = allChecked;
+      }
+    });
+  });
+}
+
+// Update visibility of bulk actions based on selection
+function updateBulkActionsVisibility() {
+  const checkboxes = document.querySelectorAll('.sale-checkbox:checked');
+  const bulkActionsContainer = document.getElementById('bulkActionsContainer');
+  const selectedCountEl = document.getElementById('selectedCount');
+  const applyBulkActionBtn = document.getElementById('applyBulkAction');
+  
+  if (bulkActionsContainer && selectedCountEl) {
+    const count = checkboxes.length;
+    
+    // Update count display
+    selectedCountEl.textContent = `${count} selected`;
+    
+    // Show/hide and enable/disable bulk actions
+    if (count > 0) {
+      bulkActionsContainer.classList.remove('opacity-50', 'pointer-events-none');
+      if (applyBulkActionBtn) {
+        applyBulkActionBtn.disabled = !document.getElementById('bulkActionSelect').value;
+      }
+    } else {
+      bulkActionsContainer.classList.add('opacity-50', 'pointer-events-none');
+      if (applyBulkActionBtn) {
+        applyBulkActionBtn.disabled = true;
+      }
+    }
+  }
+}
+
+// Handle bulk action
+function handleBulkAction() {
+  const selectedAction = document.getElementById('bulkActionSelect').value;
+  const selectedSales = Array.from(document.querySelectorAll('.sale-checkbox:checked'))
+    .map(checkbox => checkbox.getAttribute('data-sale-id'));
+  
+  if (!selectedAction || selectedSales.length === 0) {
+    return;
+  }
+  
+  // Ask for confirmation
+  let confirmMessage = '';
+  
+  if (selectedAction === 'delete') {
+    confirmMessage = `Are you sure you want to delete ${selectedSales.length} selected sale(s)? This action cannot be undone.`;
+  } else if (selectedAction.startsWith('status_')) {
+    const status = selectedAction.replace('status_', '');
+    confirmMessage = `Are you sure you want to change the status of ${selectedSales.length} selected sale(s) to "${capitalizeFirstLetter(status)}"?`;
+  }
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+  
+  // Show loading toast
+  showToast(`Processing ${selectedSales.length} sale(s)...`, 'info');
+  
+  // Handle different actions
+  if (selectedAction === 'delete') {
+    // Delete selected sales one by one
+    Promise.all(selectedSales.map(saleId => {
+      return fetch('api/sales.php', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: saleId })
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || `Server responded with status ${response.status}`);
+          });
+        }
+        return response.json();
+      });
+    }))
+    .then(() => {
+      showToast(`Successfully deleted ${selectedSales.length} sale(s)`, 'success');
+      loadSales(); // Refresh the list
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showToast(`Error: ${error.message}`, 'error');
+      loadSales(); // Refresh the list to show current state
+    });
+  } else if (selectedAction.startsWith('status_')) {
+    // Change status for selected sales
+    const newStatus = selectedAction.replace('status_', '');
+    
+    Promise.all(selectedSales.map(saleId => {
+      return fetch('api/sales.php', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: saleId,
+          status: newStatus
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || `Server responded with status ${response.status}`);
+          });
+        }
+        return response.json();
+      });
+    }))
+    .then(() => {
+      showToast(`Status updated for ${selectedSales.length} sale(s)`, 'success');
+      loadSales(); // Refresh the list
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showToast(`Error: ${error.message}`, 'error');
+      loadSales(); // Refresh the list to show current state
+    });
+  }
+}
 
 // Utility function to debounce user input
 function debounce(func, delay) {
@@ -125,40 +300,63 @@ function updateStatistics(sales) {
 // Render sales list in the table
 function renderSalesList(sales) {
   const tableBody = document.getElementById('sales-list');
-  const emptyElement = document.getElementById('empty-sales-placeholder');
-  const tableElement = document.querySelector('.overflow-x-auto');
+  const emptyPlaceholder = document.getElementById('empty-sales-placeholder');
+  const tableContainer = document.querySelector('.overflow-x-auto');
   
+  // Clear existing content
   tableBody.innerHTML = '';
   
+  // If no sales, show empty state
   if (!sales || sales.length === 0) {
-    tableElement.classList.add('hidden');
-    emptyElement.classList.remove('hidden');
+    tableContainer.classList.add('hidden');
+    emptyPlaceholder.classList.remove('hidden');
+    
+    // Update bulk actions
+    updateBulkActionsVisibility();
     return;
   }
   
   // Show table and hide empty state
-  tableElement.classList.remove('hidden');
-  emptyElement.classList.add('hidden');
+  tableContainer.classList.remove('hidden');
+  emptyPlaceholder.classList.add('hidden');
   
+  // Render each sale
   sales.forEach(sale => {
     const row = document.createElement('tr');
-    row.className = 'hover:bg-gray-50 transition-colors duration-150';
-    
-    // Format products string
-    const productsText = sale.items.map(item => {
-      const sizeText = item.size_name ? ` (${item.size_name})` : '';
-      return `${item.product_name}${sizeText}`;
-    }).join(', ');
     
     // Format date and time
     const date = new Date(sale.created_at);
-    const formattedDate = date.toISOString().split('T')[0];
-    const formattedTime = date.toTimeString().split(' ')[0].substring(0, 5);
+    const formattedDate = date.toLocaleDateString();
+    const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    // Create status badge element
-    const statusBadge = getStatusBadge(sale.status);
+    // Get status badge
+    let statusBadge = getStatusBadge(sale.status);
+    
+    // Set sale ID in the status badge
+    statusBadge = statusBadge.replace('data-sale-id=""', `data-sale-id="${sale.id}"`);
+    
+    // Format products text (up to 2 products)
+    let productsText = "";
+    if (sale.items && sale.items.length > 0) {
+      const productsToShow = sale.items.slice(0, 2);
+      productsText = productsToShow.map(item => {
+        return item.product_name + (item.size_name ? ` (${item.size_name})` : '');
+      }).join(', ');
+      
+      if (sale.items.length > 2) {
+        productsText += ` +${sale.items.length - 2} more`;
+      }
+    } else {
+      productsText = "No products";
+    }
     
     row.innerHTML = `
+      <td class="px-3 py-4">
+        <div class="flex items-center">
+          <input type="checkbox" class="sale-checkbox w-4 h-4 text-gray-800 border-gray-300 rounded focus:ring-gray-500 focus:ring-offset-1" 
+                 data-sale-id="${sale.id}" data-sale-status="${sale.status}">
+        </div>
+      </td>
       <td class="px-6 py-4 whitespace-nowrap">${sale.order_id}</td>
       <td class="px-6 py-4">${sale.customer_name}</td>
       <td class="px-6 py-4">${productsText}</td>
@@ -195,48 +393,60 @@ function renderSalesList(sales) {
       </td>
     `;
     
-    // Add dropdown for status change
-    const statusCell = row.querySelector('td:nth-child(5)');
-    statusCell.addEventListener('click', function(e) {
-      e.stopPropagation();
-      openStatusDropdown(sale.id, sale.status, statusCell);
-    });
-    
     tableBody.appendChild(row);
   });
+  
+  // Initialize status dropdowns
+  const statusBadges = tableBody.querySelectorAll('.status-badge');
+  statusBadges.forEach(badge => {
+    badge.addEventListener('click', function() {
+      const saleId = this.getAttribute('data-sale-id');
+      const currentStatus = this.getAttribute('data-status');
+      const statusCell = this.closest('td');
+      openStatusDropdown(saleId, currentStatus, statusCell);
+    });
+  });
+  
+  // Initialize checkboxes
+  initCheckboxes();
+  
+  // Update bulk actions
+  updateBulkActionsVisibility();
 }
 
-// Get status badge HTML based on status
+// Get a formatted status badge with dropdown functionality
 function getStatusBadge(status) {
   let badgeClass = '';
+  let textClass = '';
   
-  switch(status) {
+  switch(status.toLowerCase()) {
     case 'pending':
-      badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      badgeClass = 'bg-yellow-100';
+      textClass = 'text-yellow-800';
       break;
     case 'confirmed':
-      badgeClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+      badgeClass = 'bg-blue-100';
+      textClass = 'text-blue-800';
       break;
     case 'delivered':
-      badgeClass = 'bg-green-100 text-green-800 border border-green-200';
+      badgeClass = 'bg-green-100';
+      textClass = 'text-green-800';
       break;
     case 'canceled':
-      badgeClass = 'bg-red-100 text-red-800 border border-red-200';
+      badgeClass = 'bg-red-100';
+      textClass = 'text-red-800';
       break;
     default:
-      badgeClass = 'bg-gray-100 text-gray-800 border border-gray-200';
+      badgeClass = 'bg-gray-100';
+      textClass = 'text-gray-800';
   }
   
-  return `
-    <div class="group cursor-pointer flex items-center justify-center">
-      <span class="px-3 py-1 rounded-full text-xs inline-flex items-center ${badgeClass}">
-        ${capitalizeFirstLetter(status)}
-      </span>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
-    </div>
-  `;
+  return `<span class="status-badge px-3 py-1 rounded-full text-xs ${badgeClass} ${textClass} cursor-pointer inline-flex items-center" data-status="${status.toLowerCase()}" data-sale-id="">
+    ${capitalizeFirstLetter(status)}
+    <svg class="w-3 h-3 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  </span>`;
 }
 
 // Open status dropdown for changing order status
@@ -668,13 +878,14 @@ function calculateTotals() {
   const discountProductId = document.getElementById('discountProduct').value;
   
   if (discountProductId) {
-    // Apply discount to specific product only
-    discount = 0;
+    // Fix: Aggregate totals for each product before applying discount
+    const productTotals = {};
     selectedProducts.forEach(product => {
-      if (product && product.product_id == discountProductId) {
-        discount += product.total * (discountPercentage / 100);
+      if (product && product.product_id) {
+        productTotals[product.product_id] = (productTotals[product.product_id] || 0) + product.total;
       }
     });
+    discount = (productTotals[discountProductId] || 0) * (discountPercentage / 100);
   } else {
     // Apply discount to all products
     discount = subtotal * (discountPercentage / 100);
@@ -1869,27 +2080,167 @@ function downloadInvoice(saleId) {
       
       const sale = data.data;
       
-      // Use generateInvoiceHTML function to get the HTML content
-      const invoiceHTML = generateInvoiceHTML(sale);
+      // Check if jsPDF is available
+      if (typeof window.jspdf === 'undefined') {
+        // Fallback to HTML if jsPDF is not available
+        const invoiceHTML = generateInvoiceHTML(sale);
+        
+        // Create a Blob from the HTML content
+        const blob = new Blob([invoiceHTML], { type: 'text/html' });
+        
+        // Create a download link
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(blob);
+        
+        // Set the filename with order ID and date
+        const date = new Date(sale.created_at);
+        const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
+        
+        // Append to the document, click it, and remove it
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        showToast('Invoice downloaded successfully (HTML format)', 'success');
+        return;
+      }
       
-      // Create a Blob from the HTML content
-      const blob = new Blob([invoiceHTML], { type: 'text/html' });
-      
-      // Create a download link
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(blob);
-      
-      // Set the filename with order ID and date
-      const date = new Date(sale.created_at);
-      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-      downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
-      
-      // Append to the document, click it, and remove it
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      
-      showToast('Invoice downloaded successfully', 'success');
+      // Use jsPDF to generate PDF invoice
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Set font size and add title
+        doc.setFontSize(20);
+        doc.text('INVOICE', 105, 20, { align: 'center' });
+        
+        // Add invoice number and date
+        doc.setFontSize(12);
+        doc.text(`Invoice #${sale.order_id}`, 20, 30);
+        
+        // Format date
+        const date = new Date(sale.created_at);
+        const formattedDate = date.toLocaleDateString();
+        doc.text(`Date: ${formattedDate}`, 20, 38);
+        
+        // Add status
+        doc.text(`Status: ${capitalizeFirstLetter(sale.status)}`, 20, 46);
+        
+        // Add customer details
+        doc.setFontSize(14);
+        doc.text('Bill To:', 20, 60);
+        doc.setFontSize(12);
+        doc.text(sale.customer_name || 'Customer', 20, 68);
+        
+        let customerY = 68;
+        if (sale.customer_phone) {
+          customerY += 8;
+          doc.text(`Phone: ${sale.customer_phone}`, 20, customerY);
+        }
+        if (sale.customer_email) {
+          customerY += 8;
+          doc.text(`Email: ${sale.customer_email}`, 20, customerY);
+        }
+        if (sale.customer_address) {
+          customerY += 8;
+          doc.text(`Address: ${sale.customer_address}`, 20, customerY);
+        }
+        
+        // Add item table headers
+        let startY = Math.max(customerY + 20, 100);
+        doc.setFontSize(12);
+        doc.text('Item', 20, startY);
+        doc.text('Qty', 110, startY);
+        doc.text('Price', 130, startY);
+        doc.text('Total', 170, startY);
+        
+        // Add a line below headers
+        doc.setLineWidth(0.5);
+        doc.line(20, startY + 3, 190, startY + 3);
+        
+        // Add items
+        startY += 15;
+        
+        // Calculate subtotal
+        const subtotal = parseFloat(sale.total) + parseFloat(sale.discount_total);
+        
+        sale.items.forEach(item => {
+          const itemName = item.size_name ? `${item.product_name} (${item.size_name})` : item.product_name;
+          const unitPrice = (item.subtotal / item.quantity).toFixed(2);
+          const itemSubtotal = parseFloat(item.subtotal).toFixed(2);
+          
+          doc.text(itemName.substring(0, 40), 20, startY); // Limit item name length
+          doc.text(String(item.quantity), 110, startY);
+          doc.text(`৳ ${unitPrice}`, 130, startY);
+          doc.text(`৳ ${itemSubtotal}`, 170, startY);
+          
+          startY += 10;
+          
+          // Add a new page if we're near the bottom
+          if (startY > 270) {
+            doc.addPage();
+            startY = 20;
+          }
+        });
+        
+        // Add a line above the totals
+        doc.line(130, startY + 3, 190, startY + 3);
+        startY += 10;
+        
+        // Add totals
+        doc.text('Subtotal:', 130, startY);
+        doc.text(`৳ ${subtotal.toFixed(2)}`, 170, startY);
+        
+        startY += 8;
+        doc.text('Discount:', 130, startY);
+        doc.text(`৳ ${parseFloat(sale.discount_total).toFixed(2)}`, 170, startY);
+        
+        startY += 8;
+        doc.setFont('Helvetica', 'bold');
+        doc.text('Total:', 130, startY);
+        doc.text(`৳ ${parseFloat(sale.total).toFixed(2)}`, 170, startY);
+        doc.setFont('Helvetica', 'normal');
+        
+        // Add notes if present
+        if (sale.note) {
+          startY += 20;
+          doc.setFontSize(14);
+          doc.text('Notes:', 20, startY);
+          startY += 8;
+          doc.setFontSize(12);
+          
+          // Split note into multiple lines if needed
+          const splitNote = doc.splitTextToSize(sale.note, 170);
+          doc.text(splitNote, 20, startY);
+        }
+        
+        // Add footer
+        doc.setFontSize(10);
+        doc.text('Thank you for your business!', 105, 280, { align: 'center' });
+        doc.text(`Invoice generated on ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
+        
+        // Save the PDF
+        const filename = `Invoice-${sale.order_id || sale.id}-${date.toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+        
+        showToast('Invoice downloaded as PDF', 'success');
+      } catch (error) {
+        console.error('PDF generation error:', error);
+        showToast('Error generating PDF. Falling back to HTML format...', 'warning');
+        
+        // Fallback to HTML if PDF generation fails
+        const invoiceHTML = generateInvoiceHTML(sale);
+        const blob = new Blob([invoiceHTML], { type: 'text/html' });
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(blob);
+        const date = new Date(sale.created_at);
+        const dateStr = date.toISOString().split('T')[0];
+        downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
     })
     .catch(error => {
       console.error('Error downloading invoice:', error);
