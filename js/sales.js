@@ -2371,20 +2371,32 @@ function handleAddOrder(e) {
   
   // Prepare the order data
   const orderData = {
-    customer_name: customerName,
-    customer_phone: document.getElementById('customerPhone').value,
-    customer_email: document.getElementById('customerEmail').value,
-    customer_address: document.getElementById('customerAddress').value,
+    customer: {
+      name: document.getElementById('customerName').value,
+      phone: document.getElementById('customerPhone').value,
+      email: document.getElementById('customerEmail').value,
+      address: document.getElementById('customerAddress').value
+    },
     status: document.getElementById('orderStatus').value,
-    discount_percentage: parseFloat(document.getElementById('discountPercentage').value) || 0,
-    note: document.getElementById('orderNote').value,
     items: selectedProducts.filter(product => product !== null).map(product => ({
       product_id: product.product_id,
       product_size_id: product.product_size_id,
       quantity: product.quantity,
-      price: product.price
+      subtotal: product.quantity * product.price // Calculate subtotal for each item
     }))
   };
+
+  // Add discount if present
+  const discountPercentage = parseFloat(document.getElementById('discountPercentage').value);
+  if (discountPercentage && discountPercentage > 0) {
+    orderData.discount = discountPercentage;
+  }
+
+  // Add note if present
+  const note = document.getElementById('orderNote').value.trim();
+  if (note) {
+    orderData.note = note;
+  }
   
   // Check if this is an edit (update) or a new order
   const editSaleId = document.getElementById('editSaleId');
@@ -2434,7 +2446,7 @@ function createOrder(orderData) {
     }
   })
   .catch(error => {
-    console.error('Error:', error);
+    console.error('Error:', error); 
     showToast('Failed to create order: ' + error.message, 'error');
   });
 }
