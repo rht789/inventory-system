@@ -340,11 +340,11 @@ try {
         if (isset($_GET['movementType']) && !empty($_GET['movementType'])) {
             $movementType = $_GET['movementType'];
             if ($movementType === 'in') {
-                $whereConditions[] = "sl.changes > 0";
+                $whereConditions[] = "sl.changes LIKE 'Added%'";
             } else if ($movementType === 'out') {
-                $whereConditions[] = "sl.changes < 0";
+                $whereConditions[] = "sl.changes LIKE 'Reduced%'";
             } else if ($movementType === 'adjustment') {
-                $whereConditions[] = "sl.changes = 0";
+                $whereConditions[] = "sl.changes NOT LIKE 'Added%' AND sl.changes NOT LIKE 'Reduced%'";
             }
         }
         
@@ -354,19 +354,18 @@ try {
             SELECT 
                 sl.id,
                 p.name as product_name,
-                CASE WHEN ps.id IS NOT NULL THEN ps.name ELSE 'Default' END as size_name,
+                'Default' as size_name,
                 CASE 
-                    WHEN sl.changes > 0 THEN 'Stock In'
-                    WHEN sl.changes < 0 THEN 'Stock Out'
+                    WHEN sl.changes LIKE 'Added%' THEN 'Stock In'
+                    WHEN sl.changes LIKE 'Reduced%' THEN 'Stock Out'
                     ELSE 'Adjustment'
                 END as type,
-                ABS(sl.changes) as quantity,
+                CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(sl.changes, ' ', 2), ' ', -1) AS UNSIGNED) as quantity,
                 sl.reason,
                 u.username as user_name,
                 sl.timestamp as date
             FROM stock_logs sl
             JOIN products p ON sl.product_id = p.id
-            LEFT JOIN product_sizes ps ON sl.product_size_id = ps.id
             LEFT JOIN users u ON sl.user_id = u.id
             $whereClause
             ORDER BY sl.timestamp DESC
@@ -394,13 +393,13 @@ try {
         foreach ($movements as $movement) {
             if (strpos(strtolower($movement['type']), 'in') !== false) {
                 $totalStockIn++;
-                $totalStockInQuantity += $movement['quantity'];
+                $totalStockInQuantity += intval($movement['quantity']);
             } else if (strpos(strtolower($movement['type']), 'out') !== false) {
                 $totalStockOut++;
-                $totalStockOutQuantity += $movement['quantity'];
+                $totalStockOutQuantity += intval($movement['quantity']);
             } else {
                 // Adjustment
-                $totalAdjustmentQuantity += $movement['quantity'];
+                $totalAdjustmentQuantity += intval($movement['quantity']);
             }
         }
         
@@ -440,7 +439,7 @@ try {
                 b.id,
                 b.batch_number,
                 p.name as product_name,
-                ps.name as size_name,
+                ps.size_name as size_name,
                 b.stock as quantity,
                 b.manufactured_date,
                 CASE
