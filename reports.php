@@ -156,6 +156,15 @@ include 'sidebar.php';
             <!-- Will be populated dynamically -->
           </select>
         </div>
+        <div>
+          <label for="movementTypeFilter" class="block text-sm font-medium text-gray-700 mb-1">Movement Type</label>
+          <select id="movementTypeFilter" class="block w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+            <option value="">All Types</option>
+            <option value="in">Stock In</option>
+            <option value="out">Stock Out</option>
+            <option value="adjustment">Adjustment</option>
+          </select>
+        </div>
       </div>
 
       <div id="batchFilters" class="dynamic-filter hidden grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -514,8 +523,8 @@ function generateReport(autoDownload = false) {
   
   // Get common filters
   const params = new URLSearchParams();
-  params.append('report_type', reportType);
-  params.append('time_range', timeRange);
+  params.append('reportType', reportType);
+  params.append('timeRange', timeRange);
   
   // Handle custom date range if selected
   if (timeRange === 'custom') {
@@ -527,8 +536,8 @@ function generateReport(autoDownload = false) {
       return;
     }
     
-    params.append('start_date', startDate);
-    params.append('end_date', endDate);
+    params.append('startDate', startDate);
+    params.append('endDate', endDate);
   }
   
   // Add report-specific filters
@@ -536,48 +545,60 @@ function generateReport(autoDownload = false) {
     const customerId = document.getElementById('customerFilter').value;
     const status = document.getElementById('statusFilter').value;
     
-    if (customerId) params.append('customer_id', customerId);
+    if (customerId) params.append('customerId', customerId);
     if (status) params.append('status', status);
   } 
   else if (reportType === 'product_sales') {
     const productId = document.getElementById('productFilter').value;
     const categoryId = document.getElementById('categoryFilter').value;
     
-    if (productId) params.append('product_id', productId);
-    if (categoryId) params.append('category_id', categoryId);
+    if (productId) params.append('productId', productId);
+    if (categoryId) params.append('categoryId', categoryId);
   } 
   else if (reportType === 'stock_movement') {
     const productId = document.getElementById('stockProductFilter').value;
     const movementType = document.getElementById('movementTypeFilter').value;
     const userId = document.getElementById('userFilter').value;
     
-    if (productId) params.append('product_id', productId);
-    if (movementType) params.append('movement_type', movementType);
-    if (userId) params.append('user_id', userId);
+    if (productId) params.append('productId', productId);
+    if (movementType) params.append('movementType', movementType);
+    if (userId) params.append('userId', userId);
   } 
   else if (reportType === 'batch') {
     const productId = document.getElementById('batchProductFilter').value;
     const batchStatus = document.getElementById('batchStatusFilter').value;
     
-    if (productId) params.append('product_id', productId);
-    if (batchStatus) params.append('batch_status', batchStatus);
+    if (productId) params.append('productId', productId);
+    if (batchStatus) params.append('batchStatus', batchStatus);
   }
   
   // Show loading indicator
   const reportContent = document.getElementById('reportContent');
   reportContent.innerHTML = '<div class="flex justify-center items-center p-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>';
   
+  // Store current parameters for debugging
+  console.log('Report parameters:', Object.fromEntries(params));
+  
   // Fetch report data
   fetch(`api/reports.php?${params.toString()}`)
     .then(response => {
       if (!response.ok) {
-        throw new Error('Failed to generate report');
+        throw new Error('Failed to generate report: ' + response.status);
       }
       return response.json();
     })
     .then(data => {
+      console.log('API Response:', data);
+      
       if (data.success) {
         // If report generation was successful
+        // Show report summary
+        const reportSummary = document.getElementById('reportSummary');
+        if (reportSummary) {
+          reportSummary.classList.remove('hidden');
+        }
+        
+        // Display the report
         displayReportData(data, reportType);
         
         // If auto download was requested
@@ -604,6 +625,9 @@ function displayReportData(data, reportType) {
   // Clear previous content
   reportContent.innerHTML = '';
   
+  // Log the report type and data for debugging
+  console.log(`Displaying ${reportType} report with data:`, data);
+  
   // Create report content based on report type
   if (reportType === 'sales') {
     displaySalesReport(data, reportContent);
@@ -613,6 +637,8 @@ function displayReportData(data, reportType) {
     displayStockMovementReport(data, reportContent);
   } else if (reportType === 'batch') {
     displayBatchReport(data, reportContent);
+  } else {
+    reportContent.innerHTML = '<div class="text-center p-8 text-gray-500">Unknown report type selected.</div>';
   }
 }
 
@@ -644,6 +670,9 @@ function displaySalesReport(data, container) {
   const tableDiv = document.createElement('div');
   tableDiv.className = 'bg-white rounded-lg shadow-md p-6 overflow-x-auto';
   
+  // Get sales data from the appropriate location in the response
+  const salesData = data.sales || data.data.sales || [];
+  
   // Create table
   let tableHTML = `
     <table class="min-w-full">
@@ -661,29 +690,35 @@ function displaySalesReport(data, container) {
   `;
   
   // Add rows
-  if (data.sales && data.sales.length > 0) {
-    data.sales.forEach(sale => {
+  if (salesData && salesData.length > 0) {
+    salesData.forEach(sale => {
       tableHTML += `
         <tr>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.invoice_number}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.date}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.customer_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.invoice_number || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.date || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.customer_name || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(sale.status)}">
-              ${sale.status}
+              ${sale.status || ''}
             </span>
           </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.item_count}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">$${parseFloat(sale.total).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.item_count || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">$${parseFloat(sale.total || 0).toFixed(2)}</td>
         </tr>
       `;
     });
+    
+    // Log to console for debugging
+    console.log('Sale data received:', salesData);
   } else {
     tableHTML += `
       <tr>
         <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No sales data found for the selected filters.</td>
       </tr>
     `;
+    
+    // Log to console for debugging
+    console.log('No sales data or empty array received:', data);
   }
   
   tableHTML += `
@@ -723,6 +758,9 @@ function displayProductSalesReport(data, container) {
   const tableDiv = document.createElement('div');
   tableDiv.className = 'bg-white rounded-lg shadow-md p-6 overflow-x-auto';
   
+  // Get product data from the appropriate location
+  const productData = data.products || data.data.products || [];
+  
   // Create table
   let tableHTML = `
     <table class="min-w-full">
@@ -739,24 +777,30 @@ function displayProductSalesReport(data, container) {
   `;
   
   // Add rows
-  if (data.products && data.products.length > 0) {
-    data.products.forEach(product => {
+  if (productData && productData.length > 0) {
+    productData.forEach(product => {
       tableHTML += `
         <tr>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.name}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.category}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.quantity_sold}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">$${parseFloat(product.revenue).toFixed(2)}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${parseFloat(product.average_price).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.name || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.category || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.quantity_sold || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">$${parseFloat(product.revenue || 0).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${parseFloat(product.average_price || 0).toFixed(2)}</td>
         </tr>
       `;
     });
+    
+    // Log to console for debugging
+    console.log('Product data received:', productData);
   } else {
     tableHTML += `
       <tr>
         <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No product sales data found for the selected filters.</td>
       </tr>
     `;
+    
+    // Log to console for debugging
+    console.log('No product data or empty array received:', data);
   }
   
   tableHTML += `
@@ -796,6 +840,9 @@ function displayStockMovementReport(data, container) {
   const tableDiv = document.createElement('div');
   tableDiv.className = 'bg-white rounded-lg shadow-md p-6 overflow-x-auto';
   
+  // Get movement data from the appropriate location
+  const movementData = data.movements || data.data.movements || [];
+  
   // Create table
   let tableHTML = `
     <table class="min-w-full">
@@ -813,29 +860,35 @@ function displayStockMovementReport(data, container) {
   `;
   
   // Add rows
-  if (data.movements && data.movements.length > 0) {
-    data.movements.forEach(movement => {
+  if (movementData && movementData.length > 0) {
+    movementData.forEach(movement => {
       tableHTML += `
         <tr>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.date}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${movement.product_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.date || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${movement.product_name || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getMovementTypeColor(movement.type)}">
-              ${movement.type}
+              ${movement.type || ''}
             </span>
           </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${movement.quantity}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.user_name}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.reference || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${movement.quantity || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.user_name || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${movement.reason || '-'}</td>
         </tr>
       `;
     });
+    
+    // Log to console for debugging
+    console.log('Movement data received:', movementData);
   } else {
     tableHTML += `
       <tr>
         <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No stock movements found for the selected filters.</td>
       </tr>
     `;
+    
+    // Log to console for debugging
+    console.log('No movement data or empty array received:', data);
   }
   
   tableHTML += `
@@ -875,6 +928,9 @@ function displayBatchReport(data, container) {
   const tableDiv = document.createElement('div');
   tableDiv.className = 'bg-white rounded-lg shadow-md p-6 overflow-x-auto';
   
+  // Get batch data from the appropriate location
+  const batchData = data.batches || data.data.batches || [];
+  
   // Create table
   let tableHTML = `
     <table class="min-w-full">
@@ -884,7 +940,6 @@ function displayBatchReport(data, container) {
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacture Date</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
         </tr>
       </thead>
@@ -892,29 +947,34 @@ function displayBatchReport(data, container) {
   `;
   
   // Add rows
-  if (data.batches && data.batches.length > 0) {
-    data.batches.forEach(batch => {
+  if (batchData && batchData.length > 0) {
+    batchData.forEach(batch => {
       tableHTML += `
         <tr>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${batch.batch_number}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${batch.product_name}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.quantity}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.manufacture_date}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.expiry_date}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${batch.batch_number || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${batch.product_name || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.quantity || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.manufactured_date || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getBatchStatusColor(batch.status)}">
-              ${batch.status}
+              ${batch.status || 'Unknown'}
             </span>
           </td>
         </tr>
       `;
     });
+    
+    // Log to console for debugging
+    console.log('Batch data received:', batchData);
   } else {
     tableHTML += `
       <tr>
-        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No batch data found for the selected filters.</td>
+        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No batch data found for the selected filters.</td>
       </tr>
     `;
+    
+    // Log to console for debugging
+    console.log('No batch data or empty array received:', data);
   }
   
   tableHTML += `
@@ -974,13 +1034,13 @@ function getBatchStatusColor(status) {
 
 // Download report in the specified format
 function downloadReport(format) {
-  const reportType = document.getElementById('reportType').value;
+    const reportType = document.getElementById('reportType').value;
   const timeRange = document.getElementById('timeRange').value;
   
   // Get common filters
   const params = new URLSearchParams();
-  params.append('report_type', reportType);
-  params.append('time_range', timeRange);
+  params.append('reportType', reportType);
+  params.append('timeRange', timeRange);
   params.append('format', format);
   params.append('download', 'true');
   
@@ -994,8 +1054,8 @@ function downloadReport(format) {
       return;
     }
     
-    params.append('start_date', startDate);
-    params.append('end_date', endDate);
+    params.append('startDate', startDate);
+    params.append('endDate', endDate);
   }
   
   // Add report-specific filters
@@ -1003,31 +1063,31 @@ function downloadReport(format) {
     const customerId = document.getElementById('customerFilter').value;
     const status = document.getElementById('statusFilter').value;
     
-    if (customerId) params.append('customer_id', customerId);
+    if (customerId) params.append('customerId', customerId);
     if (status) params.append('status', status);
   } 
   else if (reportType === 'product_sales') {
     const productId = document.getElementById('productFilter').value;
     const categoryId = document.getElementById('categoryFilter').value;
     
-    if (productId) params.append('product_id', productId);
-    if (categoryId) params.append('category_id', categoryId);
+    if (productId) params.append('productId', productId);
+    if (categoryId) params.append('categoryId', categoryId);
   } 
   else if (reportType === 'stock_movement') {
     const productId = document.getElementById('stockProductFilter').value;
     const movementType = document.getElementById('movementTypeFilter').value;
     const userId = document.getElementById('userFilter').value;
     
-    if (productId) params.append('product_id', productId);
-    if (movementType) params.append('movement_type', movementType);
-    if (userId) params.append('user_id', userId);
+    if (productId) params.append('productId', productId);
+    if (movementType) params.append('movementType', movementType);
+    if (userId) params.append('userId', userId);
   } 
   else if (reportType === 'batch') {
     const productId = document.getElementById('batchProductFilter').value;
     const batchStatus = document.getElementById('batchStatusFilter').value;
     
-    if (productId) params.append('product_id', productId);
-    if (batchStatus) params.append('batch_status', batchStatus);
+    if (productId) params.append('productId', productId);
+    if (batchStatus) params.append('batchStatus', batchStatus);
   }
   
   // Open download URL in a new tab/window

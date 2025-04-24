@@ -5,6 +5,9 @@ ob_start();
 require_once '../db.php';
 require_once '../authcheck.php';
 
+// Debug mode - set to false in production
+$debugMode = false;
+
 // Ensure user is logged in
 requireLogin();
 
@@ -31,15 +34,15 @@ $timeFilter = "";
 $timeFilterParams = [];
 
 if ($timeRange === 'today') {
-    $timeFilter = "DATE(created_at) = CURDATE()";
+    $timeFilter = "DATE(s.created_at) = CURDATE()";
 } elseif ($timeRange === 'this_week') {
-    $timeFilter = "YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)";
+    $timeFilter = "YEARWEEK(s.created_at, 1) = YEARWEEK(CURDATE(), 1)";
 } elseif ($timeRange === 'this_month') {
-    $timeFilter = "YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())";
+    $timeFilter = "YEAR(s.created_at) = YEAR(CURDATE()) AND MONTH(s.created_at) = MONTH(CURDATE())";
 } elseif ($timeRange === 'last_month') {
-    $timeFilter = "YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+    $timeFilter = "YEAR(s.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(s.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
 } elseif ($timeRange === 'custom' && $startDate && $endDate) {
-    $timeFilter = "DATE(created_at) BETWEEN ? AND ?";
+    $timeFilter = "DATE(s.created_at) BETWEEN ? AND ?";
     $timeFilterParams = [$startDate, $endDate];
 }
 
@@ -50,10 +53,48 @@ $response = [
     'data' => []
 ];
 
+// Initialize debug array if debug mode is on
+if ($debugMode) {
+    $response['debug'] = [
+        'timeRange' => $timeRange,
+        'startDate' => $startDate,
+        'endDate' => $endDate,
+        'customerId' => $customerId,
+        'status' => $status,
+        'categoryId' => $categoryId,
+        'productId' => $productId,
+        'userId' => $userId
+    ];
+}
+
 try {
-    // Connect to database
-    $db = new PDO("mysql:host={$dbConfig['host']};dbname={$dbConfig['dbname']}", $dbConfig['username'], $dbConfig['password']);
+    // Ensure database connection values are properly defined
+    if (empty($dbConfig['host']) || empty($dbConfig['dbname'])) {
+        throw new Exception("Database configuration is incomplete");
+    }
+    
+    // Connect to database with explicit username and password
+    $db = new PDO(
+        "mysql:host={$dbConfig['host']};dbname={$dbConfig['dbname']}", 
+        $dbConfig['username'],
+        $dbConfig['password']
+    );
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // Initialize summary values
+    $response['summary'] = [
+        'totalSales' => 0,
+        'totalRevenue' => 0,
+        'averageSale' => 0,
+        'totalQuantity' => 0,
+        'productCount' => 0,
+        'totalMovements' => 0,
+        'totalStockIn' => 0,
+        'totalStockOut' => 0,
+        'totalBatches' => 0,
+        'activeBatches' => 0,
+        'expiringSoon' => 0
+    ];
     
     if ($reportType === 'sales') {
         // Sales Report
@@ -66,17 +107,18 @@ try {
         }
         
         if ($customerId) {
-            $whereConditions[] = "customer_id = ?";
+            $whereConditions[] = "s.customer_id = ?";
             $params[] = $customerId;
         }
         
         if ($status) {
-            $whereConditions[] = "status = ?";
+            $whereConditions[] = "s.status = ?";
             $params[] = $status;
         }
         
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
         
+        // First query to get sales data
         $query = "
             SELECT 
                 s.id, 
@@ -86,24 +128,100 @@ try {
                 s.discount_total,
                 s.status,
                 s.note,
-                s.created_at
+                DATE_FORMAT(s.created_at, '%Y-%m-%d') as date,
+                CONCAT('INV-', LPAD(s.id, 6, '0')) as invoice_number
             FROM sales s
             LEFT JOIN customers c ON s.customer_id = c.id
             $whereClause
             ORDER BY s.created_at DESC
         ";
         
+        if ($debugMode) {
+            $response['debug']['salesQuery'] = $query;
+            $response['debug']['salesParams'] = $params;
+        }
+        
         $stmt = $db->prepare($query);
         $stmt->execute($params);
         $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        // Add item count to each sale
+        if (!empty($sales)) {
+            $saleIds = array_column($sales, 'id');
+            $saleIdsString = implode(',', $saleIds);
+            
+            $itemCountQuery = "
+                SELECT 
+                    sale_id, 
+                    COUNT(*) as item_count,
+                    SUM(quantity) as total_quantity
+                FROM sale_items
+                WHERE sale_id IN ($saleIdsString)
+                GROUP BY sale_id
+            ";
+            
+            if ($debugMode) {
+                $response['debug']['itemCountQuery'] = $itemCountQuery;
+            }
+            
+            $itemStmt = $db->prepare($itemCountQuery);
+            $itemStmt->execute();
+            $itemCounts = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $itemCountMap = [];
+            foreach ($itemCounts as $count) {
+                $itemCountMap[$count['sale_id']] = $count;
+            }
+            
+            foreach ($sales as &$sale) {
+                $saleId = $sale['id'];
+                if (isset($itemCountMap[$saleId])) {
+                    $sale['item_count'] = $itemCountMap[$saleId]['total_quantity'];
+                } else {
+                    $sale['item_count'] = 0;
+                }
+            }
+        }
+        
+        // Store sales data directly in the main response
+        $response['sales'] = $sales ?: [];
+        
+        // For backwards compatibility
         $response['data']['sales'] = $sales ?: [];
+        
+        // Calculate summary
+        $totalSales = count($sales);
+        $totalRevenue = 0;
+        foreach ($sales as $sale) {
+            $totalRevenue += $sale['total'];
+        }
+        $averageSale = $totalSales > 0 ? $totalRevenue / $totalSales : 0;
+        
+        $response['summary'] = [
+            'totalSales' => $totalSales,
+            'totalRevenue' => $totalRevenue,
+            'averageSale' => $averageSale
+        ];
     } 
     elseif ($reportType === 'product_sales') {
         // Product Sales Report
         $whereConditions = [];
         $havingConditions = [];
         $params = [];
+        
+        // Modify timeFilter for product_sales (needs to be on sales table)
+        if ($timeRange === 'today') {
+            $timeFilter = "DATE(s.created_at) = CURDATE()";
+        } elseif ($timeRange === 'this_week') {
+            $timeFilter = "YEARWEEK(s.created_at, 1) = YEARWEEK(CURDATE(), 1)";
+        } elseif ($timeRange === 'this_month') {
+            $timeFilter = "YEAR(s.created_at) = YEAR(CURDATE()) AND MONTH(s.created_at) = MONTH(CURDATE())";
+        } elseif ($timeRange === 'last_month') {
+            $timeFilter = "YEAR(s.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(s.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+        } elseif ($timeRange === 'custom' && $startDate && $endDate) {
+            $timeFilter = "DATE(s.created_at) BETWEEN ? AND ?";
+            $timeFilterParams = [$startDate, $endDate];
+        }
         
         if ($timeFilter) {
             $whereConditions[] = $timeFilter;
@@ -127,24 +245,47 @@ try {
             SELECT 
                 p.id,
                 p.name,
-                c.name as category_name,
+                c.name as category,
                 SUM(si.quantity) as quantity_sold,
-                SUM(si.price * si.quantity) as total_revenue
+                SUM(si.subtotal) as revenue,
+                CASE WHEN SUM(si.quantity) > 0 
+                     THEN SUM(si.subtotal) / SUM(si.quantity) 
+                     ELSE p.selling_price
+                END as average_price
             FROM sale_items si
             JOIN products p ON si.product_id = p.id
             JOIN categories c ON p.category_id = c.id
             JOIN sales s ON si.sale_id = s.id
             $whereClause
-            GROUP BY p.id, p.name, c.name
+            GROUP BY p.id, p.name, c.name, p.selling_price
             $havingClause
-            ORDER BY total_revenue DESC
+            ORDER BY revenue DESC
         ";
+        
+        if ($debugMode) {
+            $response['debug']['productQuery'] = $query;
+            $response['debug']['productParams'] = $params;
+        }
         
         $stmt = $db->prepare($query);
         $stmt->execute($params);
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         $response['data']['products'] = $products ?: [];
+        
+        // Calculate summary
+        $totalQuantity = 0;
+        $totalRevenue = 0;
+        foreach ($products as $product) {
+            $totalQuantity += $product['quantity_sold'];
+            $totalRevenue += $product['revenue'];
+        }
+        
+        $response['summary'] = [
+            'totalQuantity' => $totalQuantity,
+            'totalRevenue' => $totalRevenue,
+            'productCount' => count($products)
+        ];
     } 
     elseif ($reportType === 'stock_movement') {
         // Stock Movement Report
@@ -186,12 +327,16 @@ try {
             SELECT 
                 sl.id,
                 p.name as product_name,
-                ps.name as size_name,
-                sl.type,
-                sl.changes,
+                CASE WHEN ps.id IS NOT NULL THEN ps.name ELSE 'Default' END as size_name,
+                CASE 
+                    WHEN sl.changes > 0 THEN 'Stock In'
+                    WHEN sl.changes < 0 THEN 'Stock Out'
+                    ELSE 'Adjustment'
+                END as type,
+                ABS(sl.changes) as quantity,
                 sl.reason,
                 u.username as user_name,
-                sl.timestamp
+                sl.timestamp as date
             FROM stock_logs sl
             JOIN products p ON sl.product_id = p.id
             LEFT JOIN product_sizes ps ON sl.product_size_id = ps.id
@@ -200,11 +345,35 @@ try {
             ORDER BY sl.timestamp DESC
         ";
         
+        if ($debugMode) {
+            $response['debug']['movementQuery'] = $query;
+            $response['debug']['movementParams'] = $params;
+        }
+        
         $stmt = $db->prepare($query);
         $stmt->execute($params);
-        $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $movements = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $response['data']['logs'] = $logs ?: [];
+        $response['data']['movements'] = $movements ?: [];
+        
+        // Calculate summary
+        $totalMovements = count($movements);
+        $totalStockIn = 0;
+        $totalStockOut = 0;
+        
+        foreach ($movements as $movement) {
+            if (strpos(strtolower($movement['type']), 'in') !== false) {
+                $totalStockIn++;
+            } else if (strpos(strtolower($movement['type']), 'out') !== false) {
+                $totalStockOut++;
+            }
+        }
+        
+        $response['summary'] = [
+            'totalMovements' => $totalMovements,
+            'totalStockIn' => $totalStockIn,
+            'totalStockOut' => $totalStockOut
+        ];
     } 
     elseif ($reportType === 'batch') {
         // Batch Report
@@ -234,20 +403,53 @@ try {
                 b.batch_number,
                 p.name as product_name,
                 ps.name as size_name,
+                b.stock as quantity,
                 b.manufactured_date,
-                b.stock
+                CASE
+                    WHEN DATEDIFF(CURDATE(), b.manufactured_date) > 365 THEN 'Expired'
+                    WHEN DATEDIFF(CURDATE(), b.manufactured_date) > 335 THEN 'Expiring Soon'
+                    ELSE 'Active'
+                END as status
             FROM batches b
             JOIN products p ON b.product_id = p.id
-            JOIN product_sizes ps ON b.product_size_id = ps.id
+            LEFT JOIN product_sizes ps ON b.product_size_id = ps.id
             $whereClause
             ORDER BY b.manufactured_date DESC
         ";
+        
+        if ($debugMode) {
+            $response['debug']['batchQuery'] = $query;
+            $response['debug']['batchParams'] = $params;
+        }
         
         $stmt = $db->prepare($query);
         $stmt->execute($params);
         $batches = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         $response['data']['batches'] = $batches ?: [];
+        
+        // Calculate summary
+        $totalBatches = count($batches);
+        $activeBatches = 0;
+        $expiringSoon = 0;
+        $expired = 0;
+        
+        foreach ($batches as $batch) {
+            if ($batch['status'] === 'Active') {
+                $activeBatches++;
+            } else if ($batch['status'] === 'Expiring Soon') {
+                $expiringSoon++;
+            } else if ($batch['status'] === 'Expired') {
+                $expired++;
+            }
+        }
+        
+        $response['summary'] = [
+            'totalBatches' => $totalBatches,
+            'activeBatches' => $activeBatches,
+            'expiringSoon' => $expiringSoon,
+            'expiredBatches' => $expired
+        ];
     } 
     else {
         throw new Exception("Invalid report type");
@@ -257,6 +459,10 @@ try {
         'success' => false,
         'message' => $e->getMessage()
     ];
+    
+    if ($debugMode) {
+        $response['debug']['error'] = $e->getTraceAsString();
+    }
 }
 
 // Clear any output that might have been sent before
