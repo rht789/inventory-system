@@ -2080,167 +2080,27 @@ function downloadInvoice(saleId) {
       
       const sale = data.data;
       
-      // Check if jsPDF is available
-      if (typeof window.jspdf === 'undefined') {
-        // Fallback to HTML if jsPDF is not available
-        const invoiceHTML = generateInvoiceHTML(sale);
-        
-        // Create a Blob from the HTML content
-        const blob = new Blob([invoiceHTML], { type: 'text/html' });
-        
-        // Create a download link
-        const downloadLink = document.createElement('a');
-        downloadLink.href = URL.createObjectURL(blob);
-        
-        // Set the filename with order ID and date
-        const date = new Date(sale.created_at);
-        const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-        downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
-        
-        // Append to the document, click it, and remove it
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-        showToast('Invoice downloaded successfully (HTML format)', 'success');
-        return;
-      }
+      // Use generateInvoiceHTML function to get the HTML content
+      const invoiceHTML = generateInvoiceHTML(sale);
       
-      // Use jsPDF to generate PDF invoice
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Set font size and add title
-        doc.setFontSize(20);
-        doc.text('INVOICE', 105, 20, { align: 'center' });
-        
-        // Add invoice number and date
-        doc.setFontSize(12);
-        doc.text(`Invoice #${sale.order_id}`, 20, 30);
-        
-        // Format date
-        const date = new Date(sale.created_at);
-        const formattedDate = date.toLocaleDateString();
-        doc.text(`Date: ${formattedDate}`, 20, 38);
-        
-        // Add status
-        doc.text(`Status: ${capitalizeFirstLetter(sale.status)}`, 20, 46);
-        
-        // Add customer details
-        doc.setFontSize(14);
-        doc.text('Bill To:', 20, 60);
-        doc.setFontSize(12);
-        doc.text(sale.customer_name || 'Customer', 20, 68);
-        
-        let customerY = 68;
-        if (sale.customer_phone) {
-          customerY += 8;
-          doc.text(`Phone: ${sale.customer_phone}`, 20, customerY);
-        }
-        if (sale.customer_email) {
-          customerY += 8;
-          doc.text(`Email: ${sale.customer_email}`, 20, customerY);
-        }
-        if (sale.customer_address) {
-          customerY += 8;
-          doc.text(`Address: ${sale.customer_address}`, 20, customerY);
-        }
-        
-        // Add item table headers
-        let startY = Math.max(customerY + 20, 100);
-        doc.setFontSize(12);
-        doc.text('Item', 20, startY);
-        doc.text('Qty', 110, startY);
-        doc.text('Price', 130, startY);
-        doc.text('Total', 170, startY);
-        
-        // Add a line below headers
-        doc.setLineWidth(0.5);
-        doc.line(20, startY + 3, 190, startY + 3);
-        
-        // Add items
-        startY += 15;
-        
-        // Calculate subtotal
-        const subtotal = parseFloat(sale.total) + parseFloat(sale.discount_total);
-        
-        sale.items.forEach(item => {
-          const itemName = item.size_name ? `${item.product_name} (${item.size_name})` : item.product_name;
-          const unitPrice = (item.subtotal / item.quantity).toFixed(2);
-          const itemSubtotal = parseFloat(item.subtotal).toFixed(2);
-          
-          doc.text(itemName.substring(0, 40), 20, startY); // Limit item name length
-          doc.text(String(item.quantity), 110, startY);
-          doc.text(`৳ ${unitPrice}`, 130, startY);
-          doc.text(`৳ ${itemSubtotal}`, 170, startY);
-          
-          startY += 10;
-          
-          // Add a new page if we're near the bottom
-          if (startY > 270) {
-            doc.addPage();
-            startY = 20;
-          }
-        });
-        
-        // Add a line above the totals
-        doc.line(130, startY + 3, 190, startY + 3);
-        startY += 10;
-        
-        // Add totals
-        doc.text('Subtotal:', 130, startY);
-        doc.text(`৳ ${subtotal.toFixed(2)}`, 170, startY);
-        
-        startY += 8;
-        doc.text('Discount:', 130, startY);
-        doc.text(`৳ ${parseFloat(sale.discount_total).toFixed(2)}`, 170, startY);
-        
-        startY += 8;
-        doc.setFont('Helvetica', 'bold');
-        doc.text('Total:', 130, startY);
-        doc.text(`৳ ${parseFloat(sale.total).toFixed(2)}`, 170, startY);
-        doc.setFont('Helvetica', 'normal');
-        
-        // Add notes if present
-        if (sale.note) {
-          startY += 20;
-          doc.setFontSize(14);
-          doc.text('Notes:', 20, startY);
-          startY += 8;
-          doc.setFontSize(12);
-          
-          // Split note into multiple lines if needed
-          const splitNote = doc.splitTextToSize(sale.note, 170);
-          doc.text(splitNote, 20, startY);
-        }
-        
-        // Add footer
-        doc.setFontSize(10);
-        doc.text('Thank you for your business!', 105, 280, { align: 'center' });
-        doc.text(`Invoice generated on ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
-        
-        // Save the PDF
-        const filename = `Invoice-${sale.order_id || sale.id}-${date.toISOString().split('T')[0]}.pdf`;
-        doc.save(filename);
-        
-        showToast('Invoice downloaded as PDF', 'success');
-      } catch (error) {
-        console.error('PDF generation error:', error);
-        showToast('Error generating PDF. Falling back to HTML format...', 'warning');
-        
-        // Fallback to HTML if PDF generation fails
-        const invoiceHTML = generateInvoiceHTML(sale);
-        const blob = new Blob([invoiceHTML], { type: 'text/html' });
-        const downloadLink = document.createElement('a');
-        downloadLink.href = URL.createObjectURL(blob);
-        const date = new Date(sale.created_at);
-        const dateStr = date.toISOString().split('T')[0];
-        downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-      }
+      // Create a Blob from the HTML content
+      const blob = new Blob([invoiceHTML], { type: 'text/html' });
+      
+      // Create a download link
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(blob);
+      
+      // Set the filename with order ID and date
+      const date = new Date(sale.created_at);
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      downloadLink.download = `Invoice-${sale.order_id || sale.id}-${dateStr}.html`;
+      
+      // Append to the document, click it, and remove it
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      showToast('Invoice downloaded successfully', 'success');
     })
     .catch(error => {
       console.error('Error downloading invoice:', error);
