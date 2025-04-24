@@ -523,33 +523,20 @@ if ($method === 'POST') {
         // Extract note if provided
         $note = isset($data['note']) ? $data['note'] : null;
         
-        // Check if note column exists
-        $columnExistStmt = $pdo->prepare("
-            SELECT COUNT(*) 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = :dbname
-            AND TABLE_NAME = 'sales' 
-            AND COLUMN_NAME = 'note'
-        ");
-        $columnExistStmt->execute([':dbname' => $dbname]);
-        $noteColumnExists = $columnExistStmt->fetchColumn() > 0;
-        
         // Create sale record
         $status = $data['status'] ?? 'pending';
         
-        if ($noteColumnExists) {
-            $stmt = $pdo->prepare("
-                INSERT INTO sales (user_id, customer_id, total, discount_total, status, note, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
-            ");
-            $stmt->execute([$_SESSION['user_id'], $customerId, $total, $discountTotal, $status, $note]);
-        } else {
-            $stmt = $pdo->prepare("
-                INSERT INTO sales (user_id, customer_id, total, discount_total, status, created_at)
-                VALUES (?, ?, ?, ?, ?, NOW())
-            ");
-            $stmt->execute([$_SESSION['user_id'], $customerId, $total, $discountTotal, $status]);
+        // Get user_id from session
+        if (!isset($_SESSION['user_id'])) {
+            throw new Exception('User not authenticated');
         }
+        $userId = $_SESSION['user_id'];
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO sales (user_id, customer_id, total, discount_total, status, note, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$userId, $customerId, $total, $discountTotal, $status, $note]);
         
         $saleId = $pdo->lastInsertId();
         
@@ -590,14 +577,14 @@ if ($method === 'POST') {
                     // Log stock change
                     $changes = "Reduced $quantity Stock";
                     $reason = "Sale " . formatOrderId($saleId);
-                    logStock($pdo, $_SESSION['user_id'], $productId, $changes, $reason);
+                    logStock($pdo, $userId, $productId, $changes, $reason);
                 }
             }
         }
         
         // Log audit action
         $action = "Created Sale " . formatOrderId($saleId);
-        logAudit($pdo, $_SESSION['user_id'], $saleId, $action);
+        logAudit($pdo, $userId, $saleId, $action);
         
         $pdo->commit();
         
