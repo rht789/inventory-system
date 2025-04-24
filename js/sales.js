@@ -8,6 +8,17 @@ let subtotal = 0;
 let discount = 0;
 let total = 0;
 
+/**
+ * Centralized error handling function
+ * @param {Error|Object} error - The error object
+ * @param {string} defaultMessage - Default message to show if error has no message property
+ */
+function handleError(error, defaultMessage = 'An error occurred') {
+  console.error('Error:', error);
+  const message = error.message || defaultMessage;
+  showToast(message, 'error');
+}
+
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function() {
   // Show loading state
@@ -231,7 +242,11 @@ function showLoadingState(isLoading) {
   }
 }
 
-// Load sales data with filters
+/**
+ * Loads sales data with optional filters
+ * Fetches sales from the API based on search, status, and time filters
+ * Updates the UI with the fetched data
+ */
 function loadSales() {
   showLoadingState(true);
   
@@ -266,8 +281,7 @@ function loadSales() {
     })
     .catch(error => {
       showLoadingState(false);
-      console.error('Error:', error);
-      showToast('Failed to load sales data', 'error');
+      handleError(error, 'Failed to load sales data');
     });
 }
 
@@ -511,364 +525,11 @@ function openStatusDropdown(saleId, currentStatus, statusCell) {
   document.body.appendChild(dropdown);
 }
 
-// Update the status of a sale
-function updateSaleStatus(saleId, newStatus) {
-  // Show loading indicator in toast
-  showToast('Updating status...', 'info');
-  
-  fetch('api/sales.php', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      id: saleId,
-      status: newStatus
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      showToast('Sale status updated successfully');
-      loadSales(); // Refresh the list
-    } else {
-      showToast(data.message || 'Error updating sale status', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to update sale status', 'error');
-  });
-}
-
-// Load products for the order form
-function loadProducts() {
-  fetch('api/products.php')
-    .then(response => response.json())
-    .then(data => {
-      if (data && Array.isArray(data)) {
-        // Handle case where API returns array directly
-        products = data;
-        // After loading products, initialize any product dropdowns
-        initializeProductDropdowns();
-      } else if (data && data.products && Array.isArray(data.products)) {
-        // Handle case where API returns {success: true, products: [...]}
-        products = data.products;
-        // After loading products, initialize any product dropdowns
-        initializeProductDropdowns();
-      } else {
-        console.error("Unexpected product data format:", data);
-        showToast('Error loading products: Invalid data format', 'error');
-      }
-    })
-    .catch(error => {
-      console.error('Error loading products:', error);
-      showToast('Failed to load products data', 'error');
-    });
-}
-
-// Initialize product dropdowns after products are loaded
-function initializeProductDropdowns() {
-  // Update existing product rows with the loaded products
-  const productSelects = document.querySelectorAll('.product-select');
-  productSelects.forEach(select => {
-    // Save current selection
-    const currentValue = select.value;
-    
-    // Clear and rebuild options
-    select.innerHTML = '<option value="">Select product</option>';
-    
-    // Add product options
-    products.forEach(product => {
-      const option = document.createElement('option');
-      option.value = product.id;
-      option.textContent = product.name;
-      select.appendChild(option);
-    });
-    
-    // Restore selection if possible
-    if (currentValue) {
-      select.value = currentValue;
-    }
-  });
-  
-  // Update any other elements that depend on the products list
-  updateDiscountProductDropdown();
-}
-
-// Search customers for autocomplete
-function searchCustomers(query) {
-  fetch(`api/customers.php?search=${encodeURIComponent(query)}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        customers = data.customers;
-        showCustomerAutocomplete(customers);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });
-}
-
-// Show customer autocomplete dropdown
-function showCustomerAutocomplete(customers) {
-  const inputField = document.getElementById('customerName');
-  const rect = inputField.getBoundingClientRect();
-  
-  // Remove existing dropdown if any
-  const existingDropdown = document.querySelector('.customer-autocomplete');
-  if (existingDropdown) {
-    existingDropdown.remove();
-  }
-  
-  if (customers.length === 0) return;
-  
-  // Create dropdown
-  const dropdown = document.createElement('div');
-  dropdown.className = 'customer-autocomplete absolute bg-white shadow-md rounded-md py-1 z-20';
-  dropdown.style.width = `${inputField.offsetWidth}px`;
-  dropdown.style.maxHeight = '200px';
-  dropdown.style.overflowY = 'auto';
-  
-  customers.forEach(customer => {
-    const option = document.createElement('div');
-    option.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
-    option.textContent = customer.name;
-    
-    option.addEventListener('click', () => {
-      inputField.value = customer.name;
-      document.getElementById('customerPhone').value = customer.phone || '';
-      document.getElementById('customerEmail').value = customer.email || '';
-      document.getElementById('customerAddress').value = customer.address || '';
-      dropdown.remove();
-    });
-    
-    dropdown.appendChild(option);
-  });
-  
-  // Position dropdown
-  dropdown.style.top = `${rect.bottom + window.scrollY}px`;
-  dropdown.style.left = `${rect.left + window.scrollX}px`;
-  
-  // Add click outside listener
-  document.addEventListener('click', function closeDropdown(e) {
-    if (!dropdown.contains(e.target) && !inputField.contains(e.target)) {
-      dropdown.remove();
-      document.removeEventListener('click', closeDropdown);
-    }
-  });
-  
-  document.body.appendChild(dropdown);
-}
-
-// Add customer name input event listener for autocomplete
-document.addEventListener('DOMContentLoaded', function() {
-  const customerNameInput = document.getElementById('customerName');
-  if (customerNameInput) {
-    customerNameInput.addEventListener('input', debounce(function() {
-      const query = this.value.trim();
-      if (query.length >= 2) {
-        searchCustomers(query);
-      }
-    }, 300));
-  }
-});
-
-// Add a new product row to the order form
-function addProductRow() {
-  const productRows = document.getElementById('productRows');
-  const newRow = document.createElement('tr');
-  const rowIndex = productRows.children.length;
-  
-  newRow.className = 'hover:bg-gray-50 transition-colors duration-150';
-  
-  newRow.innerHTML = `
-    <td class="px-4 py-3 w-1/3">
-      <select name="product_id[]" class="product-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white" 
-              onchange="handleProductSelect(this, ${rowIndex})">
-        <option value="">Select product</option>
-        ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-      </select>
-    </td>
-    <td class="px-4 py-3 w-1/5">
-      <select name="product_size_id[]" class="size-select w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white" 
-              onchange="handleSizeSelect(this, ${rowIndex})" disabled>
-        <option value="">Select size</option>
-      </select>
-    </td>
-    <td class="px-4 py-3 w-20">
-      <input type="number" name="quantity[]" min="1" value="1" 
-             class="quantity-input w-full border border-gray-300 rounded-md py-2 px-3 text-center focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white"
-             onchange="updateRowTotal(${rowIndex})" disabled />
-    </td>
-    <td class="px-4 py-3 w-24">
-      <input type="number" name="price[]" step="0.01" value="0.00" 
-             class="price-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-gray-50" readonly />
-    </td>
-    <td class="px-4 py-3 w-24">
-      <input type="number" name="total[]" step="0.01" value="0.00" 
-             class="total-input w-full border border-gray-300 rounded-md py-2 px-3 text-right focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-gray-50 font-medium" readonly />
-    </td>
-    <td class="px-4 py-3 text-center w-12">
-      <button type="button" class="text-red-500 hover:text-red-700 transition-colors" onclick="removeProductRow(this)">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
-    </td>
-  `;
-  
-  productRows.appendChild(newRow);
-  
-  // Update discount product dropdown
-  updateDiscountProductDropdown();
-}
-
-// Handle product selection in order form
-function handleProductSelect(select, rowIndex) {
-  const row = select.closest('tr');
-  const sizeSelect = row.querySelector('.size-select');
-  const quantityInput = row.querySelector('.quantity-input');
-  const priceInput = row.querySelector('.price-input');
-  
-  // Reset values
-  sizeSelect.innerHTML = '<option value="">Select size</option>';
-  sizeSelect.disabled = true;
-  quantityInput.disabled = true;
-  priceInput.value = '0.00';
-  
-  const productId = select.value;
-  if (!productId) return;
-  
-  // Find selected product
-  const product = products.find(p => p.id == productId);
-  if (!product) return;
-  
-  // Set price from product
-  priceInput.value = parseFloat(product.selling_price).toFixed(2);
-  
-  // Populate size dropdown
-  if (product.sizes && product.sizes.length > 0) {
-    product.sizes.forEach(size => {
-      const option = document.createElement('option');
-      option.value = size.id;
-      option.textContent = `${size.size_name} (${size.stock} in stock)`;
-      option.disabled = size.stock <= 0;
-      sizeSelect.appendChild(option);
-    });
-    sizeSelect.disabled = false;
-  } else {
-    // If no sizes, enable quantity directly
-    quantityInput.disabled = false;
-    // Limit quantity to available stock
-    quantityInput.max = product.stock || 999;
-    updateRowTotal(rowIndex);
-  }
-  
-  // Highlight the row to make it more visible
-  row.classList.add('bg-gray-50');
-  
-  // Update discount product dropdown
-  updateDiscountProductDropdown();
-}
-
-// Handle size selection in order form
-function handleSizeSelect(select, rowIndex) {
-  const row = select.closest('tr');
-  const productSelect = row.querySelector('.product-select');
-  const quantityInput = row.querySelector('.quantity-input');
-  const priceInput = row.querySelector('.price-input');
-  
-  const productId = productSelect.value;
-  const sizeId = select.value;
-  
-  if (!productId || !sizeId) {
-    quantityInput.disabled = true;
-    return;
-  }
-  
-  // Find selected product and size
-  const product = products.find(p => p.id == productId);
-  if (!product) return;
-  
-  // Set price from product
-  priceInput.value = parseFloat(product.selling_price).toFixed(2);
-  
-  // Enable quantity input
-  quantityInput.disabled = false;
-  quantityInput.max = product.sizes.find(s => s.id == sizeId)?.stock || 999;
-  
-  // Update row total
-  updateRowTotal(rowIndex);
-}
-
-// Update the total for a single product row
-function updateRowTotal(rowIndex) {
-  const row = document.querySelectorAll('#productRows tr')[rowIndex];
-  if (!row) return;
-  
-  const quantityInput = row.querySelector('.quantity-input');
-  const priceInput = row.querySelector('.price-input');
-  const totalInput = row.querySelector('.total-input');
-  
-  const quantity = parseInt(quantityInput.value) || 0;
-  const price = parseFloat(priceInput.value) || 0;
-  const rowTotal = quantity * price;
-  
-  totalInput.value = rowTotal.toFixed(2);
-  
-  // Update selected products array
-  updateSelectedProduct(rowIndex, {
-    product_id: row.querySelector('.product-select').value,
-    product_size_id: row.querySelector('.size-select').value,
-    quantity: quantity,
-    price: price,
-    total: rowTotal
-  });
-  
-  // Recalculate order totals
-  calculateTotals();
-}
-
-// Update the selected products array
-function updateSelectedProduct(index, product) {
-  selectedProducts[index] = product;
-  
-  // Filter out empty product selections
-  selectedProducts = selectedProducts.filter(p => p && p.product_id);
-}
-
-// Remove a product row from the order form
-function removeProductRow(button) {
-  const row = button.closest('tr');
-  const tbody = row.parentNode;
-  
-  // Don't remove the last row
-  if (tbody.children.length <= 1) {
-    showToast('At least one product is required', 'error');
-    return;
-  }
-  
-  // Get the row index
-  const rowIndex = Array.from(tbody.children).indexOf(row);
-  
-  // Remove from selectedProducts
-  if (selectedProducts[rowIndex]) {
-    selectedProducts.splice(rowIndex, 1);
-  }
-  
-  // Remove the row from DOM
-  row.remove();
-  
-  // Recalculate totals
-  calculateTotals();
-  
-  // Update discount product dropdown
-  updateDiscountProductDropdown();
-}
-
-// Calculate subtotal, discount and total
+/**
+ * Calculate subtotal, discount and total based on selected products
+ * Handles product-specific discounts by aggregating totals for each product first
+ * Updates the UI with calculated values
+ */
 function calculateTotals() {
   // Calculate subtotal
   subtotal = selectedProducts.reduce((sum, product) => sum + (product ? product.total : 0), 0);
@@ -919,172 +580,47 @@ function calculateTotals() {
   }
 }
 
-// Update the discount product dropdown
-function updateDiscountProductDropdown() {
-  const discountProduct = document.getElementById('discountProduct');
-  discountProduct.innerHTML = '<option value="">Select product</option>';
-  
-  // Get all selected products
-  const productSelects = document.querySelectorAll('.product-select');
-  const selectedProductsMap = new Map();
-  
-  productSelects.forEach((select, index) => {
-    if (select.value) {
-      const product = products.find(p => p.id == select.value);
-      if (product) {
-        selectedProductsMap.set(product.id, product.name);
-      }
-    }
-  });
-  
-  // Add unique products to dropdown
-  for (const [id, name] of selectedProductsMap.entries()) {
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = name;
-    discountProduct.appendChild(option);
-  }
-}
-
-// Handle order form submission
-function handleAddOrder(e) {
-  e.preventDefault();
-  
-  // Validate form
-  if (!validateOrderForm()) {
-    return;
-  }
-  
-  // Gather form data
-  const customer = {
-    name: document.getElementById('customerName').value,
-    phone: document.getElementById('customerPhone').value,
-    email: document.getElementById('customerEmail').value,
-    address: document.getElementById('customerAddress').value
-  };
-  
-  // Get discount info
-  const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
-  const discountProductId = document.getElementById('discountProduct').value;
-  
-  // Prepare items data
-  const items = selectedProducts.map(product => {
-    // Calculate product-specific discount
-    let itemDiscount = 0;
-    if (discountProductId && product.product_id == discountProductId) {
-      // Apply discount to this specific product
-      itemDiscount = product.total * (discountPercentage / 100);
-    } else if (!discountProductId) {
-      // Apply general discount to all products
-      itemDiscount = product.total * (discountPercentage / 100);
-    }
-    
-    return {
-      product_id: product.product_id,
-      product_size_id: product.product_size_id || null,
-      quantity: product.quantity,
-      price: product.price,
-      subtotal: product.total,
-      discount: itemDiscount
-    };
-  });
-  
-  // Check if we're editing an existing sale
-  const editSaleId = document.getElementById('editSaleId')?.value;
-  
-  // Get the note value
-  const noteText = document.getElementById('orderNote').value.trim();
-  
-  // Prepare complete order data
-  const orderData = {
-    customer: customer,
-    items: items,
-    discount: discountPercentage,
-    discount_product_id: discountProductId || null,
-    status: document.getElementById('orderStatus').value,
-    note: noteText
-  };
-  
-  // Add the ID if editing
-  if (editSaleId) {
-    orderData.id = editSaleId; // Add the sale ID to the request data
-    updateOrder(orderData);
-  } else {
-    createOrder(orderData);
-  }
-}
-
-// Validate the order form
-function validateOrderForm() {
-  // Check customer name
-  if (!document.getElementById('customerName').value.trim()) {
-    showToast('Customer name is required', 'error');
-    return false;
-  }
-  
-  // Check products
-  if (selectedProducts.length === 0) {
-    showToast('At least one product is required', 'error');
-    return false;
-  }
-  
-  // Make sure all products have quantities
-  for (let i = 0; i < selectedProducts.length; i++) {
-    const product = selectedProducts[i];
-    if (!product || !product.product_id) {
-      showToast('Please select a product', 'error');
-      return false;
-    }
-    
-    if (product.quantity <= 0) {
-      showToast('Quantity must be greater than zero', 'error');
-      return false;
-    }
-  }
-  
-  // Check discount percentage
-  const discountPercentage = parseFloat(document.getElementById('discountPercentage').value);
-  if (discountPercentage < 0 || discountPercentage > 100) {
-    showToast('Discount percentage must be between 0 and 100', 'error');
-    return false;
-  }
-  
-  return true;
-}
-
-// Create a new order
-function createOrder(orderData) {
-  // Show loading indicator
-  showToast('Creating order...', 'info');
-  
-  // Log what we're sending (for debugging)
-  console.log('Sending order data:', JSON.stringify(orderData));
+/**
+ * Update the status of a sale
+ * Sends PUT request to the API to change the status of the specified sale
+ * 
+ * @param {number} saleId - The ID of the sale to update
+ * @param {string} newStatus - The new status to set (pending, confirmed, delivered, canceled)
+ */
+function updateSaleStatus(saleId, newStatus) {
+  // Show loading indicator in toast
+  showToast('Updating status...', 'info');
   
   fetch('api/sales.php', {
-    method: 'POST',
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(orderData)
+    body: JSON.stringify({
+      id: saleId,
+      status: newStatus
+    })
   })
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      showToast('Order created successfully');
-      closeAddOrderModal();
-      loadSales(); // Refresh the sales list
-      loadProducts(); // Refresh products to get updated stock values
+      showToast('Sale status updated successfully');
+      loadSales(); // Refresh the list
     } else {
-      showToast(data.message || 'Error creating order', 'error');
+      showToast(data.message || 'Error updating sale status', 'error');
     }
   })
   .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to create order', 'error');
+    handleError(error, 'Failed to update sale status');
   });
 }
 
-// View sale details
+/**
+ * View details of a specific sale
+ * Fetches the sale details from the API and displays them in a modal
+ * 
+ * @param {number} saleId - The ID of the sale to view
+ */
 function viewSaleDetails(saleId) {
   // Show loading indicator in toast
   showToast('Loading sale details...', 'info');
@@ -1115,8 +651,7 @@ function viewSaleDetails(saleId) {
       }
     })
     .catch(error => {
-      console.error('Error:', error);
-      showToast('Failed to load sale details: ' + error.message, 'error');
+      handleError(error, 'Failed to load sale details');
     });
 }
 
