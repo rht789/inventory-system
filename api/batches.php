@@ -6,6 +6,14 @@ require_once __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Add the recently manufactured endpoint
+if (isset($_GET['recentlyManufactured'])) {
+    $stmt = $pdo->query("SELECT COUNT(*) FROM batches WHERE manufactured_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $count = $stmt->fetchColumn();
+    echo json_encode(['success' => true, 'count' => $count]);
+    exit;
+}
+
 /**
  * Generate a unique batch number in the format BATCH-YYYY-NNN.
  */

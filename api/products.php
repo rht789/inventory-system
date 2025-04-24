@@ -202,6 +202,35 @@ if ($method === 'GET') {
         $p['sizes'] = $sz->fetchAll();
     }
 
+    // Add low stock endpoint for dashboard
+    if (isset($_GET['lowStock']) && $_GET['lowStock'] === 'true') {
+        try {
+            $sql = "
+                SELECT 
+                    p.id,
+                    p.name,
+                    c.name as category,
+                    p.stock,
+                    p.min_stock
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.stock < p.min_stock AND p.min_stock > 0
+                ORDER BY (p.min_stock - p.stock) DESC
+                LIMIT 10
+            ";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            $lowStockProducts = $stmt->fetchAll();
+            
+            echo json_encode(['success' => true, 'products' => $lowStockProducts]);
+            exit;
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error fetching low stock products: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
     echo json_encode($products);
     exit;
 }

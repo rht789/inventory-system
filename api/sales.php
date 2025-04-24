@@ -14,6 +14,165 @@ $dbname = 'inventory_system'; // Use the same name as in db.php
 requireLogin();
 allowRoles(['admin', 'staff']);
 
+// Add recent sales endpoint for dashboard
+if (isset($_GET['recent']) && $_GET['recent'] === 'true') {
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 5;
+    $status = isset($_GET['status']) ? $_GET['status'] : null;
+    
+    try {
+        $sql = "
+            SELECT 
+                s.id, 
+                s.total, 
+                s.status, 
+                s.created_at, 
+                COALESCE(c.name, 'Unknown Customer') as customer_name
+            FROM sales s
+            LEFT JOIN customers c ON s.customer_id = c.id
+        ";
+        
+        // Add status filter if provided
+        if ($status) {
+            $sql .= " WHERE s.status = :status";
+        }
+        
+        $sql .= " ORDER BY s.created_at DESC LIMIT :limit";
+        
+        $stmt = $pdo->prepare($sql);
+        
+        if ($status) {
+            $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+        }
+        
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        $sales = $stmt->fetchAll();
+        
+        // Format the sales data
+        foreach ($sales as &$sale) {
+            $sale['order_id'] = formatOrderId($sale['id']);
+        }
+        
+        echo json_encode(['success' => true, 'sales' => $sales]);
+        exit;
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error fetching recent sales: ' . $e->getMessage()]);
+        exit;
+    }
+}
+
+// Add analytics endpoint
+if (isset($_GET['analytics']) && $_GET['analytics'] === 'true') {
+    $timeRange = $_GET['timeRange'] ?? 'monthly';
+    $period = $_GET['period'] ?? '6m';
+    $product = $_GET['product'] ?? null;
+    $category = $_GET['category'] ?? null;
+    $customer = $_GET['customer'] ?? null;
+    
+    // Determine the date format and interval based on timeRange
+    switch ($timeRange) {
+        case 'daily':
+            $dateFormat = '%Y-%m-%d';
+            $labelFormat = '%b %d';
+            break;
+        case 'weekly':
+            $dateFormat = '%Y-%u';
+            $labelFormat = 'Week %u, %Y';
+            break;
+        default: // monthly
+            $dateFormat = '%Y-%m';
+            $labelFormat = '%b %Y';
+            break;
+    }
+    
+    // Determine the period filter
+    $periodFilter = '';
+    switch ($period) {
+        case '30d':
+            $periodFilter = "WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+            break;
+        case '3m':
+            $periodFilter = "WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
+            break;
+        case '1y':
+            $periodFilter = "WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)";
+            break;
+        default: // 6m
+            $periodFilter = "WHERE s.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
+            break;
+    }
+    
+    // Add additional filters if provided
+    if ($product) {
+        $periodFilter .= $periodFilter ? " AND si.product_id = $product" : "WHERE si.product_id = $product";
+    }
+    
+    if ($category) {
+        $periodFilter .= $periodFilter ? " AND p.category_id = $category" : "WHERE p.category_id = $category";
+    }
+    
+    if ($customer) {
+        $periodFilter .= $periodFilter ? " AND s.customer_id = $customer" : "WHERE s.customer_id = $customer";
+    }
+    
+    // Build the SQL query
+    $sql = "
+        SELECT 
+            DATE_FORMAT(s.created_at, '$dateFormat') as date_group,
+            DATE_FORMAT(s.created_at, '$labelFormat') as label,
+            SUM(s.total) as total,
+            COUNT(s.id) as transaction_count
+        FROM sales s
+        LEFT JOIN sale_items si ON s.id = si.sale_id
+        LEFT JOIN products p ON si.product_id = p.id
+        $periodFilter
+        GROUP BY date_group
+        ORDER BY date_group ASC
+    ";
+    
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+        
+        // Process the data to include details for each period
+        $data = [];
+        foreach ($results as $row) {
+            // Get detailed transactions for this period
+            $detailSql = "
+                SELECT 
+                    s.id as order_id,
+                    s.total,
+                    c.name as customer_name
+                FROM sales s
+                LEFT JOIN customers c ON s.customer_id = c.id
+                WHERE DATE_FORMAT(s.created_at, '$dateFormat') = :date_group
+                ORDER BY s.created_at ASC
+            ";
+            
+            $detailStmt = $pdo->prepare($detailSql);
+            $detailStmt->execute(['date_group' => $row['date_group']]);
+            $transactions = $detailStmt->fetchAll();
+            
+            $data[] = [
+                'label' => $row['label'],
+                'total' => floatval($row['total']),
+                'transaction_count' => intval($row['transaction_count']),
+                'details' => [
+                    'total' => floatval($row['total']),
+                    'transactions' => $transactions
+                ]
+            ];
+        }
+        
+        echo json_encode(['success' => true, 'data' => $data]);
+        exit;
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error fetching analytics data: ' . $e->getMessage()]);
+        exit;
+    }
+}
+
 // Function to add note column to sales table if it doesn't exist
 function addNoteColumnIfMissing($pdo) {
     try {
