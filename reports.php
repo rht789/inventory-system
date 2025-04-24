@@ -35,7 +35,7 @@ include 'sidebar.php';
           <option value="sales">Sales Report</option>
           <option value="product_sales">Product Sales Report</option>
           <option value="stock_movement">Stock Movement Report</option>
-          <option value="batch">Batch Report</option>
+          <option value="user_sales">User Sales Report</option>
         </select>
       </div>
       
@@ -50,13 +50,6 @@ include 'sidebar.php';
           <option value="last_month">Last Month</option>
           <option value="custom">Custom Range</option>
         </select>
-      </div>
-      
-      <!-- Generate Report Button -->
-      <div class="flex items-end">
-        <button id="generateReportBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-md text-sm w-full">
-          Generate Report
-        </button>
       </div>
       
       <!-- Custom Date Range (hidden by default) -->
@@ -167,22 +160,31 @@ include 'sidebar.php';
         </div>
       </div>
 
-      <div id="batchFilters" class="dynamic-filter hidden grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div id="batchFilters" class="dynamic-filter hidden grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label for="batchProductFilter" class="block text-sm font-medium text-gray-700 mb-1">Product</label>
-          <select id="batchProductFilter" class="block w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
-            <option value="">All Products</option>
+          <label for="userSalesFilter" class="block text-sm font-medium text-gray-700 mb-1">User</label>
+          <select id="userSalesFilter" class="block w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+            <option value="">All Users</option>
             <!-- Will be populated dynamically -->
           </select>
         </div>
         <div>
-          <label for="manufacturedStart" class="block text-sm font-medium text-gray-700 mb-1">Manufactured After</label>
-          <input type="date" id="manufacturedStart" class="block w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+          <label for="userSalesStatusFilter" class="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
+          <select id="userSalesStatusFilter" class="block w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="delivered">Delivered</option>
+            <option value="canceled">Canceled</option>
+          </select>
         </div>
-        <div>
-          <label for="manufacturedEnd" class="block text-sm font-medium text-gray-700 mb-1">Manufactured Before</label>
-          <input type="date" id="manufacturedEnd" class="block w-full border border-gray-300 rounded-md px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
-        </div>
+      </div>
+      
+      <!-- Generate Report Button - Placed at the very bottom of all filters -->
+      <div class="mt-6 flex justify-center">
+        <button id="generateReportBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-md text-sm font-medium w-full max-w-md">
+          Generate Report
+        </button>
       </div>
     </div>
   </div>
@@ -350,13 +352,19 @@ function updateDynamicFilters() {
     customerStatusFilters.forEach(filter => {
       filter.closest('.grid').classList.add('hidden');
     });
-  } else if (reportType === 'batch') {
-    // For batch report
+  } else if (reportType === 'user_sales') {
+    // For user sales report
     document.getElementById('batchFilters').classList.remove('hidden');
     // Hide customer/status filters
     customerStatusFilters.forEach(filter => {
       filter.closest('.grid').classList.add('hidden');
     });
+    
+    // Make sure userSalesFilter is populated with users
+    const userSalesFilter = document.getElementById('userSalesFilter');
+    if (userSalesFilter && userSalesFilter.options.length <= 1) {
+      loadUsers();
+    }
   }
 }
 
@@ -439,8 +447,7 @@ function loadProducts(categoryId) {
       // Update all product dropdowns
       const productSelects = [
         document.getElementById('productFilter'),
-        document.getElementById('stockProductFilter'),
-        document.getElementById('batchProductFilter')
+        document.getElementById('stockProductFilter')
       ];
       
       // Check if data is an array (direct array response) or has a success property with products array
@@ -477,9 +484,11 @@ function loadUsers() {
       return response.json();
     })
     .then(data => {
-      const userSelect = document.getElementById('userFilter');
-      // Clear existing options except the first one
-      userSelect.innerHTML = '<option value="">All Users</option>';
+      // Update all user dropdowns
+      const userSelects = [
+        document.getElementById('userFilter'),
+        document.getElementById('userSalesFilter')
+      ];
       
       // Check the structure of the data
       // The users API returns { admin: [...], staff: [...] }
@@ -501,12 +510,20 @@ function loadUsers() {
         users = data;
       }
       
-      // Add user options
-      users.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = `${user.username} (${user.role || 'User'})`;
-        userSelect.appendChild(option);
+      // Add user options to each select dropdown
+      userSelects.forEach(select => {
+        if (select) {
+          // Clear existing options except the first one
+          select.innerHTML = '<option value="">All Users</option>';
+          
+          // Add user options
+          users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.username} (${user.role || 'User'})`;
+            select.appendChild(option);
+          });
+        }
       });
     })
     .catch(error => {
@@ -584,12 +601,12 @@ function generateReport(autoDownload = false) {
     if (movementType) params.append('movementType', movementType);
     if (userId) params.append('userId', userId);
   } 
-  else if (reportType === 'batch') {
-    const productId = document.getElementById('batchProductFilter').value;
-    const batchStatus = document.getElementById('batchStatusFilter').value;
+  else if (reportType === 'user_sales') {
+    const userId = document.getElementById('userSalesFilter').value;
+    const status = document.getElementById('userSalesStatusFilter').value;
     
-    if (productId) params.append('productId', productId);
-    if (batchStatus) params.append('batchStatus', batchStatus);
+    if (userId) params.append('userId', userId);
+    if (status) params.append('status', status);
   }
   
   // Show loading indicator
@@ -655,9 +672,9 @@ function displayReportData(data, reportType) {
     displayProductSalesReport(data, reportContent);
   } else if (reportType === 'stock_movement') {
     displayStockMovementReport(data, reportContent);
-  } else if (reportType === 'batch') {
-    displayBatchReport(data, reportContent);
-    } else {
+  } else if (reportType === 'user_sales') {
+    displayUserSalesReport(data, reportContent);
+  } else {
     reportContent.innerHTML = '<div class="text-center p-8 text-gray-500">Unknown report type selected.</div>';
   }
 }
@@ -942,8 +959,8 @@ function displayStockMovementReport(data, container) {
   container.appendChild(tableDiv);
 }
 
-// Display batch report
-function displayBatchReport(data, container) {
+// Display user sales report
+function displayUserSalesReport(data, container) {
   // Create summary section
   const summaryDiv = document.createElement('div');
   summaryDiv.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
@@ -951,18 +968,19 @@ function displayBatchReport(data, container) {
     <h3 class="text-lg font-semibold mb-4">Summary</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Total Batches</p>
-        <p class="text-xl font-bold">${data.summary.totalBatches || 0}</p>
+        <p class="text-gray-500 text-sm">Total Users</p>
+        <p class="text-xl font-bold">${data.summary.totalUsers || 0}</p>
       </div>
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Active Batches</p>
-        <p class="text-xl font-bold">${data.summary.activeBatches || 0}</p>
+        <p class="text-gray-500 text-sm">Total Sales</p>
+        <p class="text-xl font-bold">${data.summary.totalSales || 0}</p>
       </div>
       <div class="bg-gray-50 p-4 rounded">
-        <p class="text-gray-500 text-sm">Expiring Soon</p>
-        <p class="text-xl font-bold">${data.summary.expiringSoon || 0}</p>
+        <p class="text-gray-500 text-sm">Total Revenue <span class="text-xs text-gray-500">(delivered only)</span></p>
+        <p class="text-xl font-bold">৳${parseFloat(data.summary.totalRevenue || 0).toFixed(2)}</p>
       </div>
     </div>
+    <div class="text-xs text-gray-500 mt-2 italic">Note: Revenue is calculated only from delivered orders.</div>
   `;
   container.appendChild(summaryDiv);
   
@@ -970,59 +988,57 @@ function displayBatchReport(data, container) {
   const tableDiv = document.createElement('div');
   tableDiv.className = 'bg-white rounded-lg shadow-md p-6 overflow-x-auto';
   
-  // Get batch data from the appropriate location
-  const batchData = data.batches || data.data.batches || [];
+  // Get user sales data
+  const userSalesData = data.users || data.data.users || [];
   
   // Create table
   let tableHTML = `
     <table class="min-w-full">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch #</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacture Date</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                </thead>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Items</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Sale Value</th>
+        </tr>
+      </thead>
       <tbody class="bg-white divide-y divide-gray-200">
   `;
   
   // Add rows
-  if (batchData && batchData.length > 0) {
-    batchData.forEach(batch => {
+  if (userSalesData && userSalesData.length > 0) {
+    userSalesData.forEach(user => {
       tableHTML += `
         <tr>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${batch.batch_number || ''}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${batch.product_name || ''}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.quantity || 0}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.manufactured_date || ''}</td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getBatchStatusColor(batch.status)}">
-              ${batch.status || 'Unknown'}
-            </span>
-          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.username || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.role || ''}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.sales_count || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.items_sold || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">৳${parseFloat(user.revenue || 0).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">৳${parseFloat(user.average_sale || 0).toFixed(2)}</td>
         </tr>
       `;
     });
     
     // Log to console for debugging
-    console.log('Batch data received:', batchData);
+    console.log('User sales data received:', userSalesData);
   } else {
     tableHTML += `
       <tr>
-        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No batch data found for the selected filters.</td>
-                        </tr>
+        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No user sales data found for the selected filters.</td>
+      </tr>
     `;
     
     // Log to console for debugging
-    console.log('No batch data or empty array received:', data);
+    console.log('No user sales data or empty array received:', data);
   }
   
   tableHTML += `
-                </tbody>
-            </table>
-        `;
+    </tbody>
+  </table>
+  `;
   
   tableDiv.innerHTML = tableHTML;
   container.appendChild(tableDiv);
@@ -1124,12 +1140,12 @@ function downloadReport(format) {
     if (movementType) params.append('movementType', movementType);
     if (userId) params.append('userId', userId);
   } 
-  else if (reportType === 'batch') {
-    const productId = document.getElementById('batchProductFilter').value;
-    const batchStatus = document.getElementById('batchStatusFilter').value;
+  else if (reportType === 'user_sales') {
+    const userId = document.getElementById('userSalesFilter').value;
+    const status = document.getElementById('userSalesStatusFilter').value;
     
-    if (productId) params.append('productId', productId);
-    if (batchStatus) params.append('batchStatus', batchStatus);
+    if (userId) params.append('userId', userId);
+    if (status) params.append('status', status);
   }
   
   // Open download URL in a new tab/window

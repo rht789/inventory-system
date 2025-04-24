@@ -412,82 +412,103 @@ try {
             'totalAdjustmentQuantity' => $totalAdjustmentQuantity
         ];
     } 
-    elseif ($reportType === 'batch') {
-        // Batch Report
+    elseif ($reportType === 'user_sales') {
+        // User Sales Report
         $whereConditions = [];
         $params = [];
         
-        if ($productId) {
-            $whereConditions[] = "b.product_id = ?";
-            $params[] = $productId;
+        // Adjust timeFilter for sales
+        if ($timeRange === 'today') {
+            $timeFilter = "DATE(s.created_at) = CURDATE()";
+        } elseif ($timeRange === 'this_week') {
+            $timeFilter = "YEARWEEK(s.created_at, 1) = YEARWEEK(CURDATE(), 1)";
+        } elseif ($timeRange === 'this_month') {
+            $timeFilter = "YEAR(s.created_at) = YEAR(CURDATE()) AND MONTH(s.created_at) = MONTH(CURDATE())";
+        } elseif ($timeRange === 'last_month') {
+            $timeFilter = "YEAR(s.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(s.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+        } elseif ($timeRange === 'custom' && $startDate && $endDate) {
+            $timeFilter = "DATE(s.created_at) BETWEEN ? AND ?";
+            $timeFilterParams = [$startDate, $endDate];
         }
         
-        if ($manufacturedStart) {
-            $whereConditions[] = "b.manufactured_date >= ?";
-            $params[] = $manufacturedStart;
+        if ($timeFilter) {
+            $whereConditions[] = $timeFilter;
+            $params = array_merge($params, $timeFilterParams);
         }
         
-        if ($manufacturedEnd) {
-            $whereConditions[] = "b.manufactured_date <= ?";
-            $params[] = $manufacturedEnd;
+        if ($userId) {
+            $whereConditions[] = "s.user_id = ?";
+            $params[] = $userId;
+        }
+        
+        if ($status) {
+            $whereConditions[] = "s.status = ?";
+            $params[] = $status;
         }
         
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
         
+        // Query to get user sales summary
         $query = "
             SELECT 
-                b.id,
-                b.batch_number,
-                p.name as product_name,
-                ps.size_name as size_name,
-                b.stock as quantity,
-                b.manufactured_date,
-                CASE
-                    WHEN DATEDIFF(CURDATE(), b.manufactured_date) > 365 THEN 'Expired'
-                    WHEN DATEDIFF(CURDATE(), b.manufactured_date) > 335 THEN 'Expiring Soon'
-                    ELSE 'Active'
-                END as status
-            FROM batches b
-            JOIN products p ON b.product_id = p.id
-            LEFT JOIN product_sizes ps ON b.product_size_id = ps.id
+                u.id,
+                u.username,
+                u.role,
+                COUNT(DISTINCT s.id) as sales_count,
+                SUM(CASE WHEN s.status = 'delivered' THEN s.total ELSE 0 END) as revenue,
+                CASE 
+                    WHEN COUNT(DISTINCT CASE WHEN s.status = 'delivered' THEN s.id ELSE NULL END) > 0 
+                    THEN SUM(CASE WHEN s.status = 'delivered' THEN s.total ELSE 0 END) / COUNT(DISTINCT CASE WHEN s.status = 'delivered' THEN s.id ELSE NULL END)
+                    ELSE 0
+                END as average_sale,
+                (
+                    SELECT SUM(si.quantity)
+                    FROM sale_items si
+                    JOIN sales s2 ON si.sale_id = s2.id
+                    WHERE s2.user_id = u.id
+                    AND (? = '' OR s2.status = ?)
+                ) as items_sold
+            FROM users u
+            LEFT JOIN sales s ON u.id = s.user_id
             $whereClause
-            ORDER BY b.manufactured_date DESC
+            GROUP BY u.id, u.username, u.role
+            ORDER BY revenue DESC
         ";
         
+        // Add status parameter for the subquery (repeat it as it's used twice in the prepared statement)
+        $subqueryParams = [$status ?: '', $status ?: ''];
+        $params = array_merge($subqueryParams, $params);
+        
         if ($debugMode) {
-            $response['debug']['batchQuery'] = $query;
-            $response['debug']['batchParams'] = $params;
+            $response['debug']['userSalesQuery'] = $query;
+            $response['debug']['userSalesParams'] = $params;
         }
         
         $stmt = $db->prepare($query);
         $stmt->execute($params);
-        $batches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $response['data']['batches'] = $batches ?: [];
+        $response['data']['users'] = $users ?: [];
         
-        // Calculate summary
-        $totalBatches = count($batches);
-        $activeBatches = 0;
-        $expiringSoon = 0;
-        $expired = 0;
+        // Calculate summary data
+        $totalUsers = count($users);
+        $totalSales = 0;
+        $totalRevenue = 0;
+        $totalItems = 0;
         
-        foreach ($batches as $batch) {
-            if ($batch['status'] === 'Active') {
-                $activeBatches++;
-            } else if ($batch['status'] === 'Expiring Soon') {
-                $expiringSoon++;
-            } else if ($batch['status'] === 'Expired') {
-                $expired++;
-            }
+        foreach ($users as $user) {
+            $totalSales += $user['sales_count'];
+            $totalRevenue += $user['revenue'];
+            $totalItems += $user['items_sold'] ?: 0;
         }
         
         $response['summary'] = [
-            'totalBatches' => $totalBatches,
-            'activeBatches' => $activeBatches,
-            'expiringSoon' => $expiringSoon,
-            'expiredBatches' => $expired
+            'totalUsers' => $totalUsers,
+            'totalSales' => $totalSales,
+            'totalRevenue' => $totalRevenue,
+            'totalItems' => $totalItems
         ];
-    } 
+    }
     else {
         throw new Exception("Invalid report type");
     }
