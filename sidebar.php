@@ -39,6 +39,18 @@ $role = getUserRole();
       <a href="batches.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'batches.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-layer-group w-4"></i> Batch
       </a>
+    <?php endif; ?>
+
+    <?php if ($role === 'admin'): ?>
+      <a href="reports.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'reports.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+        <i class="fa fa-chart-bar w-4"></i> Reports
+      </a>
+      <a href="users.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'users.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+        <i class="fa fa-user-friends w-4"></i> Users
+      </a>
+    <?php endif; ?>
+    
+    <?php if (in_array($role, ['admin', 'staff'])): ?>
       <div>
         <button onclick="document.getElementById('settingsSubmenu').classList.toggle('hidden')" 
                 class="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-gray-100 <?= in_array($currentPage, $settingsPages) ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
@@ -54,15 +66,6 @@ $role = getUserRole();
           <a href="company.php" class="px-2 py-1 rounded hover:bg-gray-100 <?= $currentPage == 'company.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">Company</a>
         </div>
       </div>
-    <?php endif; ?>
-
-    <?php if ($role === 'admin'): ?>
-      <a href="reports.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'reports.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
-        <i class="fa fa-chart-bar w-4"></i> Reports
-      </a>
-      <a href="users.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'users.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
-        <i class="fa fa-user-friends w-4"></i> Users
-      </a>
     <?php endif; ?>
 
   </nav>
