@@ -3,6 +3,9 @@ let reportChart;
 let reportData = null;
 let currentReportType = '';
 
+// Make reportData accessible globally
+window.reportData = null;
+
 // DOM references
 const 
   toast = document.getElementById('toast'),
@@ -52,37 +55,6 @@ function initReportPage() {
   // Generate report button click handler
   document.getElementById('generateReportBtn').addEventListener('click', function() {
     generateReport();
-  });
-  
-  // Download dropdown toggle
-  document.getElementById('downloadTypeBtn').addEventListener('click', function() {
-    const dropdown = document.getElementById('downloadTypeDropdown');
-    dropdown.classList.toggle('hidden');
-  });
-  
-  // Close dropdown when clicking outside
-  document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById('downloadTypeDropdown');
-    const button = document.getElementById('downloadTypeBtn');
-    if (!dropdown.contains(event.target) && !button.contains(event.target) && !dropdown.classList.contains('hidden')) {
-      dropdown.classList.add('hidden');
-    }
-  });
-  
-  // Download buttons click handlers
-  document.getElementById('downloadCsvBtn').addEventListener('click', function() {
-    downloadReport('csv');
-    document.getElementById('downloadTypeDropdown').classList.add('hidden');
-  });
-  
-  document.getElementById('downloadPdfBtn').addEventListener('click', function() {
-    downloadReport('pdf');
-    document.getElementById('downloadTypeDropdown').classList.add('hidden');
-  });
-  
-  document.getElementById('downloadExcelBtn').addEventListener('click', function() {
-    downloadReport('excel');
-    document.getElementById('downloadTypeDropdown').classList.add('hidden');
   });
   
   // Category change should update products dropdown
@@ -403,6 +375,11 @@ function generateReport(autoDownload = false) {
 
       if (data.success) {
         // If report generation was successful
+        // Store report data globally
+        reportData = data;
+        window.reportData = data;
+        currentReportType = reportType;
+        
         // Show report summary
         const reportSummary = document.getElementById('reportSummary');
         if (reportSummary) {

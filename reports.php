@@ -73,7 +73,7 @@ include 'sidebar.php';
               <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
           </button>
-          <div id="downloadTypeDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+          <div id="downloadTypeDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50" style="position: absolute;">
             <div class="py-1" role="menu" aria-orientation="vertical">
               <button id="downloadCsvBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left" role="menuitem">
                 <i class="fas fa-file-csv mr-2"></i> CSV
@@ -232,15 +232,10 @@ include 'sidebar.php';
 <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 
 <!-- Include our JavaScript files -->
-<script src="js/reports.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/display-reports.js"></script>
-<script src="js/download-reports.js"></script>
+<script src="js/reports/reports.js"></script>
+<script src="js/reports/charts.js"></script>
+<script src="js/reports/display-reports.js"></script>
+<script src="js/reports/download-reports.js"></script>
 
-<script>
-// Initialize download functionality when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize download buttons
-  initDownloadButtons();
-});
-</script>
+<!-- No manual initialization needed, it's handled in the JS files -->
+</main>
