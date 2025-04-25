@@ -73,7 +73,12 @@ function downloadReport(format) {
   if (format === 'csv' && reportDataToUse) {
     // Generate and download CSV in the browser
     exportToCSV(reportDataToUse, reportType);
-  } else {
+  } 
+  else if (format === 'pdf' && reportDataToUse) {
+    // Generate and download PDF in the browser
+    exportToPDF(reportDataToUse, reportType);
+  }
+  else {
     // Open download URL in a new tab/window for other formats
     const downloadUrl = `../api/reports.php?${params.toString()}`;
     console.log(`Opening download URL: ${downloadUrl}`);
@@ -231,6 +236,664 @@ function exportToCSV(data, reportType) {
   
   console.log('CSV download complete');
   showToast('CSV file downloaded successfully', 'success');
+}
+
+// Export report data to PDF
+function exportToPDF(data, reportType) {
+  console.log('Exporting to PDF:', reportType);
+  console.log('Data structure:', data);
+  
+  try {
+    // Make sure jsPDF is loaded
+    if (typeof jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+      console.error('jsPDF library not loaded');
+      showToast('PDF generation library not loaded', 'error');
+      return;
+    }
+    
+    // Create new jsPDF instance with proper orientation
+    let doc;
+    if (typeof jspdf !== 'undefined') {
+      const { jsPDF } = jspdf;
+      doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+    } else {
+      doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+    }
+    
+    // Set filename based on report type
+    let filename = `${reportType}_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    
+    // Better table styling with grid lines and improved colors
+    const tableStyle = {
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [41, 59, 95], // Dark blue
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: {
+        lineColor: [220, 220, 220],
+        lineWidth: 0.1
+      },
+      alternateRowStyles: {
+        fillColor: [240, 242, 245]
+      },
+      margin: { top: 10, bottom: 10 },
+      styles: { 
+        overflow: 'linebreak',
+        cellPadding: 4,
+        fontSize: 8,
+        font: 'helvetica'
+      }
+    };
+    
+    // Get report date and time
+    const reportDate = new Date().toLocaleDateString();
+    const reportTime = new Date().toLocaleTimeString();
+
+    // Create header with better design
+    // Add a colored header bar
+    doc.setFillColor(41, 59, 95); // Dark blue header
+    doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
+
+    // Add report title
+    let title = 'Report';
+    switch(reportType) {
+      case 'sales': title = 'SALES REPORT'; break;
+      case 'product_sales': title = 'PRODUCT SALES REPORT'; break;
+      case 'stock_movement': title = 'STOCK MOVEMENT REPORT'; break;
+      case 'user_sales': title = 'USER SALES REPORT'; break;
+    }
+
+    // Title
+    doc.setTextColor(255, 255, 255); // White text
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, doc.internal.pageSize.width / 2, 12, { align: 'center' });
+
+    // Subtitle with date
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated on: ${reportDate} at ${reportTime}`, doc.internal.pageSize.width / 2, 18, { align: 'center' });
+
+    // Reset text color for rest of document
+    doc.setTextColor(0, 0, 0);
+
+    // Y position tracker - start after header
+    let yPos = 35;
+    
+    // Add footer with page numbers - simplified version without colors or undefined variables
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100); // Gray color
+      
+      // Page numbers
+      doc.text(`Page ${i} of ${totalPages}`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+      
+      // System name
+      doc.text("Inventory Management System", 15, doc.internal.pageSize.height - 10);
+      
+      // Date on the right
+      doc.text(reportDate, doc.internal.pageSize.width - 15, doc.internal.pageSize.height - 10, { align: 'right' });
+    }
+    
+    // Different handling based on report type
+    if (reportType === 'sales') {
+      // Get sales data
+      const salesData = data.sales || data.data?.sales || [];
+      
+      // Add summary section with improved styling
+      // Create a summary box with shadow effect
+      doc.setDrawColor(180, 180, 180);
+      doc.setFillColor(248, 249, 250);
+      doc.roundedRect(15, yPos, doc.internal.pageSize.width-30, 26, 3, 3, 'FD');
+      
+      // Add summary heading
+      yPos += 7;
+      doc.setFontSize(11);
+      doc.setTextColor(41, 59, 95);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SUMMARY', 20, yPos);
+      
+      // Add summary data in columns
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+      
+      // Split into three columns
+      const colWidth = (doc.internal.pageSize.width-40)/3;
+      
+      // Column 1: Total Sales
+      doc.text('Total Sales:', 20, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalSales || 0}`, 20, yPos+6);
+      
+      // Column 2: Total Revenue
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Revenue:', 20 + colWidth, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${parseFloat(data.summary.totalRevenue || 0).toFixed(2)} Taka`, 20 + colWidth, yPos+6);
+      
+      // Column 3: Average Sale
+      doc.setFont('helvetica', 'normal');
+      doc.text('Average Sale:', 20 + (colWidth*2), yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${parseFloat(data.summary.averageSale || 0).toFixed(2)} Taka`, 20 + (colWidth*2), yPos+6);
+      
+      // Reset font and position for next section
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      yPos += 15;
+      
+      // Sales data heading
+      doc.setFillColor(230, 236, 245);
+      doc.rect(15, yPos, doc.internal.pageSize.width-30, 8, 'F');
+      
+      doc.setTextColor(41, 59, 95);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SALES DATA', 20, yPos+5.5);
+      
+      yPos += 12;
+      
+      // Check if we have data to display
+      if (salesData && salesData.length > 0) {
+        // Setup column headers
+        const headers = [['Invoice #', 'Date', 'Customer', 'Status', 'Items', 'Total']];
+        
+        // Format data for table
+        const tableBody = salesData.map(sale => [
+          sale.invoice_number || '',
+          sale.date || '',
+          sale.customer_name || '',
+          sale.status || '',
+          sale.item_count || 0,
+          `${parseFloat(sale.total || 0).toFixed(2)} Taka`
+        ]);
+        
+        // Enhanced table styling
+        const enhancedTableStyle = {
+          ...tableStyle,
+          startY: yPos,
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 45 },
+            3: { cellWidth: 25, halign: 'center' },
+            4: { cellWidth: 15, halign: 'center' },
+            5: { cellWidth: 35, halign: 'right' }
+          },
+          didDrawCell: (data) => {
+            // Add colored background for status cells
+            if (data.section === 'body' && data.column.index === 3) {
+              const status = data.cell.text[0].toLowerCase();
+              let fillColor;
+              
+              switch(status) {
+                case 'delivered':
+                  fillColor = [200, 250, 200]; // Light green
+                  break;
+                case 'confirmed':
+                  fillColor = [200, 230, 255]; // Light blue
+                  break;
+                case 'pending':
+                  fillColor = [255, 240, 200]; // Light yellow
+                  break;
+                case 'canceled':
+                  fillColor = [255, 200, 200]; // Light red
+                  break;
+                default:
+                  fillColor = [240, 240, 240]; // Light gray
+              }
+              
+              doc.setFillColor(...fillColor);
+              doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+              
+              // Re-add text since we covered it
+              doc.setTextColor(0, 0, 0);
+              doc.text(
+                data.cell.text,
+                data.cell.x + data.cell.width / 2,
+                data.cell.y + data.cell.height / 2,
+                { align: 'center', baseline: 'middle' }
+              );
+            }
+          }
+        };
+        
+        // Add the table
+        doc.autoTable({
+          head: headers,
+          body: tableBody,
+          ...enhancedTableStyle
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('No sales data found for the selected filters.', 20, yPos + 10);
+      }
+    } 
+    else if (reportType === 'product_sales') {
+      // Get product sales data
+      const productSalesData = data.productSales || data.data?.productSales || [];
+      
+      // Add summary section with modern styling
+      // Create a summary box
+      doc.setDrawColor(180, 180, 180);
+      doc.setFillColor(248, 249, 250);
+      doc.roundedRect(15, yPos, doc.internal.pageSize.width-30, 26, 3, 3, 'FD');
+      
+      // Add summary heading
+      yPos += 7;
+      doc.setFontSize(11);
+      doc.setTextColor(41, 59, 95);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PRODUCT SALES SUMMARY', 20, yPos);
+      
+      // Add summary data in columns
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+      
+      // Split into three columns
+      const colWidth = (doc.internal.pageSize.width-40)/3;
+      
+      // Column 1: Total Products
+      doc.text('Total Products:', 20, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalProducts || 0}`, 20, yPos+6);
+      
+      // Column 2: Total Units Sold
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Units Sold:', 20 + colWidth, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalUnitsSold || 0}`, 20 + colWidth, yPos+6);
+      
+      // Column 3: Total Revenue
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Revenue:', 20 + (colWidth*2), yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${parseFloat(data.summary.totalRevenue || 0).toFixed(2)} Taka`, 20 + (colWidth*2), yPos+6);
+      
+      // Reset font and position for next section
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      yPos += 15;
+      
+      // Product sales data heading
+      doc.setFillColor(230, 236, 245);
+      doc.rect(15, yPos, doc.internal.pageSize.width-30, 8, 'F');
+      
+      doc.setTextColor(41, 59, 95);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PRODUCT SALES DATA', 20, yPos+5.5);
+      
+      yPos += 12;
+      
+      // Check if we have data to display
+      if (productSalesData && productSalesData.length > 0) {
+        // Setup column headers for product sales
+        const headers = [['Product Name', 'SKU', 'Category', 'Quantity Sold', 'Unit Price', 'Total Revenue']];
+        
+        // Format data for table
+        const tableBody = productSalesData.map(product => [
+          product.product_name || '',
+          product.sku || '',
+          product.category || '',
+          product.quantity_sold || 0,
+          `${parseFloat(product.unit_price || 0).toFixed(2)} Taka`,
+          `${parseFloat(product.total_revenue || 0).toFixed(2)} Taka`
+        ]);
+        
+        // Enhanced styling for product sales table
+        const productTableStyle = {
+          ...tableStyle,
+          startY: yPos,
+          columnStyles: {
+            0: { cellWidth: 45 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 25, halign: 'center' },
+            4: { cellWidth: 25, halign: 'right' },
+            5: { cellWidth: 30, halign: 'right' }
+          },
+          didDrawCell: (data) => {
+            // Add visual indicators for top-selling products
+            if (data.section === 'body' && data.row.index < 3 && data.column.index === 0) {
+              // Highlight top 3 products with a star or badge
+              const x = data.cell.x + 2;
+              const y = data.cell.y + 3;
+              
+              // Draw star indicator for top 3 products
+              doc.setFillColor(255, 193, 7); // Gold/amber color
+              
+              if (data.row.index === 0) {
+                // Gold star for #1 product
+                doc.circle(x, y, 2, 'F');
+                doc.setTextColor(255, 193, 7);
+                doc.setFontSize(7);
+                doc.text('★', x-1.3, y+1.8);
+              } else if (data.row.index === 1) {
+                // Silver for #2 product
+                doc.setFillColor(200, 200, 200);
+                doc.circle(x, y, 1.8, 'F');
+                doc.setTextColor(200, 200, 200);
+                doc.setFontSize(6);
+                doc.text('★', x-1.1, y+1.5);
+              } else if (data.row.index === 2) {
+                // Bronze for #3 product
+                doc.setFillColor(176, 141, 87);
+                doc.circle(x, y, 1.5, 'F');
+                doc.setTextColor(176, 141, 87);
+                doc.setFontSize(5);
+                doc.text('★', x-0.9, y+1.2);
+              }
+              
+              // Reset text color
+              doc.setTextColor(0, 0, 0);
+              doc.setFontSize(10);
+            }
+          }
+        };
+        
+        // Add the table
+        doc.autoTable({
+          head: headers,
+          body: tableBody,
+          ...productTableStyle
+        });
+        
+        // If there's enough data, add a mini bar chart for top 5 products
+        if (productSalesData.length >= 5) {
+          const finalY = doc.previousAutoTable.finalY;
+          doc.setFontSize(11);
+          doc.setTextColor(41, 59, 95);
+          doc.setFont('helvetica', 'bold');
+          doc.text('TOP 5 PRODUCTS BY SALES', 20, finalY + 15);
+          
+          // Draw simple bar chart
+          const top5Products = productSalesData.slice(0, 5);
+          const maxRevenue = Math.max(...top5Products.map(p => parseFloat(p.total_revenue || 0)));
+          const chartWidth = doc.internal.pageSize.width - 60;
+          const barHeight = 8;
+          const gapBetweenBars = 5;
+          
+          let chartY = finalY + 25;
+          
+          top5Products.forEach((product, index) => {
+            const revenue = parseFloat(product.total_revenue || 0);
+            const barWidth = (revenue / maxRevenue) * chartWidth;
+            
+            // Draw product name
+            doc.setFontSize(8);
+            doc.setTextColor(60, 60, 60);
+            doc.setFont('helvetica', 'normal');
+            doc.text(product.product_name || 'Unknown', 20, chartY);
+            
+            // Draw bar
+            doc.setFillColor(41 + (index * 30), 59 + (index * 10), 95);
+            doc.rect(20, chartY + 2, barWidth, barHeight, 'F');
+            
+            // Draw value at end of bar
+            doc.setFontSize(8);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`${revenue.toFixed(2)} Taka`, 20 + barWidth + 5, chartY + 7);
+            
+            chartY += barHeight + gapBetweenBars;
+          });
+        }
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('No product sales data found for the selected filters.', 20, yPos + 10);
+      }
+    }
+    else if (reportType === 'stock_movement') {
+      // Get movement data
+      const movementData = data.movements || data.data?.movements || [];
+      
+      // Add summary section with improved styling
+      // Create a summary box with shadow effect
+      doc.setDrawColor(180, 180, 180);
+      doc.setFillColor(248, 249, 250);
+      doc.roundedRect(15, yPos, doc.internal.pageSize.width-30, 26, 3, 3, 'FD');
+      
+      // Add summary heading
+      yPos += 7;
+      doc.setFontSize(11);
+      doc.setTextColor(41, 59, 95);
+      doc.setFont('helvetica', 'bold');
+      doc.text('STOCK MOVEMENT SUMMARY', 20, yPos);
+      
+      // Add summary data in columns
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+      
+      // Split into three columns
+      const colWidth = (doc.internal.pageSize.width-40)/3;
+      
+      // Column 1: Total Movements
+      doc.text('Total Movements:', 20, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalMovements || 0}`, 20, yPos+6);
+      
+      // Column 2: Stock In
+      doc.setFont('helvetica', 'normal');
+      doc.text('Stock In:', 20 + colWidth, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalStockIn || 0}`, 20 + colWidth, yPos+6);
+      
+      // Column 3: Stock Out
+      doc.setFont('helvetica', 'normal');
+      doc.text('Stock Out:', 20 + (colWidth*2), yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalStockOut || 0}`, 20 + (colWidth*2), yPos+6);
+      
+      // Reset font and position for next section
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      yPos += 15;
+      
+      // Stock movement data heading
+      doc.setFillColor(230, 236, 245);
+      doc.rect(15, yPos, doc.internal.pageSize.width-30, 8, 'F');
+      
+      doc.setTextColor(41, 59, 95);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('STOCK MOVEMENT DATA', 20, yPos+5.5);
+      
+      yPos += 12;
+      
+      // Add data table
+      if (movementData && movementData.length > 0) {
+        const headers = [['Date', 'Product', 'Type', 'Quantity', 'User', 'Reference']];
+        
+        const tableBody = movementData.map(movement => [
+          movement.date || '',
+          movement.product_name || '',
+          movement.type || '',
+          movement.quantity || 0,
+          movement.user_name || '',
+          movement.reason || ''
+        ]);
+        
+        doc.autoTable({
+          startY: yPos,
+          head: headers,
+          body: tableBody,
+          ...tableStyle,
+          columnStyles: { 
+            0: { cellWidth: 25 },
+            1: { cellWidth: 45 },
+            2: { cellWidth: 20, halign: 'center' },
+            3: { cellWidth: 20, halign: 'center' },
+            4: { cellWidth: 25 },
+            5: { cellWidth: 35 }
+          },
+          didDrawCell: (data) => {
+            // Add a colored background for the movement type cell
+            if (data.section === 'body' && data.column.index === 2) {
+              const type = data.cell.text[0].toLowerCase();
+              let fillColor;
+              
+              switch(type) {
+                case 'in':
+                case 'stock in':
+                  fillColor = [200, 250, 200]; // Light green
+                  break;
+                case 'out':
+                case 'stock out':
+                  fillColor = [255, 200, 200]; // Light red
+                  break;
+                case 'adjustment':
+                  fillColor = [200, 230, 255]; // Light blue
+                  break;
+                default:
+                  fillColor = [240, 240, 240]; // Light gray
+              }
+              
+              doc.setFillColor(...fillColor);
+              doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+              
+              // Re-add text since we covered it
+              doc.setTextColor(0, 0, 0);
+              doc.text(
+                data.cell.text,
+                data.cell.x + data.cell.width / 2,
+                data.cell.y + data.cell.height / 2,
+                { align: 'center', baseline: 'middle' }
+              );
+            }
+          }
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('No stock movement data found for the selected filters.', 20, yPos + 10);
+      }
+    }
+    else if (reportType === 'user_sales') {
+      // Get user sales data
+      const userSalesData = data.users || data.data?.users || [];
+      
+      // Add summary section with improved styling
+      // Create a summary box with shadow effect
+      doc.setDrawColor(180, 180, 180);
+      doc.setFillColor(248, 249, 250);
+      doc.roundedRect(15, yPos, doc.internal.pageSize.width-30, 26, 3, 3, 'FD');
+      
+      // Add summary heading
+      yPos += 7;
+      doc.setFontSize(11);
+      doc.setTextColor(41, 59, 95);
+      doc.setFont('helvetica', 'bold');
+      doc.text('USER SALES SUMMARY', 20, yPos);
+      
+      // Add summary data in columns
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+      
+      // Split into three columns
+      const colWidth = (doc.internal.pageSize.width-40)/3;
+      
+      // Column 1: Total Users
+      doc.text('Total Users:', 20, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalUsers || 0}`, 20, yPos+6);
+      
+      // Column 2: Total Sales
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Sales:', 20 + colWidth, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${data.summary.totalSales || 0}`, 20 + colWidth, yPos+6);
+      
+      // Column 3: Total Revenue
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Revenue:', 20 + (colWidth*2), yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${parseFloat(data.summary.totalRevenue || 0).toFixed(2)} Taka`, 20 + (colWidth*2), yPos+6);
+      
+      // Reset font and position for next section
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      yPos += 15;
+      
+      // User sales data heading
+      doc.setFillColor(230, 236, 245);
+      doc.rect(15, yPos, doc.internal.pageSize.width-30, 8, 'F');
+      
+      doc.setTextColor(41, 59, 95);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('USER SALES DATA', 20, yPos+5.5);
+      
+      yPos += 12;
+      
+      // Add data table
+      if (userSalesData && userSalesData.length > 0) {
+        const headers = [['User', 'Role', 'Total Sales', 'Total Items', 'Revenue', 'Avg. Sale']];
+        
+        const tableBody = userSalesData.map(user => [
+          user.username || '',
+          user.role || '',
+          user.sales_count || 0,
+          user.items_sold || 0,
+          `${parseFloat(user.revenue || 0).toFixed(2)} Taka`,
+          `${parseFloat(user.average_sale || 0).toFixed(2)} Taka`
+        ]);
+        
+        doc.autoTable({
+          startY: yPos,
+          head: headers,
+          body: tableBody,
+          ...tableStyle,
+          columnStyles: { 
+            0: { cellWidth: 30 },
+            1: { cellWidth: 25, halign: 'center' },
+            2: { cellWidth: 25, halign: 'center' },
+            3: { cellWidth: 25, halign: 'center' },
+            4: { cellWidth: 40, halign: 'right' },
+            5: { cellWidth: 30, halign: 'right' }
+          }
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('No user sales data found for the selected filters.', 20, yPos + 10);
+      }
+    }
+    
+    // Save the PDF
+    doc.save(filename);
+    console.log('PDF download complete');
+    showToast('PDF file downloaded successfully', 'success');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    showToast('Error generating PDF file', 'error');
+  }
 }
 
 // Simple utility to show the dropdown
