@@ -456,7 +456,7 @@ try {
                 u.role,
                 COUNT(DISTINCT s.id) as sales_count,
                 SUM(CASE WHEN s.status = 'delivered' THEN s.total ELSE 0 END) as revenue,
-                CASE 
+                CASE
                     WHEN COUNT(DISTINCT CASE WHEN s.status = 'delivered' THEN s.id ELSE NULL END) > 0 
                     THEN SUM(CASE WHEN s.status = 'delivered' THEN s.total ELSE 0 END) / COUNT(DISTINCT CASE WHEN s.status = 'delivered' THEN s.id ELSE NULL END)
                     ELSE 0
@@ -508,7 +508,7 @@ try {
             'totalRevenue' => $totalRevenue,
             'totalItems' => $totalItems
         ];
-    }
+    } 
     else {
         throw new Exception("Invalid report type");
     }
