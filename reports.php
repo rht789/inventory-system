@@ -18,9 +18,24 @@ include 'sidebar.php';
   <!-- Reports Header -->
   <div class="flex justify-between items-center mb-6">
     <h2 class="text-2xl font-bold text-gray-800">Reports</h2>
-    <button id="allDownloadBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-md text-sm flex items-center gap-2">
-      <i class="fas fa-download"></i> All Download
-    </button>
+    <div class="flex items-center gap-2">
+      <div class="relative group">
+        <button class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-md text-sm flex items-center gap-2">
+          <i class="fas fa-info-circle"></i> Download Options
+        </button>
+        <div class="hidden group-hover:block absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg p-4 w-64 z-50 text-sm">
+          <h4 class="font-semibold text-gray-800 mb-2">Available Download Formats:</h4>
+          <ul class="text-gray-600 space-y-1">
+            <li class="flex items-center"><i class="fas fa-file-csv text-green-500 mr-2"></i> CSV - For spreadsheet analysis</li>
+            <li class="flex items-center"><i class="fas fa-file-pdf text-red-500 mr-2"></i> PDF - For formal reports & printing</li>
+            <li class="flex items-center"><i class="fas fa-file-excel text-blue-500 mr-2"></i> Excel - For detailed data manipulation</li>
+          </ul>
+          <div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
+            Generate a report then select your preferred format from the download dropdown button.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Filters Card -->

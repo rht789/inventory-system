@@ -4,7 +4,6 @@ const DOWNLOAD_DROPDOWN_ID = 'downloadTypeDropdown';
 const CSV_BUTTON_ID = 'downloadCsvBtn';
 const PDF_BUTTON_ID = 'downloadPdfBtn';
 const EXCEL_BUTTON_ID = 'downloadExcelBtn';
-const ALL_DOWNLOAD_BUTTON_ID = 'allDownloadBtn';
 
 // Download report in the specified format
 function downloadReport(format) {
@@ -1264,7 +1263,6 @@ function initDownloadButtons() {
   const csvBtn = document.getElementById(CSV_BUTTON_ID);
   const pdfBtn = document.getElementById(PDF_BUTTON_ID);
   const excelBtn = document.getElementById(EXCEL_BUTTON_ID);
-  const allDownloadBtn = document.getElementById(ALL_DOWNLOAD_BUTTON_ID);
   
   // Check for existence of elements
   if (!downloadBtn) {
@@ -1301,20 +1299,6 @@ function initDownloadButtons() {
       e.stopPropagation();
       downloadReport('excel');
       hideDropdown();
-    };
-  }
-  
-  // All download button
-  if (allDownloadBtn) {
-    allDownloadBtn.onclick = function(e) {
-      e.preventDefault();
-      const reportType = document.getElementById('reportType').value;
-      if (!reportType) {
-        showToast('Please generate a report first', 'error');
-        return;
-      }
-      
-      downloadReport('pdf');
     };
   }
   
