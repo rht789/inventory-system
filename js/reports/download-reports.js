@@ -938,14 +938,37 @@ function exportToExcel(data, reportType) {
     // Create new workbook
     const wb = XLSX.utils.book_new();
     
-    // Debug available data with simplified logging
+    // Debug available data with detailed information
+    console.log('DATA STRUCTURE FOR EXCEL EXPORT:');
     console.log('Data keys:', Object.keys(data));
     if (data.data) console.log('data.data keys:', Object.keys(data.data));
-    if (data.summary) console.log('summary keys:', Object.keys(data.summary));
+    if (data.summary) {
+      console.log('SUMMARY EXISTS with keys:', Object.keys(data.summary));
+      console.log('Summary content:', JSON.stringify(data.summary));
+    } else {
+      console.log('NO SUMMARY FOUND in data object');
+      
+      // Try to find summary in alternative locations
+      if (data.data && data.data.summary) {
+        console.log('SUMMARY found in data.data:', JSON.stringify(data.data.summary));
+      }
+    }
     
     // Find data source based on report type
     let reportData = [];
     let summaryData = [];
+    let summaryObject = null;
+    
+    // First, try to locate the summary object
+    if (data.summary) {
+      summaryObject = data.summary;
+    } else if (data.data && data.data.summary) {
+      summaryObject = data.data.summary;
+    } else if (data.data && data.data.data && data.data.data.summary) {
+      summaryObject = data.data.data.summary;
+    }
+    
+    console.log('Summary object found:', summaryObject ? 'YES' : 'NO');
     
     // Extract the correct data based on report type
     switch (reportType) {
@@ -984,18 +1007,22 @@ function exportToExcel(data, reportType) {
         }
         
         // Add summary if available
-        if (data.summary) {
+        if (summaryObject) {
+          console.log('Creating sales summary sheet with:', summaryObject);
           summaryData = [
             ['Total Sales', 'Total Revenue', 'Average Sale'],
             [
-              data.summary.totalSales || reportData.length || 0,
-              parseFloat(data.summary.totalRevenue || 0).toFixed(2),
-              parseFloat(data.summary.averageSale || 0).toFixed(2)
+              summaryObject.totalSales || reportData.length || 0,
+              parseFloat(summaryObject.totalRevenue || 0).toFixed(2),
+              parseFloat(summaryObject.averageSale || 0).toFixed(2)
             ]
           ];
           
           const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
           XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+          console.log('Summary sheet added to workbook');
+        } else {
+          console.log('No summary data available for sales');
         }
         break;
         
@@ -1040,18 +1067,22 @@ function exportToExcel(data, reportType) {
         }
         
         // Add summary if available
-        if (data.summary) {
+        if (summaryObject) {
+          console.log('Creating product sales summary sheet with:', summaryObject);
           summaryData = [
             ['Total Products', 'Total Units Sold', 'Total Revenue'],
             [
-              data.summary.totalProducts || reportData.length || 0,
-              data.summary.totalUnitsSold || 0,
-              parseFloat(data.summary.totalRevenue || 0).toFixed(2)
+              summaryObject.totalProducts || summaryObject.productCount || reportData.length || 0,
+              summaryObject.totalUnitsSold || summaryObject.totalQuantity || 0,
+              parseFloat(summaryObject.totalRevenue || 0).toFixed(2)
             ]
           ];
           
           const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
           XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+          console.log('Summary sheet added to workbook');
+        } else {
+          console.log('No summary data available for product sales');
         }
         break;
         
@@ -1091,18 +1122,22 @@ function exportToExcel(data, reportType) {
         }
         
         // Add summary if available
-        if (data.summary) {
+        if (summaryObject) {
+          console.log('Creating stock movement summary sheet with:', summaryObject);
           summaryData = [
             ['Total Movements', 'Stock In', 'Stock Out'],
             [
-              data.summary.totalMovements || reportData.length || 0,
-              data.summary.totalStockIn || 0,
-              data.summary.totalStockOut || 0
+              summaryObject.totalMovements || reportData.length || 0,
+              summaryObject.totalStockIn || 0,
+              summaryObject.totalStockOut || 0
             ]
           ];
           
           const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
           XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+          console.log('Summary sheet added to workbook');
+        } else {
+          console.log('No summary data available for stock movement');
         }
         break;
         
@@ -1141,18 +1176,22 @@ function exportToExcel(data, reportType) {
         }
         
         // Add summary if available
-        if (data.summary) {
+        if (summaryObject) {
+          console.log('Creating user sales summary sheet with:', summaryObject);
           summaryData = [
             ['Total Users', 'Total Sales', 'Total Revenue'],
             [
-              data.summary.totalUsers || reportData.length || 0,
-              data.summary.totalSales || 0,
-              parseFloat(data.summary.totalRevenue || 0).toFixed(2)
+              summaryObject.totalUsers || reportData.length || 0,
+              summaryObject.totalSales || 0,
+              parseFloat(summaryObject.totalRevenue || 0).toFixed(2)
             ]
           ];
           
           const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
           XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+          console.log('Summary sheet added to workbook');
+        } else {
+          console.log('No summary data available for user sales');
         }
         break;
         
@@ -1161,6 +1200,9 @@ function exportToExcel(data, reportType) {
         showToast('Unknown report type for Excel export', 'error');
         return;
     }
+    
+    // Check workbook structure before saving
+    console.log('Workbook sheets before saving:', wb.SheetNames);
     
     // Write and save the file
     XLSX.writeFile(wb, filename);
