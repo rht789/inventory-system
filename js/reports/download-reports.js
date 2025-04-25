@@ -84,97 +84,135 @@ function downloadReport(format) {
 // Export report data to CSV
 function exportToCSV(data, reportType) {
   console.log('Exporting to CSV:', reportType);
+  console.log('Data structure:', data);
   
   let csvContent = '';
   let filename = '';
+  let hasData = false;
   
   // Different handling based on report type
   if (reportType === 'sales') {
     filename = `sales_report_${new Date().toISOString().slice(0, 10)}.csv`;
     
-    // Add headers
-    csvContent = 'Invoice Number,Date,Customer,Total,Discount,Status,Items\n';
+    // Get sales data from the appropriate location
+    const salesData = data.sales || data.data?.sales || [];
     
-    // Add rows
-    data.sales.forEach(sale => {
-      const row = [
-        sale.invoice_number,
-        sale.date,
-        sale.customer_name,
-        sale.total,
-        sale.discount_total || 0,
-        sale.status,
-        sale.item_count || 0
-      ];
+    if (salesData && salesData.length > 0) {
+      hasData = true;
       
-      // Escape values and convert to CSV row
-      csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
-    });
+      // Add headers
+      csvContent = 'Invoice Number,Date,Customer,Total,Discount,Status,Items\n';
+      
+      // Add rows
+      salesData.forEach(sale => {
+        const row = [
+          sale.invoice_number || '',
+          sale.date || '',
+          sale.customer_name || '',
+          sale.total || 0,
+          sale.discount_total || 0,
+          sale.status || '',
+          sale.item_count || 0
+        ];
+        
+        // Escape values and convert to CSV row
+        csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+    }
   } 
   else if (reportType === 'product_sales') {
     filename = `product_sales_report_${new Date().toISOString().slice(0, 10)}.csv`;
     
-    // Add headers
-    csvContent = 'Product,Category,Quantity Sold,Revenue,Average Price\n';
+    // Get product data from the appropriate location
+    const productData = data.products || data.data?.products || [];
     
-    // Add rows
-    data.product_sales.forEach(product => {
-      const row = [
-        product.product_name,
-        product.category_name || 'Uncategorized',
-        product.quantity_sold,
-        product.total_sales,
-        product.average_price
-      ];
+    if (productData && productData.length > 0) {
+      hasData = true;
       
-      // Escape values and convert to CSV row
-      csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
-    });
+      // Add headers
+      csvContent = 'Product,Category,Quantity Sold,Revenue,Average Price\n';
+      
+      // Add rows
+      productData.forEach(product => {
+        const row = [
+          product.name || '',
+          product.category || '',
+          product.quantity_sold || 0,
+          product.revenue || 0,
+          product.average_price || 0
+        ];
+        
+        // Escape values and convert to CSV row
+        csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+    }
   }
   else if (reportType === 'stock_movement') {
     filename = `stock_movement_report_${new Date().toISOString().slice(0, 10)}.csv`;
     
-    // Add headers
-    csvContent = 'Date,Product,Type,Quantity,User,Notes\n';
+    // Get movement data from the appropriate location
+    const movementData = data.movements || data.data?.movements || [];
     
-    // Add rows
-    data.movements.forEach(movement => {
-      const row = [
-        movement.date,
-        movement.product_name,
-        movement.type,
-        movement.quantity,
-        movement.username || 'System',
-        movement.notes || ''
-      ];
+    if (movementData && movementData.length > 0) {
+      hasData = true;
       
-      // Escape values and convert to CSV row
-      csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
-    });
+      // Add headers
+      csvContent = 'Date,Product,Size,Type,Quantity,User,Reference\n';
+      
+      // Add rows
+      movementData.forEach(movement => {
+        const row = [
+          movement.date || '',
+          movement.product_name || '',
+          movement.size_name || 'Default',
+          movement.type || '',
+          movement.quantity || 0,
+          movement.user_name || '',
+          movement.reason || ''
+        ];
+        
+        // Escape values and convert to CSV row
+        csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+    }
   }
   else if (reportType === 'user_sales') {
     filename = `user_sales_report_${new Date().toISOString().slice(0, 10)}.csv`;
     
-    // Add headers
-    csvContent = 'User,Total Sales,Total Items,Revenue,Average Sale\n';
+    // Get user sales data from the appropriate location
+    const userSalesData = data.users || data.data?.users || [];
     
-    // Add rows
-    data.user_sales.forEach(user => {
-      const row = [
-        user.username,
-        user.sale_count,
-        user.total_items,
-        user.total_revenue,
-        user.average_sale
-      ];
+    if (userSalesData && userSalesData.length > 0) {
+      hasData = true;
       
-      // Escape values and convert to CSV row
-      csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
-    });
+      // Add headers
+      csvContent = 'User,Role,Total Sales,Total Items,Revenue,Average Sale\n';
+      
+      // Add rows
+      userSalesData.forEach(user => {
+        const row = [
+          user.username || '',
+          user.role || '',
+          user.sales_count || 0,
+          user.items_sold || 0,
+          user.revenue || 0,
+          user.average_sale || 0
+        ];
+        
+        // Escape values and convert to CSV row
+        csvContent += row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+    }
   }
   else {
     console.error('Unknown report type for CSV export:', reportType);
     showToast('CSV export not supported for this report type', 'error');
+    return;
+  }
+  
+  if (!hasData) {
+    console.error('No data available to export for', reportType);
+    showToast('No data available to export', 'error');
     return;
   }
   
