@@ -69,6 +69,25 @@ function downloadReport(format) {
   // Get the report data - check both local and global variable
   const reportDataToUse = window.reportData || reportData;
   
+  // Add extensive debugging to help identify the data structure
+  console.log(`Download report data structure:`, reportDataToUse);
+  
+  // Detailed logging of the report structure to help debug
+  if (reportDataToUse) {
+    console.log(`Report type: ${reportType}`);
+    console.log(`Data has sales: ${!!reportDataToUse.sales || !!reportDataToUse.data?.sales}`);
+    console.log(`Data has products: ${!!reportDataToUse.products || !!reportDataToUse.data?.products}`);
+    console.log(`Data has movements: ${!!reportDataToUse.movements || !!reportDataToUse.data?.movements}`);
+    console.log(`Data has users: ${!!reportDataToUse.users || !!reportDataToUse.data?.users}`);
+    console.log(`Data has summary: ${!!reportDataToUse.summary}`);
+    
+    // Log the keys of the data object
+    console.log(`Data root keys: ${Object.keys(reportDataToUse)}`);
+    if (reportDataToUse.data) {
+      console.log(`Data.data keys: ${Object.keys(reportDataToUse.data)}`);
+    }
+  }
+  
   // Check if we should handle the download in the browser or request from server
   if (format === 'csv' && reportDataToUse) {
     // Generate and download CSV in the browser
@@ -77,6 +96,10 @@ function downloadReport(format) {
   else if (format === 'pdf' && reportDataToUse) {
     // Generate and download PDF in the browser
     exportToPDF(reportDataToUse, reportType);
+  }
+  else if (format === 'excel' && reportDataToUse) {
+    // Generate and download Excel in the browser
+    exportToExcel(reportDataToUse, reportType);
   }
   else {
     // Open download URL in a new tab/window for other formats
@@ -893,6 +916,260 @@ function exportToPDF(data, reportType) {
   } catch (error) {
     console.error('Error generating PDF:', error);
     showToast('Error generating PDF file', 'error');
+  }
+}
+
+// Export report data to Excel
+function exportToExcel(data, reportType) {
+  console.log('Exporting to Excel:', reportType);
+  console.log('Full data structure:', data);
+  
+  try {
+    // Check if XLSX library is available
+    if (typeof XLSX === 'undefined') {
+      console.error('XLSX library not loaded');
+      showToast('Excel generation library not loaded', 'error');
+      return;
+    }
+    
+    // Generate filename
+    const filename = `${reportType}_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    
+    // Create new workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Debug available data with simplified logging
+    console.log('Data keys:', Object.keys(data));
+    if (data.data) console.log('data.data keys:', Object.keys(data.data));
+    if (data.summary) console.log('summary keys:', Object.keys(data.summary));
+    
+    // Find data source based on report type
+    let reportData = [];
+    let summaryData = [];
+    
+    // Extract the correct data based on report type
+    switch (reportType) {
+      case 'sales':
+        // Try all possible locations for sales data
+        if (Array.isArray(data.sales)) {
+          reportData = data.sales;
+        } else if (data.data && Array.isArray(data.data.sales)) {
+          reportData = data.data.sales;
+        } else if (data.data && data.data.data && Array.isArray(data.data.data.sales)) {
+          reportData = data.data.data.sales;
+        }
+        console.log(`Found ${reportData.length} sales records`);
+        
+        // Create sales data worksheet
+        if (reportData.length > 0) {
+          // Create data rows
+          const rows = [];
+          rows.push(['Invoice Number', 'Date', 'Customer', 'Total', 'Discount', 'Status', 'Items']);
+          
+          reportData.forEach(sale => {
+            rows.push([
+              sale.invoice_number || '',
+              sale.date || '',
+              sale.customer_name || '',
+              parseFloat(sale.total || 0).toFixed(2),
+              parseFloat(sale.discount_total || 0).toFixed(2),
+              sale.status || '',
+              sale.item_count || 0
+            ]);
+          });
+          
+          // Add to workbook
+          const dataWS = XLSX.utils.aoa_to_sheet(rows);
+          XLSX.utils.book_append_sheet(wb, dataWS, 'Sales Data');
+        }
+        
+        // Add summary if available
+        if (data.summary) {
+          summaryData = [
+            ['Total Sales', 'Total Revenue', 'Average Sale'],
+            [
+              data.summary.totalSales || reportData.length || 0,
+              parseFloat(data.summary.totalRevenue || 0).toFixed(2),
+              parseFloat(data.summary.averageSale || 0).toFixed(2)
+            ]
+          ];
+          
+          const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+          XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+        }
+        break;
+        
+      case 'product_sales':
+        // Try all possible locations for product sales data
+        if (Array.isArray(data.products)) {
+          reportData = data.products;
+        } else if (data.data && Array.isArray(data.data.products)) {
+          reportData = data.data.products;
+        } else if (Array.isArray(data.productSales)) {
+          reportData = data.productSales;
+        } else if (data.data && Array.isArray(data.data.productSales)) {
+          reportData = data.data.productSales;
+        } else if (data.data && data.data.data && Array.isArray(data.data.data.products)) {
+          reportData = data.data.data.products;
+        } else if (data.data && data.data.data && Array.isArray(data.data.data.productSales)) {
+          reportData = data.data.data.productSales;
+        }
+        
+        console.log(`Found ${reportData.length} product sales records`);
+        
+        // Create product sales data worksheet
+        if (reportData.length > 0) {
+          // Create data rows
+          const rows = [];
+          rows.push(['Product', 'SKU', 'Category', 'Quantity Sold', 'Revenue', 'Average Price']);
+          
+          reportData.forEach(product => {
+            rows.push([
+              product.name || product.product_name || '',
+              product.sku || '',
+              product.category || '',
+              product.quantity_sold || 0,
+              parseFloat(product.revenue || product.total_revenue || 0).toFixed(2),
+              parseFloat(product.average_price || product.unit_price || 0).toFixed(2)
+            ]);
+          });
+          
+          // Add to workbook
+          const dataWS = XLSX.utils.aoa_to_sheet(rows);
+          XLSX.utils.book_append_sheet(wb, dataWS, 'Product Sales Data');
+        }
+        
+        // Add summary if available
+        if (data.summary) {
+          summaryData = [
+            ['Total Products', 'Total Units Sold', 'Total Revenue'],
+            [
+              data.summary.totalProducts || reportData.length || 0,
+              data.summary.totalUnitsSold || 0,
+              parseFloat(data.summary.totalRevenue || 0).toFixed(2)
+            ]
+          ];
+          
+          const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+          XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+        }
+        break;
+        
+      case 'stock_movement':
+        // Try all possible locations for movement data
+        if (Array.isArray(data.movements)) {
+          reportData = data.movements;
+        } else if (data.data && Array.isArray(data.data.movements)) {
+          reportData = data.data.movements;
+        } else if (data.data && data.data.data && Array.isArray(data.data.data.movements)) {
+          reportData = data.data.data.movements;
+        }
+        
+        console.log(`Found ${reportData.length} stock movement records`);
+        
+        // Create stock movement data worksheet
+        if (reportData.length > 0) {
+          // Create data rows
+          const rows = [];
+          rows.push(['Date', 'Product', 'Size', 'Type', 'Quantity', 'User', 'Reference']);
+          
+          reportData.forEach(movement => {
+            rows.push([
+              movement.date || '',
+              movement.product_name || '',
+              movement.size_name || 'Default',
+              movement.type || '',
+              movement.quantity || 0,
+              movement.user_name || '',
+              movement.reason || ''
+            ]);
+          });
+          
+          // Add to workbook
+          const dataWS = XLSX.utils.aoa_to_sheet(rows);
+          XLSX.utils.book_append_sheet(wb, dataWS, 'Stock Movement Data');
+        }
+        
+        // Add summary if available
+        if (data.summary) {
+          summaryData = [
+            ['Total Movements', 'Stock In', 'Stock Out'],
+            [
+              data.summary.totalMovements || reportData.length || 0,
+              data.summary.totalStockIn || 0,
+              data.summary.totalStockOut || 0
+            ]
+          ];
+          
+          const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+          XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+        }
+        break;
+        
+      case 'user_sales':
+        // Try all possible locations for user sales data
+        if (Array.isArray(data.users)) {
+          reportData = data.users;
+        } else if (data.data && Array.isArray(data.data.users)) {
+          reportData = data.data.users;
+        } else if (data.data && data.data.data && Array.isArray(data.data.data.users)) {
+          reportData = data.data.data.users;
+        }
+        
+        console.log(`Found ${reportData.length} user sales records`);
+        
+        // Create user sales data worksheet
+        if (reportData.length > 0) {
+          // Create data rows
+          const rows = [];
+          rows.push(['User', 'Role', 'Total Sales', 'Total Items', 'Revenue', 'Average Sale']);
+          
+          reportData.forEach(user => {
+            rows.push([
+              user.username || '',
+              user.role || '',
+              user.sales_count || 0,
+              user.items_sold || 0,
+              parseFloat(user.revenue || 0).toFixed(2),
+              parseFloat(user.average_sale || 0).toFixed(2)
+            ]);
+          });
+          
+          // Add to workbook
+          const dataWS = XLSX.utils.aoa_to_sheet(rows);
+          XLSX.utils.book_append_sheet(wb, dataWS, 'User Sales Data');
+        }
+        
+        // Add summary if available
+        if (data.summary) {
+          summaryData = [
+            ['Total Users', 'Total Sales', 'Total Revenue'],
+            [
+              data.summary.totalUsers || reportData.length || 0,
+              data.summary.totalSales || 0,
+              parseFloat(data.summary.totalRevenue || 0).toFixed(2)
+            ]
+          ];
+          
+          const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+          XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary');
+        }
+        break;
+        
+      default:
+        console.error('Unknown report type:', reportType);
+        showToast('Unknown report type for Excel export', 'error');
+        return;
+    }
+    
+    // Write and save the file
+    XLSX.writeFile(wb, filename);
+    console.log('Excel file successfully generated and downloaded');
+    showToast('Excel file downloaded successfully', 'success');
+    
+  } catch (error) {
+    console.error('Error generating Excel file:', error);
+    showToast('Error generating Excel file: ' + error.message, 'error');
   }
 }
 
