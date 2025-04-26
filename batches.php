@@ -367,7 +367,7 @@ async function fetchBatches() {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <p class="text-lg">No batches found</p>
-              <p class="text-sm text-gray-400 mt-1">Try changing your search criteria</p>
+              <p class="text-sm text-gray-400 mt-1"><i class="fas fa-filter mr-1"></i>Try changing your search criteria</p>
             </div>
           </td>
         </tr>
@@ -377,18 +377,30 @@ async function fetchBatches() {
     
     batchList.innerHTML = batches.map(b => `
       <tr class="hover:bg-gray-50 transition-colors">
-        <td class="px-6 py-4 text-left font-semibold text-gray-900">${b.product_name}</td>
+        <td class="px-6 py-4 text-left font-semibold text-gray-900">
+          <div class="flex items-center">
+            <i class="fas fa-box text-gray-500 mr-2"></i>${b.product_name}
+          </div>
+        </td>
         <td class="px-6 py-4 text-left text-gray-700">
           <span class="inline-flex items-center px-2.5 py-1 rounded-md border-2 border-gray-200 text-xs font-medium bg-white">
-            ${b.size_name}
+            <i class="fas fa-tag text-gray-500 mr-1"></i>${b.size_name}
           </span>
         </td>
-        <td class="px-6 py-4 text-left text-gray-700">${b.batch_number}</td>
-        <td class="px-6 py-4 text-center text-gray-700">${formatDate(b.manufactured_date)}</td>
+        <td class="px-6 py-4 text-left text-gray-700">
+          <div class="flex items-center">
+            <i class="fas fa-hashtag text-gray-500 mr-2"></i>${b.batch_number}
+          </div>
+        </td>
+        <td class="px-6 py-4 text-center text-gray-700">
+          <div class="flex items-center justify-center">
+            <i class="fas fa-calendar-day text-gray-500 mr-2"></i>${formatDate(b.manufactured_date)}
+          </div>
+        </td>
         <td class="px-6 py-4 text-center ${b.stock === 0 ? 'text-gray-400' : 'font-bold text-gray-900'}">
           ${b.stock === 0 ? 
-            '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Out of stock</span>' : 
-            b.stock
+            '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500"><i class="fas fa-times-circle mr-1"></i>Out of stock</span>' : 
+            `<div class="flex items-center justify-center"><i class="fas fa-cubes text-gray-500 mr-2"></i>${b.stock}</div>`
           }
         </td>
         <td class="px-6 py-4 text-center">

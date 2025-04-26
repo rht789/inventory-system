@@ -410,31 +410,49 @@ async function loadStock() {
         `<span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium border-2 border-gray-300 bg-white text-gray-700">${s.size_name}: ${s.stock}</span>`
       ).join(' ');
       
-      let status, statusClass;
+      let status, statusClass, statusIcon;
       if (total === 0) {
         status = 'OUT OF STOCK';
         statusClass = 'bg-gray-200 text-gray-500';
+        statusIcon = '<i class="fas fa-times-circle mr-1"></i>';
       } else if (total <= 2) {
         status = 'CRITICAL';
         statusClass = 'bg-red-100 text-red-700';
+        statusIcon = '<i class="fas fa-exclamation-triangle mr-1"></i>';
       } else if (total <= p.min_stock) {
         status = 'LOW STOCK';
         statusClass = 'bg-yellow-100 text-yellow-700';
+        statusIcon = '<i class="fas fa-exclamation-circle mr-1"></i>';
       } else {
         status = 'IN STOCK';
         statusClass = 'bg-green-100 text-green-700';
+        statusIcon = '<i class="fas fa-check-circle mr-1"></i>';
       }
       
       return `
         <tr class="hover:bg-gray-50 transition-colors">
-          <td class="px-6 py-4 font-semibold text-gray-900">${p.name}</td>
+          <td class="px-6 py-4 font-semibold text-gray-900">
+            <div class="flex items-center">
+              <i class="fas fa-box text-gray-500 mr-2"></i>${p.name}
+            </div>
+          </td>
           <td class="px-6 py-4 flex flex-wrap gap-1.5">${badges}</td>
-          <td class="px-6 py-4 text-gray-700">${p.location || '—'}</td>
-          <td class="px-6 py-4 font-bold text-center">${total}</td>
-          <td class="px-6 py-4 text-center text-gray-700">${p.min_stock}</td>
+          <td class="px-6 py-4 text-gray-700">
+            ${p.location ? `<div class="flex items-center"><i class="fas fa-map-marker-alt text-gray-500 mr-2"></i>${p.location}</div>` : '—'}
+          </td>
+          <td class="px-6 py-4 font-bold text-center">
+            <div class="flex items-center justify-center">
+              <i class="fas fa-cubes text-gray-500 mr-2"></i>${total}
+            </div>
+          </td>
+          <td class="px-6 py-4 text-center text-gray-700">
+            <div class="flex items-center justify-center">
+              <i class="fas fa-level-down-alt text-gray-500 mr-2"></i>${p.min_stock}
+            </div>
+          </td>
           <td class="px-6 py-4 text-center">
             <span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium ${statusClass}">
-              ${status}
+              ${statusIcon}${status}
             </span>
           </td>
           <td class="px-6 py-4 text-center">
@@ -688,13 +706,17 @@ function renderStockLogs(logs, pagination) {
       ? 'bg-green-100 text-green-700' 
       : 'bg-red-100 text-red-700';
       
+    const changeIcon = log.changes.includes('Added')
+      ? '<i class="fas fa-arrow-circle-up mr-1"></i>'
+      : '<i class="fas fa-arrow-circle-down mr-1"></i>';
+      
     return `
       <tr class="hover:bg-gray-50 transition-colors">
         <td class="px-4 py-3.5 text-gray-600">${formatDate(log.timestamp)}</td>
         <td class="px-4 py-3.5 font-medium text-gray-900">${log.product_name}</td>
         <td class="px-4 py-3.5 text-center">
           <span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium ${changeClass}">
-            ${log.changes}
+            ${changeIcon}${log.changes}
           </span>
         </td>
         <td class="px-4 py-3.5 text-gray-700">${log.reason}</td>
