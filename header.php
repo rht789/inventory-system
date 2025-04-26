@@ -58,14 +58,14 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
   <!-- Sidebar toggle (mobile) -->
   <div class="flex items-center gap-4">
     <button id="sidebarToggle" class="lg:hidden text-gray-600 hover:text-gray-900 transition">
-      <i class="fa fa-bars text-xl"></i>
-    </button>
-  
+    <i class="fa fa-bars text-xl"></i>
+  </button>
+
     <!-- Logo and name -->
     <div class="flex items-center gap-3">
       <i class="fas fa-box-open text-2xl text-blue-600"></i>
       <div>
-        <h1 class="text-xl font-bold text-gray-800">SmartInventory</h1>
+  <h1 class="text-xl font-bold text-gray-800">SmartInventory</h1>
         <span class="text-xs text-gray-500 hidden sm:inline-block">Inventory Management System</span>
       </div>
     </div>
@@ -104,7 +104,7 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
     <!-- Notifications -->
     <div class="relative">
       <button id="notificationToggle" class="text-gray-600 hover:text-gray-900 transition relative">
-        <i class="fa fa-bell text-lg"></i>
+      <i class="fa fa-bell text-lg"></i>
         <span class="notification-indicator"></span>
       </button>
       <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white shadow-xl rounded-lg overflow-hidden z-50 dropdown-animation">
@@ -200,13 +200,13 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
           </a>
           
           <div class="border-t border-gray-200 my-1"></div>
-          
-          <!-- Logout form -->
+
+        <!-- Logout form -->
           <form method="POST" class="p-2">
             <button type="submit" name="logout" class="flex w-full items-center gap-2 text-sm text-red-600 hover:bg-red-50 rounded-md p-2">
               <i class="fas fa-sign-out-alt w-5"></i> Logout
-            </button>
-          </form>
+          </button>
+        </form>
         </div>
       </div>
     </div>

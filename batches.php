@@ -8,140 +8,241 @@ include 'sidebar.php';
 
   <!-- Toast container -->
   <div id="toast"
-       class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden">
+       class="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg hidden z-50">
   </div>
 
-  <!-- Topbar -->
-  <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-bold">Batch Management</h2>
-    <button onclick="openAddBatchModal()"
-            class="bg-black text-white px-4 py-2 rounded text-sm">
-            <i class="fas fa-plus mr-1"></i> Add Batch
-    </button>
-  </div>
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900">Batch Management</h2>
+        <p class="text-gray-600 mt-1">Track and manage product batches for better inventory control</p>
+      </div>
+      <button onclick="openAddBatchModal()"
+              class="flex items-center gap-2 px-4 py-2.5 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors">
+        <i class="fas fa-plus"></i>
+        <span>Add Batch</span>
+      </button>
+    </div>
 
-  <!-- Filters & Search -->
-  <div class="bg-white p-4 rounded-md shadow-sm mb-4">
-    <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
-      <input type="text" id="searchInput"
-             placeholder="Search Batches..."
-             class="border px-4 py-2 rounded w-full md:w-1/3" />
-      <div class="flex gap-2 w-full md:w-auto">
-        <select id="productSelect" class="border rounded px-3 py-2 text-sm">
-          <option value="">All Products</option>
-        </select>
+    <!-- Filters & Search -->
+    <div class="bg-white p-6 rounded-lg shadow mb-8 border border-gray-200">
+      <div class="flex flex-col md:flex-row md:items-center gap-5">
+        <div class="flex-1">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <input type="text" id="searchInput"
+                  placeholder="Search batches by product name, batch number..."
+                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+          </div>
+        </div>
+        <div class="flex-1 md:flex-none">
+          <select id="productSelect" 
+                 class="w-full border-2 border-gray-300 rounded-md px-3 py-2.5 text-gray-700 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8"
+                 style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
+            <option value="">All Products</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Batch Table -->
-  <div class="bg-white rounded shadow-sm overflow-hidden">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-100 text-gray-600">
-        <tr>
-          <th class="px-4 py-3 text-left">Product</th>
-          <th class="px-4 py-3 text-left">Size</th>
-          <th class="px-4 py-3 text-left">Batch Number</th>
-          <th class="px-4 py-3 text-center">Manufactured Date</th>
-          <th class="px-4 py-3 text-center">Stock</th>
-          <th class="px-4 py-3 text-center">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="batch-list">
-        <!-- injected by JS -->
-      </tbody>
-    </table>
+  <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Product</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Size</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Batch Number</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Manufactured Date</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Stock</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="batch-list" class="divide-y divide-gray-200">
+          <!-- Loading placeholder -->
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+              <div class="flex flex-col items-center">
+                <svg class="w-12 h-12 text-gray-300 animate-spin mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" stroke="none" fill="currentColor"></path>
+                </svg>
+                <p class="text-lg">Loading batch data...</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </main>
 
 <!-- Add Batch Modal -->
 <div id="addBatchModal"
-     class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">Add Batch</h3>
-      <button onclick="closeAddBatchModal()">
-        <i class="fas fa-times text-gray-600"></i>
+     class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-auto m-4 shadow-xl">
+    <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
+      <h3 class="text-2xl font-bold text-gray-900">Add New Batch</h3>
+      <button onclick="closeAddBatchModal()" class="text-gray-400 hover:text-black transition-colors">
+        <i class="fas fa-times text-xl"></i>
       </button>
     </div>
-    <form id="addBatchForm" class="space-y-4">
+    <form id="addBatchForm" class="space-y-5">
       <div>
-        <label class="block text-sm font-medium">Product</label>
-        <select id="addBatchProductSelect" name="product_id" class="w-full border px-3 py-2 rounded" required>
-          <option value="">Select a product</option>
-        </select>
+        <label class="block text-sm font-medium mb-2 text-gray-700">Product</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-box text-gray-400"></i>
+          </div>
+          <select id="addBatchProductSelect" name="product_id" 
+                 class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8" 
+                 style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em" 
+                 required>
+            <option value="">Select a product</option>
+          </select>
+        </div>
       </div>
       <div>
-        <label class="block text-sm font-medium">Size</label>
-        <select id="addBatchSizeSelect" name="product_size_id" class="w-full border px-3 py-2 rounded" required>
-          <option value="">Select a size</option>
-        </select>
+        <label class="block text-sm font-medium mb-2 text-gray-700">Size</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-tag text-gray-400"></i>
+          </div>
+          <select id="addBatchSizeSelect" name="product_size_id" 
+                 class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8" 
+                 style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em" 
+                 required>
+            <option value="">Select a size</option>
+          </select>
+        </div>
       </div>
       <div>
-        <label class="block text-sm font-medium">Batch Number</label>
-        <input type="text" name="batch_number"
-               placeholder="e.g., BATCH-2025-001"
-               class="w-full border px-3 py-2 rounded" required />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Batch Number</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-hashtag text-gray-400"></i>
+          </div>
+          <input type="text" name="batch_number"
+                placeholder="e.g., BATCH-2025-001"
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+        </div>
       </div>
       <div>
-        <label class="block text-sm font-medium">Manufactured Date</label>
-        <input type="date" name="manufactured_date"
-               class="w-full border px-3 py-2 rounded" required />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Manufactured Date</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-calendar-alt text-gray-400"></i>
+          </div>
+          <input type="date" name="manufactured_date"
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+        </div>
       </div>
       <div>
-        <label class="block text-sm font-medium">Stock</label>
-        <input type="number" name="stock"
-               min="0"
-               class="w-full border px-3 py-2 rounded" required />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Stock</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-cubes text-gray-400"></i>
+          </div>
+          <input type="number" name="stock"
+                min="0"
+                placeholder="Enter quantity"
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+        </div>
       </div>
-      <button type="submit"
-              class="bg-black text-white w-full py-2 rounded">
-        Add Batch
-      </button>
+      <div class="pt-5 mt-3 border-t border-gray-200">
+        <button type="submit"
+                class="w-full bg-black text-white py-2.5 rounded-md hover:bg-gray-800 transition-colors font-medium">
+          Create Batch
+        </button>
+      </div>
     </form>
   </div>
 </div>
 
 <!-- Edit Batch Modal -->
 <div id="editBatchModal"
-     class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">Edit Batch</h3>
-      <button onclick="closeEditBatchModal()">
-        <i class="fas fa-times text-gray-600"></i>
+     class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-auto m-4 shadow-xl">
+    <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
+      <h3 class="text-2xl font-bold text-gray-900">Edit Batch</h3>
+      <button onclick="closeEditBatchModal()" class="text-gray-400 hover:text-black transition-colors">
+        <i class="fas fa-times text-xl"></i>
       </button>
     </div>
-    <form id="editBatchForm" class="space-y-4">
+    <form id="editBatchForm" class="space-y-5">
       <input type="hidden" name="id" />
+      
       <div>
-        <label class="block text-sm font-medium">Product</label>
-        <input type="text" name="product_name" class="w-full border px-3 py-2 rounded" disabled />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Product</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-box text-gray-400"></i>
+          </div>
+          <input type="text" name="product_name" 
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 bg-gray-50 text-gray-500" disabled />
+        </div>
       </div>
+      
       <div>
-        <label class="block text-sm font-medium">Size</label>
-        <input type="text" name="size_name" class="w-full border px-3 py-2 rounded" disabled />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Size</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-tag text-gray-400"></i>
+          </div>
+          <input type="text" name="size_name" 
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 bg-gray-50 text-gray-500" disabled />
+        </div>
       </div>
+      
       <div>
-        <label class="block text-sm font-medium">Batch Number</label>
-        <input type="text" name="batch_number"
-               class="w-full border px-3 py-2 rounded" required />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Batch Number</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-hashtag text-gray-400"></i>
+          </div>
+          <input type="text" name="batch_number"
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+        </div>
       </div>
+      
       <div>
-        <label class="block text-sm font-medium">Manufactured Date</label>
-        <input type="date" name="manufactured_date"
-               class="w-full border px-3 py-2 rounded" required />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Manufactured Date</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-calendar-alt text-gray-400"></i>
+          </div>
+          <input type="date" name="manufactured_date"
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+        </div>
       </div>
+      
       <div>
-        <label class="block text-sm font-medium">Stock</label>
-        <input type="number" name="stock"
-               min="0"
-               class="w-full border px-3 py-2 rounded" required />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Stock</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-cubes text-gray-400"></i>
+          </div>
+          <input type="number" name="stock"
+                min="0"
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+        </div>
       </div>
-      <button type="submit"
-              class="bg-black text-white w-full py-2 rounded">
-        Save Changes
-      </button>
+      
+      <div class="pt-5 mt-3 border-t border-gray-200 flex justify-between">
+        <button type="button" onclick="deleteBatch(editBatchForm.id.value)" 
+                class="px-4 py-2.5 border-2 border-red-300 text-red-600 rounded-md hover:bg-red-50 transition-colors">
+          <i class="fas fa-trash-alt mr-2"></i> Delete
+        </button>
+        <button type="submit"
+                class="px-6 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium">
+          Save Changes
+        </button>
+      </div>
     </form>
   </div>
 </div>
@@ -184,8 +285,7 @@ const
 // Show toast
 function showToast(msg, success = true) {
   toast.textContent = msg;
-  toast.classList.toggle('bg-green-500', success);
-  toast.classList.toggle('bg-red-500', !success);
+  toast.className = `fixed bottom-4 right-4 z-50 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-black' : 'bg-red-600'}`;
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
@@ -236,40 +336,89 @@ addBatchProductSelect.onchange = async () => {
 // Fetch & render batches
 async function fetchBatches() {
   try {
+    // Show loading state
+    batchList.innerHTML = `
+      <tr>
+        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+          <div class="flex flex-col items-center">
+            <svg class="w-12 h-12 text-gray-300 animate-spin mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" stroke="none" fill="currentColor"></path>
+            </svg>
+            <p class="text-lg">Loading batch data...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    
     const params = new URLSearchParams({
       search: searchInput.value,
       product_id: productSelect.value
     });
+    
     const batches = await apiGet(`./api/batches.php?${params}`);
+    
+    if (batches.length === 0) {
+      batchList.innerHTML = `
+        <tr>
+          <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-lg">No batches found</p>
+              <p class="text-sm text-gray-400 mt-1">Try changing your search criteria</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
     batchList.innerHTML = batches.map(b => `
-      <tr class="border-t">
-        <td class="px-4 py-3 text-left">${b.product_name}</td>
-        <td class="px-4 py-3 text-left">${b.size_name}</td>
-        <td class="px-4 py-3 text-left">${b.batch_number}</td>
-        <td class="px-4 py-3 text-center">${b.manufactured_date}</td>
-        <td class="px-4 py-3 text-center ${b.stock === 0 ? 'text-gray-500' : ''}">
-          ${b.stock}
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="px-6 py-4 text-left font-semibold text-gray-900">${b.product_name}</td>
+        <td class="px-6 py-4 text-left text-gray-700">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-md border-2 border-gray-200 text-xs font-medium bg-white">
+            ${b.size_name}
+          </span>
         </td>
-        <td class="px-4 py-3 text-center">
-          <button onclick="openEditBatchModal({
-              id: ${b.id},
-              product_name: '${b.product_name.replace(/'/g, "\\'")}',
-              size_name: '${b.size_name.replace(/'/g, "\\'")}',
-              batch_number: '${b.batch_number.replace(/'/g, "\\'")}',
-              manufactured_date: '${b.manufactured_date}',
-              stock: ${b.stock}
-          })" class="text-blue-600 mr-2">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button onclick="deleteBatch(${b.id})" class="text-red-500">
-            <i class="fas fa-trash-alt"></i>
-          </button>
+        <td class="px-6 py-4 text-left text-gray-700">${b.batch_number}</td>
+        <td class="px-6 py-4 text-center text-gray-700">${formatDate(b.manufactured_date)}</td>
+        <td class="px-6 py-4 text-center ${b.stock === 0 ? 'text-gray-400' : 'font-bold text-gray-900'}">
+          ${b.stock === 0 ? 
+            '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Out of stock</span>' : 
+            b.stock
+          }
+        </td>
+        <td class="px-6 py-4 text-center">
+          <div class="flex justify-center gap-2">
+            <button onclick="openEditBatchModal({
+                id: ${b.id},
+                product_name: '${b.product_name.replace(/'/g, "\\'")}',
+                size_name: '${b.size_name.replace(/'/g, "\\'")}',
+                batch_number: '${b.batch_number.replace(/'/g, "\\'")}',
+                manufactured_date: '${b.manufactured_date}',
+                stock: ${b.stock}
+            })" class="p-2 text-gray-700 hover:text-black border-2 border-gray-200 hover:border-black rounded-md transition-colors">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button onclick="deleteBatch(${b.id})" class="p-2 text-red-600 hover:text-red-700 border-2 border-red-200 hover:border-red-300 rounded-md transition-colors">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
         </td>
       </tr>`).join('');
   } catch (err) {
     console.error(err);
     showToast('Could not load batches', false);
   }
+}
+
+// Format date display
+function formatDate(dateString) {
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString(undefined, options);
 }
 
 // Add batch
@@ -300,7 +449,7 @@ addBatchForm.onsubmit = async e => {
       stock: parseInt(data.stock)
     });
     if (res.success) {
-      showToast('Batch added!');
+      showToast('Batch added successfully!');
       closeAddBatchModal();
       fetchBatches();
     } else {
@@ -339,7 +488,7 @@ editBatchForm.onsubmit = async e => {
       stock: parseInt(data.stock)
     });
     if (res.success) {
-      showToast('Batch updated!');
+      showToast('Batch updated successfully!');
       closeEditBatchModal();
       fetchBatches();
     } else {
@@ -353,11 +502,12 @@ editBatchForm.onsubmit = async e => {
 
 // Delete batch
 window.deleteBatch = async id => {
-  if (!confirm('Delete this batch?')) return;
+  if (!confirm('Are you sure you want to delete this batch? This action cannot be undone.')) return;
   try {
     const res = await apiPost('./api/batches.php', { action: 'delete', id });
     if (res.success) {
-      showToast('Batch deleted');
+      showToast('Batch deleted successfully');
+      closeEditBatchModal();
       fetchBatches();
     } else {
       showToast(res.message || 'Delete failed', false);

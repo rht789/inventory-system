@@ -4,195 +4,293 @@ requireLogin();           // Ensures the user is logged in
 allowRoles(['admin', 'staff']); // Both roles can access
 ?>
 
-
-
 <?php
 include 'header.php';
 include 'sidebar.php';
 ?>
 
-
-
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden"></div>
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50"></div>
 
   <!-- Header -->
-  <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-bold">Stock Management</h2>
-    <div class="flex gap-2">
-      <button onclick="openStockLogsModal()" class="border border-gray-400 bg-white text-gray-800 px-4 py-2 rounded text-sm">
-        <i class="fas fa-history mr-1"></i> Stock Logs
+  <div class="mb-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900">Inventory Stock</h2>
+        <p class="text-gray-600 mt-1">Monitor and manage your inventory stock levels</p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="openStockLogsModal()" class="flex items-center gap-2 px-4 py-2.5 border-2 border-gray-900 text-gray-900 font-medium rounded-md hover:bg-gray-900 hover:text-white transition-colors">
+          <i class="fas fa-history"></i>
+          <span>View History</span>
       </button>
-      <button onclick="openAdjustStockModal(null, 'add')" class="bg-black text-white px-4 py-2 rounded text-sm">
-        <i class="fas fa-exchange-alt mr-1"></i> Change Stock
+        <button onclick="openAdjustStockModal(null, 'add')" class="flex items-center gap-2 px-4 py-2.5 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors">
+          <i class="fas fa-plus"></i>
+          <span>Adjust Stock</span>
       </button>
     </div>
   </div>
 
   <!-- Filters -->
-  <div class="bg-white p-4 rounded-md shadow-sm mb-4">
-    <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
-      <input type="text" id="searchStockInput" placeholder="Search By Name..." class="border px-4 py-2 rounded w-full md:w-1/3" />
-      <div class="flex gap-2 w-full md:w-auto">
-        <select id="stockStatusSelect" class="border rounded px-3 py-2 text-sm">
-          <option value="">All Statuses</option>
+    <div class="bg-white p-6 rounded-lg shadow mb-8 border border-gray-200">
+      <div class="flex flex-col md:flex-row md:items-center gap-5">
+        <div class="flex-1">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <input type="text" id="searchStockInput" placeholder="Search by product name..." 
+                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+          </div>
+        </div>
+        <div class="flex gap-3 flex-1 md:flex-none">
+          <select id="stockStatusSelect" class="border-2 border-gray-300 rounded-md px-3 py-2.5 text-gray-700 focus:border-black focus:ring-1 focus:ring-black transition-all w-full md:w-auto appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8" style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
+            <option value="">All Stock Status</option>
           <option value="in_stock">In Stock</option>
           <option value="low_stock">Low Stock</option>
           <option value="critical">Critical</option>
-          <option value="out_of_stock">Stock Out</option>
+            <option value="out_of_stock">Out of Stock</option>
         </select>
-        <select id="locationSelect" class="border rounded px-3 py-2 text-sm">
+          <select id="locationSelect" class="border-2 border-gray-300 rounded-md px-3 py-2.5 text-gray-700 focus:border-black focus:ring-1 focus:ring-black transition-all w-full md:w-auto appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8" style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
           <option value="">All Locations</option>
         </select>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Stock Table -->
-  <div class="bg-white rounded shadow-sm overflow-hidden">
+  <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+    <div class="overflow-x-auto">
     <table class="w-full text-sm">
-      <thead class="bg-gray-100 text-gray-600">
-        <tr>
-          <th class="px-4 py-3 text-center">Name</th>
-          <th class="px-4 py-3 text-left">Size & Stock</th>
-          <th class="px-4 py-3 text-center">Location</th>
-          <th class="px-4 py-3 text-center">Total Stock</th>
-          <th class="px-4 py-3 text-center">Min Stock</th>
-          <th class="px-4 py-3 text-center">Status</th>
-          <th class="px-4 py-3 text-center">Barcode</th>
-          <th class="px-4 py-3 text-center">Actions</th>
+        <thead>
+          <tr>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Product</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Size & Stock</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Location</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Total Stock</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Min Stock</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Status</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Barcode</th>
+            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Actions</th>
         </tr>
       </thead>
-      <tbody id="stock-list">
+        <tbody id="stock-list" class="divide-y divide-gray-200">
         <!-- Stock details will be dynamically populated via JS -->
+          <tr>
+            <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+              <div class="flex flex-col items-center">
+                <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <p class="text-lg">Loading inventory data...</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
+    </div>
   </div>
 </main>
 
 <!-- Adjust Stock Modal -->
-<div id="adjustStockModal" class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold" id="modalTitle">Adjust Stock</h3>
-      <button onclick="closeAdjustStockModal()"><i class="fas fa-times text-gray-600"></i></button>
+<div id="adjustStockModal" class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-auto m-4 shadow-xl">
+    <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
+      <h3 class="text-2xl font-bold text-gray-900" id="modalTitle">Adjust Stock</h3>
+      <button onclick="closeAdjustStockModal()" class="text-gray-400 hover:text-black transition-colors">
+        <i class="fas fa-times text-xl"></i>
+      </button>
     </div>
 
-    <p class="text-sm text-gray-500 mb-4">Make adjustments to your inventory stock levels</p>
+    <p class="text-gray-600 mb-6">Update stock quantities for better inventory management</p>
 
-    <form id="adjustStockForm" class="space-y-4">
+    <form id="adjustStockForm" class="space-y-5">
       <input type="hidden" name="mode" id="formMode">
       <input type="hidden" name="product_id" id="productIdInput">
 
       <div>
-        <label class="block text-sm font-medium mb-1">Product</label>
+        <label class="block text-sm font-medium mb-2 text-gray-700">Product</label>
         <div class="relative">
-          <input type="text" id="productSearch" placeholder="Select product" class="w-full border px-3 py-2 rounded" autocomplete="off" required>
-          <ul id="productDropdown" class="absolute z-10 w-full bg-white border rounded shadow-lg max-h-40 overflow-y-auto hidden"></ul>
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-box text-gray-400"></i>
+          </div>
+          <input type="text" id="productSearch" placeholder="Select a product" 
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" 
+                autocomplete="off" required>
+          <ul id="productDropdown" class="absolute z-10 w-full bg-white border-2 border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden mt-1"></ul>
         </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Size</label>
-        <select name="product_size_id" id="sizeSelect" class="w-full border px-3 py-2 rounded" required>
+        <label class="block text-sm font-medium mb-2 text-gray-700">Size</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-tag text-gray-400"></i>
+          </div>
+          <select name="product_size_id" id="sizeSelect" 
+                 class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8" 
+                 style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em"
+                 required>
           <!-- Options will be populated dynamically -->
         </select>
+        </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Quantity</label>
-        <input type="number" name="quantity" placeholder="1" required class="w-full border px-3 py-2 rounded" min="1" />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Quantity</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-hashtag text-gray-400"></i>
+          </div>
+          <input type="number" name="quantity" placeholder="Enter quantity" 
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" 
+                min="1" required />
+        </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Location</label>
-        <input type="text" name="location" placeholder="e.g., Shelf A1" class="w-full border px-3 py-2 rounded" />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Location</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-map-marker-alt text-gray-400"></i>
+          </div>
+          <input type="text" name="location" placeholder="e.g., Shelf A1, Warehouse B" 
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+        </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Reason</label>
-        <input type="text" name="reason" placeholder="Restock" required class="w-full border px-3 py-2 rounded" />
+        <label class="block text-sm font-medium mb-2 text-gray-700">Reason</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-clipboard-list text-gray-400"></i>
+          </div>
+          <input type="text" name="reason" placeholder="Why are you adjusting stock?" 
+                class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" 
+                required />
+        </div>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Adjustment Type</label>
-        <div class="flex gap-2">
-          <label class="flex items-center cursor-pointer">
+        <label class="block text-sm font-medium mb-2 text-gray-700">Adjustment Type</label>
+        <div class="flex gap-3">
+          <label class="flex-1 cursor-pointer">
             <input type="radio" name="type" value="in" class="hidden peer" checked>
-            <span class="peer-checked:bg-gray-600 peer-checked:text-white bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors">Add Stock</span>
+            <div class="peer-checked:bg-black peer-checked:text-white border-2 border-gray-300 peer-checked:border-black rounded-md py-3 px-4 text-center transition-colors">
+              <i class="fas fa-plus-circle mr-2"></i> Add Stock
+            </div>
           </label>
-          <label class="flex items-center cursor-pointer">
+          <label class="flex-1 cursor-pointer">
             <input type="radio" name="type" value="out" class="hidden peer">
-            <span class="peer-checked:bg-gray-600 peer-checked:text-white bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors">Reduce Stock</span>
+            <div class="peer-checked:bg-black peer-checked:text-white border-2 border-gray-300 peer-checked:border-black rounded-md py-3 px-4 text-center transition-colors">
+              <i class="fas fa-minus-circle mr-2"></i> Reduce Stock
+            </div>
           </label>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 mt-4">
-        <button type="button" onclick="closeAdjustStockModal()" class="border border-gray-300 px-4 py-2 rounded text-sm">Cancel</button>
-        <button type="submit" class="bg-black text-white px-4 py-2 rounded text-sm">Add Stock</button>
+      <div class="flex justify-end gap-3 pt-5 mt-3 border-t border-gray-200">
+        <button type="button" onclick="closeAdjustStockModal()" 
+                class="px-5 py-2.5 border-2 border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+          Cancel
+        </button>
+        <button type="submit" 
+                class="px-5 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
+          Save Changes
+        </button>
       </div>
     </form>
   </div>
 </div>
 
 <!-- Barcode Preview Modal -->
-<div id="barcodeModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded shadow-lg max-w-lg w-full">
-    <div class="flex justify-end mb-4">
-      <button onclick="closeBarcodeModal()" class="text-gray-600 hover:text-black">
+<div id="barcodeModal" class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full m-4">
+    <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
+      <h3 class="text-2xl font-bold text-gray-900">Barcode</h3>
+      <button onclick="closeBarcodeModal()" class="text-gray-400 hover:text-black transition-colors">
         <i class="fas fa-times text-xl"></i>
       </button>
     </div>
-    <img id="barcodeModalImg" src="" alt="Barcode" class="mx-auto w-full max-h-[80vh] object-contain" />
+    <div class="bg-gray-100 p-8 rounded border-2 border-gray-200 flex items-center justify-center">
+      <img id="barcodeModalImg" src="" alt="Barcode" class="mx-auto max-h-[40vh] object-contain" />
+    </div>
+    <div class="mt-6 flex justify-center">
+      <button onclick="closeBarcodeModal()" class="px-5 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
+        Close
+      </button>
+    </div>
   </div>
 </div>
 
 <!-- Stock Logs Modal -->
-<div id="stockLogsModal" class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[80vh] overflow-auto">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">Stock Logs</h3>
-      <button onclick="closeStockLogsModal()">
-        <i class="fas fa-times text-gray-600"></i>
+<div id="stockLogsModal" class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto m-4">
+    <div class="flex justify-between items-center p-6 border-b border-gray-200">
+      <h3 class="text-2xl font-bold text-gray-900">Stock Movement History</h3>
+      <button onclick="closeStockLogsModal()" class="text-gray-400 hover:text-black transition-colors">
+        <i class="fas fa-times text-xl"></i>
       </button>
     </div>
     
-    <div class="mb-4">
-      <div class="flex gap-3 mb-3">
-        <input type="text" id="stockLogsSearch" placeholder="Search by product name or reason..." 
-               class="border px-3 py-2 rounded flex-1">
-        <select id="stockLogsTypeFilter" class="border px-3 py-2 rounded">
+    <div class="p-6 bg-gray-100">
+      <div class="flex flex-col md:flex-row gap-3">
+        <div class="relative flex-1">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-search text-gray-400"></i>
+          </div>
+          <input type="text" id="stockLogsSearch" placeholder="Search by product or reason..." 
+                class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+        </div>
+        <div class="flex gap-3 md:w-auto">
+          <select id="stockLogsTypeFilter" 
+                 class="border-2 border-gray-300 rounded-md px-3 py-2.5 text-gray-700 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8" 
+                 style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
           <option value="">All Changes</option>
-          <option value="Added">Added Stock</option>
-          <option value="Reduced">Reduced Stock</option>
+            <option value="Added">Stock Added</option>
+            <option value="Reduced">Stock Reduced</option>
         </select>
-        <button id="refreshStockLogs" class="bg-gray-100 px-3 py-2 rounded hover:bg-gray-200">
+          <button id="refreshStockLogs" 
+                 class="px-3 py-2.5 border-2 border-gray-900 text-gray-900 rounded-md hover:bg-gray-900 hover:text-white transition-colors flex items-center justify-center w-12">
           <i class="fas fa-sync-alt"></i>
         </button>
+        </div>
       </div>
     </div>
     
-    <div class="overflow-x-auto">
+    <div class="px-6 py-4">
       <table class="w-full text-sm">
-        <thead class="bg-gray-100 text-gray-600">
+        <thead>
           <tr>
-            <th class="px-4 py-2 text-left">Date & Time</th>
-            <th class="px-4 py-2 text-left">Product</th>
-            <th class="px-4 py-2 text-center">Change</th>
-            <th class="px-4 py-2 text-left">Reason</th>
-            <th class="px-4 py-2 text-left">User</th>
+            <th class="px-4 py-3 bg-black text-white font-semibold text-left">Date & Time</th>
+            <th class="px-4 py-3 bg-black text-white font-semibold text-left">Product</th>
+            <th class="px-4 py-3 bg-black text-white font-semibold text-center">Change</th>
+            <th class="px-4 py-3 bg-black text-white font-semibold text-left">Reason</th>
+            <th class="px-4 py-3 bg-black text-white font-semibold text-left">User</th>
           </tr>
         </thead>
-        <tbody id="stockLogsList" class="divide-y">
+        <tbody id="stockLogsList" class="divide-y divide-gray-200">
           <!-- Stock logs will be populated here -->
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+              <div class="flex flex-col items-center">
+                <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-lg">Loading stock history...</p>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
     
-    <div class="mt-4 text-center" id="stockLogsPagination">
+    <div class="p-5 border-t border-gray-200 bg-gray-100 flex justify-center">
+      <div id="stockLogsPagination" class="space-x-2">
       <!-- Pagination will be added here -->
+      </div>
     </div>
   </div>
 </div>
@@ -227,7 +325,7 @@ let logsPerPage = 15;
 // Function to show toast notifications
 function showToast(msg, success = true) {
   toast.textContent = msg;
-  toast.className = `fixed bottom-4 right-4 text-white px-4 py-2 rounded shadow-lg ${success ? 'bg-green-500' : 'bg-red-500'}`;
+  toast.className = `fixed bottom-4 right-4 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-black' : 'bg-red-600'} z-50`;
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
@@ -271,39 +369,84 @@ async function loadStock() {
       stock_filter: stockStatusSelect.value,
       location: locationSelect.value
     });
+    
+    // Clear loading state
+    stockList.innerHTML = `
+      <tr>
+        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+          <div class="flex flex-col items-center">
+            <svg class="w-12 h-12 text-gray-300 animate-spin mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" stroke="none" fill="currentColor"></path>
+            </svg>
+            <p class="text-lg">Loading inventory data...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    
     const prods = await apiGet(`./api/products.php?${params}`);
+    
+    if (prods.length === 0) {
+      stockList.innerHTML = `
+        <tr>
+          <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-lg">No products found</p>
+              <p class="text-sm text-gray-400 mt-1">Try changing your search criteria</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
     stockList.innerHTML = prods.map(p => {
       const total = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
       const badges = p.sizes.map(s => 
-        `<span class="bg-gray-100 px-2 py-1 rounded text-xs">${s.size_name}:${s.stock}</span>`
+        `<span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium border-2 border-gray-300 bg-white text-gray-700">${s.size_name}: ${s.stock}</span>`
       ).join(' ');
+      
       let status, statusClass;
       if (total === 0) {
-        status = 'Stock Out';
-        statusClass = 'bg-gray-300 text-gray-600 px-2 py-1 rounded opacity-75';
+        status = 'OUT OF STOCK';
+        statusClass = 'bg-white border-2 border-gray-300 text-gray-500';
       } else if (total <= 2) {
-        status = 'Critical';
-        statusClass = 'bg-[#fc0f32] text-white px-2 py-1 rounded';
+        status = 'CRITICAL';
+        statusClass = 'bg-white border-2 border-red-300 text-red-700';
       } else if (total <= p.min_stock) {
-        status = 'Low Stock';
-        statusClass = 'bg-[#dcd906] text-white px-2 py-1 rounded';
+        status = 'LOW STOCK';
+        statusClass = 'bg-white border-2 border-yellow-300 text-yellow-700';
       } else {
-        status = 'In Stock';
-        statusClass = 'bg-green-500 text-white px-2 py-1 rounded';
+        status = 'IN STOCK';
+        statusClass = 'bg-white border-2 border-green-300 text-green-700';
       }
+      
       return `
-        <tr class="border-t hover:bg-gray-50">
-          <td class="px-4 py-3 font-medium text-center">${p.name}</td>
-          <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
-          <td class="px-4 py-3 text-center">${p.location || '-'}</td>
-          <td class="px-4 py-3 font-bold text-center">${total}</td>
-          <td class="px-4 py-3 text-center">${p.min_stock}</td>
-          <td class="px-4 py-3 text-center"><span class="${statusClass}">${status}</span></td>
-          <td class="px-4 py-3 text-center">
-            ${p.barcode ? `<img src="./${p.barcode}" alt="Barcode" class="barcode-img h-8 mx-auto cursor-pointer"/>` : '-'}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-4 font-semibold text-gray-900">${p.name}</td>
+          <td class="px-6 py-4 flex flex-wrap gap-1.5">${badges}</td>
+          <td class="px-6 py-4 text-gray-700">${p.location || '—'}</td>
+          <td class="px-6 py-4 font-bold text-center">${total}</td>
+          <td class="px-6 py-4 text-center text-gray-700">${p.min_stock}</td>
+          <td class="px-6 py-4 text-center">
+            <span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium ${statusClass}">
+              ${status}
+            </span>
           </td>
-          <td class="px-4 py-3 text-center">
-            <button onclick="openAdjustStockModal(${p.id}, 'edit')" class="text-blue-600"><i class="fas fa-edit"></i></button>
+          <td class="px-6 py-4 text-center">
+            ${p.barcode ? 
+              `<img src="./${p.barcode}" alt="Barcode" class="barcode-img h-10 mx-auto cursor-pointer border border-gray-300 p-1 hover:border-black transition-colors"/>` : 
+              '<span class="text-gray-400">—</span>'}
+          </td>
+          <td class="px-6 py-4 text-center">
+            <button onclick="openAdjustStockModal(${p.id}, 'edit')" 
+                    class="p-2 text-gray-700 hover:text-black border-2 border-gray-200 hover:border-black rounded-md transition-colors">
+              <i class="fas fa-edit"></i>
+            </button>
           </td>
         </tr>`;
     }).join('');
@@ -338,7 +481,7 @@ async function populateProductDropdown(selectedProductId = null) {
       const query = productSearch.value.toLowerCase();
       const filtered = products.filter(p => p.name.toLowerCase().includes(query));
       productDropdown.innerHTML = filtered.map(p => `
-        <li class="px-3 py-2 hover:bg-gray-100 cursor-pointer" data-id="${p.id}">${p.name}</li>
+        <li class="px-4 py-3 hover:bg-gray-100 cursor-pointer transition-colors" data-id="${p.id}">${p.name}</li>
       `).join('');
       productDropdown.classList.remove('hidden');
 
@@ -442,7 +585,7 @@ form.onsubmit = async e => {
     }
     const data = await res.json();
     if (data.success) {
-      showToast('Stock adjusted!');
+      showToast('Stock adjusted successfully!');
       form.reset();
       closeAdjustStockModal();
       loadStock();
@@ -485,6 +628,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // Function to load stock logs
 async function loadStockLogs() {
   try {
+    stockLogsList.innerHTML = `
+      <tr>
+        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+          <div class="flex flex-col items-center">
+            <svg class="w-12 h-12 text-gray-300 animate-spin mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" stroke="none" fill="currentColor"></path>
+            </svg>
+            <p class="text-lg">Loading stock movement history...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    
     const params = new URLSearchParams({
       search: stockLogsSearch.value,
       type: stockLogsTypeFilter.value,
@@ -510,7 +667,15 @@ function renderStockLogs(logs, pagination) {
   if (logs.length === 0) {
     stockLogsList.innerHTML = `
       <tr>
-        <td colspan="5" class="px-4 py-4 text-center text-gray-500">No stock logs found</td>
+        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+          <div class="flex flex-col items-center">
+            <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <p class="text-lg">No stock movement records found</p>
+            <p class="text-sm text-gray-400 mt-1">Try changing your filter options</p>
+          </div>
+        </td>
       </tr>
     `;
     stockLogsPagination.innerHTML = '';
@@ -520,18 +685,20 @@ function renderStockLogs(logs, pagination) {
   stockLogsList.innerHTML = logs.map(log => {
     // Determine the CSS class based on the type of change
     const changeClass = log.changes.includes('Added') 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-red-100 text-red-800';
+      ? 'bg-white border-2 border-green-300 text-green-700' 
+      : 'bg-white border-2 border-red-300 text-red-700';
       
     return `
-      <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3">${formatDate(log.timestamp)}</td>
-        <td class="px-4 py-3">${log.product_name}</td>
-        <td class="px-4 py-3 text-center">
-          <span class="px-2 py-1 rounded ${changeClass}">${log.changes}</span>
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="px-4 py-3.5 text-gray-600">${formatDate(log.timestamp)}</td>
+        <td class="px-4 py-3.5 font-medium text-gray-900">${log.product_name}</td>
+        <td class="px-4 py-3.5 text-center">
+          <span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium ${changeClass}">
+            ${log.changes}
+          </span>
         </td>
-        <td class="px-4 py-3">${log.reason}</td>
-        <td class="px-4 py-3">${log.username}</td>
+        <td class="px-4 py-3.5 text-gray-700">${log.reason}</td>
+        <td class="px-4 py-3.5 text-gray-700">${log.username}</td>
       </tr>
     `;
   }).join('');
@@ -539,17 +706,48 @@ function renderStockLogs(logs, pagination) {
   // Render pagination
   if (pagination.total_pages > 1) {
     let paginationHtml = '';
+    
+    // Add previous page button
+    paginationHtml += `
+      <button onclick="changePage(${Math.max(1, pagination.current_page - 1)})" 
+              class="${pagination.current_page === 1 ? 'opacity-50 cursor-not-allowed' : ''} px-3 py-2 border-2 border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+    `;
+    
+    // Add page numbers
     for (let i = 1; i <= pagination.total_pages; i++) {
       const activeClass = i === pagination.current_page 
-        ? 'bg-gray-800 text-white' 
-        : 'bg-gray-200 text-gray-800 hover:bg-gray-300';
+        ? 'bg-black text-white border-black' 
+        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100';
       
+      // Only show a few pages around the current page
+      if (
+        i === 1 || 
+        i === pagination.total_pages || 
+        (i >= pagination.current_page - 1 && i <= pagination.current_page + 1)
+      ) {
       paginationHtml += `
-        <button onclick="changePage(${i})" class="${activeClass} px-3 py-1 mx-1 rounded">
+          <button onclick="changePage(${i})" class="${activeClass} px-3 py-2 border-2 rounded-md transition-colors">
           ${i}
         </button>
       `;
+      } else if (
+        i === pagination.current_page - 2 || 
+        i === pagination.current_page + 2
+      ) {
+        paginationHtml += `<span class="px-1 self-end">...</span>`;
+      }
     }
+    
+    // Add next page button
+    paginationHtml += `
+      <button onclick="changePage(${Math.min(pagination.total_pages, pagination.current_page + 1)})" 
+              class="${pagination.current_page === pagination.total_pages ? 'opacity-50 cursor-not-allowed' : ''} px-3 py-2 border-2 border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    `;
+    
     stockLogsPagination.innerHTML = paginationHtml;
   } else {
     stockLogsPagination.innerHTML = '';

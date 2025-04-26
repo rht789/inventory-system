@@ -22,7 +22,7 @@ include 'sidebar.php';
       <div class="relative group">
         <button class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-md text-sm flex items-center gap-2">
           <i class="fas fa-info-circle"></i> Download Options
-        </button>
+    </button>
         <div class="hidden group-hover:block absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg p-4 w-64 z-50 text-sm">
           <h4 class="font-semibold text-gray-800 mb-2">Available Download Formats:</h4>
           <ul class="text-gray-600 space-y-1">
