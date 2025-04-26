@@ -8,7 +8,7 @@ include 'sidebar.php';
 
   <!-- Toast container -->
   <div id="toast"
-       class="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg hidden z-50">
+       class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50">
   </div>
 
   <!-- Header -->
@@ -19,7 +19,7 @@ include 'sidebar.php';
         <p class="text-gray-600 mt-1">Track and manage product batches for better inventory control</p>
       </div>
       <button onclick="openAddBatchModal()"
-              class="flex items-center gap-2 px-4 py-2.5 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors">
+              class="flex items-center gap-2 px-4 py-2.5 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors">
         <i class="fas fa-plus"></i>
         <span>Add Batch</span>
       </button>
@@ -55,12 +55,12 @@ include 'sidebar.php';
       <table class="w-full text-sm">
         <thead>
           <tr>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Product</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Size</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Batch Number</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Manufactured Date</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Stock</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Actions</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Product</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Size</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Batch Number</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Manufactured Date</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Stock</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Actions</th>
           </tr>
         </thead>
         <tbody id="batch-list" class="divide-y divide-gray-200">
@@ -84,7 +84,7 @@ include 'sidebar.php';
 
 <!-- Add Batch Modal -->
 <div id="addBatchModal"
-     class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+     class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
   <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-auto m-4 shadow-xl">
     <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
       <h3 class="text-2xl font-bold text-gray-900">Add New Batch</h3>
@@ -156,7 +156,7 @@ include 'sidebar.php';
       </div>
       <div class="pt-5 mt-3 border-t border-gray-200">
         <button type="submit"
-                class="w-full bg-black text-white py-2.5 rounded-md hover:bg-gray-800 transition-colors font-medium">
+                class="w-full bg-gray-700 text-white py-2.5 rounded-md hover:bg-gray-600 transition-colors font-medium">
           Create Batch
         </button>
       </div>
@@ -166,7 +166,7 @@ include 'sidebar.php';
 
 <!-- Edit Batch Modal -->
 <div id="editBatchModal"
-     class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+     class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
   <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-auto m-4 shadow-xl">
     <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
       <h3 class="text-2xl font-bold text-gray-900">Edit Batch</h3>
@@ -239,7 +239,7 @@ include 'sidebar.php';
           <i class="fas fa-trash-alt mr-2"></i> Delete
         </button>
         <button type="submit"
-                class="px-6 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium">
+                class="px-6 py-2.5 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors font-medium">
           Save Changes
         </button>
       </div>
@@ -285,7 +285,7 @@ const
 // Show toast
 function showToast(msg, success = true) {
   toast.textContent = msg;
-  toast.className = `fixed bottom-4 right-4 z-50 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-black' : 'bg-red-600'}`;
+  toast.className = `fixed bottom-4 right-4 z-50 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-gray-700' : 'bg-red-600'}`;
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }

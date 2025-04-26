@@ -11,7 +11,7 @@ include 'sidebar.php';
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50"></div>
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50"></div>
 
   <!-- Header -->
   <div class="mb-8">
@@ -21,11 +21,11 @@ include 'sidebar.php';
         <p class="text-gray-600 mt-1">Monitor and manage your inventory stock levels</p>
       </div>
       <div class="flex gap-3">
-        <button onclick="openStockLogsModal()" class="flex items-center gap-2 px-4 py-2.5 border-2 border-gray-900 text-gray-900 font-medium rounded-md hover:bg-gray-900 hover:text-white transition-colors">
+        <button onclick="openStockLogsModal()" class="flex items-center gap-2 px-4 py-2.5 border-2 border-gray-700 text-gray-700 font-medium rounded-md hover:bg-gray-700 hover:text-white transition-colors">
           <i class="fas fa-history"></i>
           <span>View History</span>
       </button>
-        <button onclick="openAdjustStockModal(null, 'add')" class="flex items-center gap-2 px-4 py-2.5 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors">
+        <button onclick="openAdjustStockModal(null, 'add')" class="flex items-center gap-2 px-4 py-2.5 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors">
           <i class="fas fa-plus"></i>
           <span>Adjust Stock</span>
       </button>
@@ -66,14 +66,14 @@ include 'sidebar.php';
     <table class="w-full text-sm">
         <thead>
           <tr>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Product</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Size & Stock</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-left">Location</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Total Stock</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Min Stock</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Status</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Barcode</th>
-            <th class="px-6 py-4 bg-black text-white font-semibold text-center">Actions</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Product</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Size & Stock</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Location</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Total Stock</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Min Stock</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Status</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Barcode</th>
+            <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Actions</th>
         </tr>
       </thead>
         <tbody id="stock-list" class="divide-y divide-gray-200">
@@ -95,7 +95,7 @@ include 'sidebar.php';
 </main>
 
 <!-- Adjust Stock Modal -->
-<div id="adjustStockModal" class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+<div id="adjustStockModal" class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
   <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-auto m-4 shadow-xl">
     <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
       <h3 class="text-2xl font-bold text-gray-900" id="modalTitle">Adjust Stock</h3>
@@ -178,13 +178,13 @@ include 'sidebar.php';
         <div class="flex gap-3">
           <label class="flex-1 cursor-pointer">
             <input type="radio" name="type" value="in" class="hidden peer" checked>
-            <div class="peer-checked:bg-black peer-checked:text-white border-2 border-gray-300 peer-checked:border-black rounded-md py-3 px-4 text-center transition-colors">
+            <div class="peer-checked:bg-gray-700 peer-checked:text-white border-2 border-gray-300 peer-checked:border-gray-700 rounded-md py-3 px-4 text-center transition-colors">
               <i class="fas fa-plus-circle mr-2"></i> Add Stock
             </div>
           </label>
           <label class="flex-1 cursor-pointer">
             <input type="radio" name="type" value="out" class="hidden peer">
-            <div class="peer-checked:bg-black peer-checked:text-white border-2 border-gray-300 peer-checked:border-black rounded-md py-3 px-4 text-center transition-colors">
+            <div class="peer-checked:bg-gray-700 peer-checked:text-white border-2 border-gray-300 peer-checked:border-gray-700 rounded-md py-3 px-4 text-center transition-colors">
               <i class="fas fa-minus-circle mr-2"></i> Reduce Stock
             </div>
           </label>
@@ -197,7 +197,7 @@ include 'sidebar.php';
           Cancel
         </button>
         <button type="submit" 
-                class="px-5 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
+                class="px-5 py-2.5 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
           Save Changes
         </button>
       </div>
@@ -206,7 +206,7 @@ include 'sidebar.php';
 </div>
 
 <!-- Barcode Preview Modal -->
-<div id="barcodeModal" class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50">
+<div id="barcodeModal" class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full m-4">
     <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
       <h3 class="text-2xl font-bold text-gray-900">Barcode</h3>
@@ -218,7 +218,7 @@ include 'sidebar.php';
       <img id="barcodeModalImg" src="" alt="Barcode" class="mx-auto max-h-[40vh] object-contain" />
     </div>
     <div class="mt-6 flex justify-center">
-      <button onclick="closeBarcodeModal()" class="px-5 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
+      <button onclick="closeBarcodeModal()" class="px-5 py-2.5 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
         Close
       </button>
     </div>
@@ -226,7 +226,7 @@ include 'sidebar.php';
 </div>
 
 <!-- Stock Logs Modal -->
-<div id="stockLogsModal" class="fixed inset-0 hidden bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+<div id="stockLogsModal" class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
   <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto m-4">
     <div class="flex justify-between items-center p-6 border-b border-gray-200">
       <h3 class="text-2xl font-bold text-gray-900">Stock Movement History</h3>
@@ -253,7 +253,7 @@ include 'sidebar.php';
             <option value="Reduced">Stock Reduced</option>
         </select>
           <button id="refreshStockLogs" 
-                 class="px-3 py-2.5 border-2 border-gray-900 text-gray-900 rounded-md hover:bg-gray-900 hover:text-white transition-colors flex items-center justify-center w-12">
+                 class="px-3 py-2.5 border-2 border-gray-700 text-gray-700 rounded-md hover:bg-gray-700 hover:text-white transition-colors flex items-center justify-center w-12">
           <i class="fas fa-sync-alt"></i>
         </button>
         </div>
@@ -264,11 +264,11 @@ include 'sidebar.php';
       <table class="w-full text-sm">
         <thead>
           <tr>
-            <th class="px-4 py-3 bg-black text-white font-semibold text-left">Date & Time</th>
-            <th class="px-4 py-3 bg-black text-white font-semibold text-left">Product</th>
-            <th class="px-4 py-3 bg-black text-white font-semibold text-center">Change</th>
-            <th class="px-4 py-3 bg-black text-white font-semibold text-left">Reason</th>
-            <th class="px-4 py-3 bg-black text-white font-semibold text-left">User</th>
+            <th class="px-4 py-3 bg-gray-700 text-white font-semibold text-left">Date & Time</th>
+            <th class="px-4 py-3 bg-gray-700 text-white font-semibold text-left">Product</th>
+            <th class="px-4 py-3 bg-gray-700 text-white font-semibold text-center">Change</th>
+            <th class="px-4 py-3 bg-gray-700 text-white font-semibold text-left">Reason</th>
+            <th class="px-4 py-3 bg-gray-700 text-white font-semibold text-left">User</th>
           </tr>
         </thead>
         <tbody id="stockLogsList" class="divide-y divide-gray-200">
@@ -325,7 +325,7 @@ let logsPerPage = 15;
 // Function to show toast notifications
 function showToast(msg, success = true) {
   toast.textContent = msg;
-  toast.className = `fixed bottom-4 right-4 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-black' : 'bg-red-600'} z-50`;
+  toast.className = `fixed bottom-4 right-4 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-gray-700' : 'bg-red-600'} z-50`;
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
@@ -413,16 +413,16 @@ async function loadStock() {
       let status, statusClass;
       if (total === 0) {
         status = 'OUT OF STOCK';
-        statusClass = 'bg-white border-2 border-gray-300 text-gray-500';
+        statusClass = 'bg-gray-200 text-gray-500';
       } else if (total <= 2) {
         status = 'CRITICAL';
-        statusClass = 'bg-white border-2 border-red-300 text-red-700';
+        statusClass = 'bg-red-100 text-red-700';
       } else if (total <= p.min_stock) {
         status = 'LOW STOCK';
-        statusClass = 'bg-white border-2 border-yellow-300 text-yellow-700';
+        statusClass = 'bg-yellow-100 text-yellow-700';
       } else {
         status = 'IN STOCK';
-        statusClass = 'bg-white border-2 border-green-300 text-green-700';
+        statusClass = 'bg-green-100 text-green-700';
       }
       
       return `
@@ -685,8 +685,8 @@ function renderStockLogs(logs, pagination) {
   stockLogsList.innerHTML = logs.map(log => {
     // Determine the CSS class based on the type of change
     const changeClass = log.changes.includes('Added') 
-      ? 'bg-white border-2 border-green-300 text-green-700' 
-      : 'bg-white border-2 border-red-300 text-red-700';
+      ? 'bg-green-100 text-green-700' 
+      : 'bg-red-100 text-red-700';
       
     return `
       <tr class="hover:bg-gray-50 transition-colors">
@@ -718,7 +718,7 @@ function renderStockLogs(logs, pagination) {
     // Add page numbers
     for (let i = 1; i <= pagination.total_pages; i++) {
       const activeClass = i === pagination.current_page 
-        ? 'bg-black text-white border-black' 
+        ? 'bg-gray-700 text-white border-gray-700' 
         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100';
       
       // Only show a few pages around the current page
