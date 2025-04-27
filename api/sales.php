@@ -14,6 +14,21 @@ $dbname = 'inventory_system'; // Use the same name as in db.php
 requireLogin();
 allowRoles(['admin', 'staff']);
 
+// Helper function to create a notification
+function createNotification($pdo, $type, $title, $message, $role = 'all') {
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (type, title, message, role, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$type, $title, $message, $role]);
+        return $pdo->lastInsertId();
+    } catch (Exception $e) {
+        error_log("Error creating notification: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Add recent sales endpoint for dashboard
 if (isset($_GET['recent']) && $_GET['recent'] === 'true') {
     $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 5;
@@ -586,6 +601,11 @@ if ($method === 'POST') {
         $action = "Created Sale " . formatOrderId($saleId);
         logAudit($pdo, $userId, $saleId, $action);
         
+        // Create notification for new sale
+        $notificationTitle = "Sale completed";
+        $notificationMessage = "Sale #" . $saleId . " has been completed successfully";
+        createNotification($pdo, 'sale', $notificationTitle, $notificationMessage, 'all');
+        
         $pdo->commit();
         
         echo json_encode([
@@ -1074,3 +1094,4 @@ if ($method === 'PUT') {
 http_response_code(405);
 echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 exit;
+?>

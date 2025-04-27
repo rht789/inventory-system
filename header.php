@@ -20,7 +20,7 @@ $profilePicture = $_SESSION['user_profile_picture'] ?? 'default.jpg';
 
 // Validate and fallback
 $uploadDir = __DIR__ . '/uploads/';
-$webUploadPath = 'uploads/'; // Changed to use a relative path without leading slash
+$webUploadPath = 'uploads/';
 $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePicture))
     ? $profilePicture
     : 'default.jpg';
@@ -30,6 +30,7 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="js/notification.js"></script>
 
 <!-- Custom styles for the header -->
 <style>
@@ -37,10 +38,16 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
     position: absolute;
     top: -2px;
     right: -2px;
-    height: 8px;
-    width: 8px;
+    height: 16px;
+    width: 16px;
     border-radius: 50%;
     background-color: #ef4444;
+    color: white;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
   }
   
   .dropdown-animation {
@@ -58,14 +65,14 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
   <!-- Sidebar toggle (mobile) -->
   <div class="flex items-center gap-4">
     <button id="sidebarToggle" class="lg:hidden text-gray-600 hover:text-gray-900 transition">
-    <i class="fa fa-bars text-xl"></i>
-  </button>
+      <i class="fa fa-bars text-xl"></i>
+    </button>
 
     <!-- Logo and name -->
     <div class="flex items-center gap-3">
       <i class="fas fa-box-open text-2xl text-blue-600"></i>
       <div>
-  <h1 class="text-xl font-bold text-gray-800">SmartInventory</h1>
+        <h1 class="text-xl font-bold text-gray-800">SmartInventory</h1>
         <span class="text-xs text-gray-500 hidden sm:inline-block">Inventory Management System</span>
       </div>
     </div>
@@ -103,54 +110,17 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
 
     <!-- Notifications -->
     <div class="relative">
-      <button id="notificationToggle" class="text-gray-600 hover:text-gray-900 transition relative">
-      <i class="fa fa-bell text-lg"></i>
-        <span class="notification-indicator"></span>
+      <button id="notification-bell" class="text-gray-600 hover:text-gray-900 transition relative">
+        <i class="fa fa-bell text-lg"></i>
+        <span id="unread-badge" class="notification-indicator hidden"></span>
       </button>
-      <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white shadow-xl rounded-lg overflow-hidden z-50 dropdown-animation">
+      <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white shadow-xl rounded-lg overflow-hidden z-50 dropdown-animation">
         <div class="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
           <h3 class="text-sm font-semibold text-gray-700">Notifications</h3>
-          <span class="text-xs text-blue-500 cursor-pointer hover:underline">Mark all as read</span>
+          <span id="mark-all-read" class="text-xs text-blue-500 cursor-pointer hover:underline">Mark all as read</span>
         </div>
-        <div class="max-h-96 overflow-y-auto">
-          <div class="p-3 border-b border-gray-100 hover:bg-gray-50">
-            <div class="flex gap-3">
-              <div class="bg-amber-100 text-amber-500 rounded-md w-10 h-10 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-exclamation-triangle"></i>
-              </div>
-              <div>
-                <p class="text-sm text-gray-800 font-medium">Low inventory alert</p>
-                <p class="text-xs text-gray-500 mt-1">Product "Wireless Mouse" is below minimum stock level</p>
-                <p class="text-xs text-gray-400 mt-2">2 hours ago</p>
-              </div>
-            </div>
-          </div>
-          <div class="p-3 border-b border-gray-100 hover:bg-gray-50">
-            <div class="flex gap-3">
-              <div class="bg-green-100 text-green-500 rounded-md w-10 h-10 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-check-circle"></i>
-              </div>
-              <div>
-                <p class="text-sm text-gray-800 font-medium">Sale completed</p>
-                <p class="text-xs text-gray-500 mt-1">Sale #1082 has been completed successfully</p>
-                <p class="text-xs text-gray-400 mt-2">4 hours ago</p>
-              </div>
-            </div>
-          </div>
-          <div class="p-3 border-b border-gray-100 hover:bg-gray-50">
-            <div class="flex gap-3">
-              <div class="bg-blue-100 text-blue-500 rounded-md w-10 h-10 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-truck"></i>
-              </div>
-              <div>
-                <p class="text-sm text-gray-800 font-medium">New stock arrived</p>
-                <p class="text-xs text-gray-500 mt-1">20 units of "Laptop Charger" have been added to inventory</p>
-                <p class="text-xs text-gray-400 mt-2">Yesterday</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <a href="notifications.php" class="block p-2 text-center text-sm text-blue-600 bg-gray-50 hover:bg-gray-100">
+        <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
+        <a id="view-all" href="notifications.php" class="block p-2 text-center text-sm text-blue-600 bg-gray-50 hover:bg-gray-100">
           View all notifications
         </a>
       </div>
@@ -201,12 +171,12 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
           
           <div class="border-t border-gray-200 my-1"></div>
 
-        <!-- Logout form -->
+          <!-- Logout form -->
           <form method="POST" class="p-2">
             <button type="submit" name="logout" class="flex w-full items-center gap-2 text-sm text-red-600 hover:bg-red-50 rounded-md p-2">
               <i class="fas fa-sign-out-alt w-5"></i> Logout
-          </button>
-        </form>
+            </button>
+          </form>
         </div>
       </div>
     </div>
@@ -224,14 +194,6 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
     profileDropdown.classList.toggle('hidden');
   });
 
-  // Notification dropdown
-  const notificationToggle = document.getElementById('notificationToggle');
-  const notificationDropdown = document.getElementById('notificationDropdown');
-
-  notificationToggle?.addEventListener('click', () => {
-    notificationDropdown.classList.toggle('hidden');
-  });
-
   // Quick actions dropdown
   const quickActionsToggle = document.getElementById('quickActionsToggle');
   const quickActionsDropdown = document.getElementById('quickActionsDropdown');
@@ -247,13 +209,6 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
         !profileToggle.contains(e.target) && 
         !profileDropdown.contains(e.target)) {
       profileDropdown.classList.add('hidden');
-    }
-    
-    // Notification dropdown
-    if (notificationToggle && notificationDropdown && 
-        !notificationToggle.contains(e.target) && 
-        !notificationDropdown.contains(e.target)) {
-      notificationDropdown.classList.add('hidden');
     }
     
     // Quick actions dropdown
@@ -376,7 +331,7 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
     // Open modal when help button is clicked
     $('#helpButton').on('click', function() {
       $('#helpModal').removeClass('hidden');
-      $('body').addClass('overflow-hidden'); // Prevent scrolling of background
+      $('body').addClass('overflow-hidden');
     });
     
     // Close modal when close buttons are clicked
@@ -451,22 +406,21 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
 
   // Keyboard shortcuts
   document.addEventListener('keydown', function(e) {
-    // Check if Ctrl key is pressed
     if (e.ctrlKey) {
       switch (e.key.toLowerCase()) {
-        case 'h': // Ctrl+H - Dashboard
+        case 'h':
           e.preventDefault();
           window.location.href = 'dashboard.php';
           break;
-        case 'p': // Ctrl+P - Products
+        case 'p':
           e.preventDefault();
           window.location.href = 'products.php';
           break;
-        case 's': // Ctrl+S - Sales
+        case 's':
           e.preventDefault();
           window.location.href = 'sales.php';
           break;
-        case 'r': // Ctrl+R - Reports
+        case 'r':
           e.preventDefault();
           window.location.href = 'reports.php';
           break;
