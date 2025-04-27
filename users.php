@@ -2,6 +2,9 @@
 include 'authcheck.php'; // Adjust path as needed
 requireLogin();           // Ensures the user is logged in
 requireRole('admin');
+
+// Get current admin's user ID for access control
+$currentAdminId = $_SESSION['user_id'];
 ?>
 
 <?php include 'header.php'; include 'sidebar.php'; ?>
@@ -85,7 +88,7 @@ requireRole('admin');
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 overflow-hidden">
     <div class="p-4 border-b bg-gray-700 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-white">System Administrators</h3>
-      <span class="bg-red-100 text-red-600 text-xs font-medium px-2.5 py-1 rounded-full">Admin Access</span>
+      <span class="bg-red-700 text-white text-xs font-medium px-3 py-1 rounded-full border border-red-600 shadow-sm">Admin Access</span>
     </div>
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
@@ -112,7 +115,7 @@ requireRole('admin');
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
     <div class="p-4 border-b bg-gray-700 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-white">System Staff</h3>
-      <span class="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">Standard Access</span>
+      <span class="bg-gray-500 text-white text-xs font-medium px-3 py-1 rounded-full border border-gray-400 shadow-sm">Standard Access</span>
     </div>
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
@@ -186,14 +189,12 @@ requireRole('admin');
             </div>
           </div>
           
-          <div>
-            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fas fa-lock text-gray-400"></i>
+          <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+            <div class="flex items-start gap-2">
+              <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+              <div class="text-sm text-blue-700">
+                <p><strong>Note:</strong> A secure password will be auto-generated and sent to the user's email address.</p>
               </div>
-              <input id="password" name="password" type="password" required 
-                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-gray-500 focus:border-gray-500">
             </div>
           </div>
           
@@ -231,10 +232,10 @@ requireRole('admin');
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50 transition-opacity duration-300">
-    <div class="flex items-center gap-2">
-      <i id="toast-icon" class="fas fa-check-circle"></i>
-      <span id="toast-message"></span>
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-5 py-3 rounded-lg shadow-xl hidden z-50 transition-opacity duration-300 max-w-md">
+    <div class="flex items-start gap-3">
+      <i id="toast-icon" class="fas fa-check-circle text-green-400 mt-0.5 flex-shrink-0"></i>
+      <span id="toast-message" class="text-sm leading-tight"></span>
     </div>
   </div>
 </main>
@@ -249,7 +250,7 @@ function closeAddUserModal() {
   document.getElementById('addUserModal').classList.add('hidden');
 }
 
-function showToast(message, isSuccess = true) {
+function showToast(message, isSuccess = true, duration = 3000) {
   const toast = document.getElementById('toast');
   const icon = document.getElementById('toast-icon');
   const messageEl = document.getElementById('toast-message');
@@ -261,10 +262,13 @@ function showToast(message, isSuccess = true) {
   
   setTimeout(() => {
     toast.classList.add('hidden');
-  }, 3000);
+  }, duration);
 }
 
 function fetchUsers() {
+  // Get the current admin ID from PHP
+  const currentAdminId = <?php echo $currentAdminId; ?>;
+  
   fetch('api/users.php')
     .then(res => res.json())
     .then(data => {
@@ -276,18 +280,57 @@ function fetchUsers() {
       document.getElementById('admin-users-count').textContent = data.admin.length;
       document.getElementById('staff-users-count').textContent = data.staff.length;
 
-      const renderRow = (u) => `
-        <tr class="hover:bg-gray-50 transition">
+      const renderRow = (u) => {
+        // Determine if edit/delete should be disabled for this user
+        const isCurrentAdmin = u.id == currentAdminId;
+        const isAdmin = u.role === 'admin';
+        const canModify = !isAdmin && !isCurrentAdmin;
+        
+        // Get profile picture or generate avatar
+        let profileImage;
+        
+        // Check if user has a profile picture
+        const hasProfilePicture = u.profile_picture && u.profile_picture.trim() !== '';
+        
+        if (hasProfilePicture) {
+          // User has a profile picture
+          profileImage = `<img src="uploads/profile/${u.profile_picture}" alt="${u.username}" class="h-10 w-10 object-cover" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=random&color=fff'; this.onerror=null;">`;
+          console.log(`User ${u.username} profile picture path: uploads/profile/${u.profile_picture}`);
+        } else {
+          // Generate avatar with first letter of username
+          const initial = u.username.charAt(0).toUpperCase();
+          const bgColor = isAdmin ? 'bg-red-500' : 'bg-blue-500';
+          profileImage = `
+            <div class="${bgColor} text-white w-full h-full flex items-center justify-center">
+              <span class="text-lg font-semibold">${initial}</span>
+            </div>
+          `;
+        }
+        
+        // Buttons with conditionally disabled state
+        const actionButtons = canModify ? 
+          `<button onclick="editUser(${u.id})" class="text-gray-600 hover:text-gray-800 bg-gray-100 p-1.5 rounded-md transition">
+             <i class="fas fa-edit"></i>
+           </button>
+           <button onclick="deleteUser(${u.id}, '${u.username}')" class="text-red-600 hover:text-red-900 bg-red-100 p-1.5 rounded-md transition">
+             <i class="fas fa-trash-alt"></i>
+           </button>` :
+          `<button disabled class="text-gray-400 bg-gray-100 p-1.5 rounded-md cursor-not-allowed opacity-50" title="${isCurrentAdmin ? 'Cannot modify your own account here' : 'Cannot modify admin accounts'}">
+             <i class="fas fa-edit"></i>
+           </button>
+           <button disabled class="text-gray-400 bg-gray-100 p-1.5 rounded-md cursor-not-allowed opacity-50" title="${isCurrentAdmin ? 'Cannot modify your own account here' : 'Cannot modify admin accounts'}">
+             <i class="fas fa-trash-alt"></i>
+           </button>`;
+            
+        return `
+        <tr class="hover:bg-gray-50 transition ${isCurrentAdmin ? 'bg-gray-50' : ''}">
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="flex items-center gap-3">
               <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                ${u.profile_picture ? 
-                  `<img src="uploads/profile/${u.profile_picture}" alt="${u.username}" class="h-10 w-10 object-cover">` :
-                  `<img src="https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=random&color=fff" alt="${u.username}" class="h-10 w-10 object-cover">`
-                }
+                ${profileImage}
               </div>
               <div>
-                <div class="text-sm font-medium text-gray-900">${u.username}</div>
+                <div class="text-sm font-medium text-gray-900">${u.username} ${isCurrentAdmin ? '<span class="text-xs text-gray-500">(You)</span>' : ''}</div>
                 <div class="text-sm text-gray-500">ID: ${u.id}</div>
               </div>
             </div>
@@ -313,16 +356,11 @@ function fetchUsers() {
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div class="flex items-center justify-end gap-2">
-              <button onclick="editUser(${u.id})" class="text-gray-600 hover:text-gray-800 bg-gray-100 p-1.5 rounded-md transition">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button onclick="deleteUser(${u.id}, '${u.username}')" class="text-red-600 hover:text-red-900 bg-red-100 p-1.5 rounded-md transition">
-                <i class="fas fa-trash-alt"></i>
-              </button>
+              ${actionButtons}
             </div>
           </td>
         </tr>
-      `;
+      `};
 
       if (data.admin.length > 0) {
         adminTbody.innerHTML = data.admin.map(renderRow).join('');
@@ -386,6 +424,14 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
   e.preventDefault();
 
   const formData = new FormData(this);
+  const userEmail = document.getElementById('email').value;
+  const userName = document.getElementById('username').value;
+
+  // Show loading state
+  const submitBtn = this.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+  submitBtn.disabled = true;
 
   fetch('api/users.php', {
     method: 'POST',
@@ -393,8 +439,27 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
   })
     .then(res => res.json())
     .then(data => {
+      // Restore button state
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
+      
       if (data.success) {
-        showToast(data.success, true);
+        // Check if it's specifically about email delivery
+        const isEmailSuccess = data.success.includes('email');
+        
+        // Use a more detailed toast for email notifications
+        if (isEmailSuccess) {
+          showToast(`User "${userName}" created successfully. Password has been sent to ${userEmail}`, true, 5000);
+        } else {
+          // Check if we have a note about the password (when email fails)
+          if (data.note && data.note.includes('Password:')) {
+            const password = data.note.split('Password: ')[1];
+            showToast(`User "${userName}" created, but email failed. Temporary password: ${password}`, true, 10000);
+          } else {
+            showToast(data.success, true);
+          }
+        }
+        
         this.reset();
         closeAddUserModal();
         fetchUsers();
@@ -403,40 +468,71 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
       }
     })
     .catch(error => {
+      // Restore button state
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
+      
       console.error('Error adding user:', error);
       showToast('An error occurred. Please try again.', false);
     });
 });
 
 function deleteUser(id, username) {
-  if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
-
-  const formData = new FormData();
-  formData.append('id', id);
-  formData.append('_method', 'DELETE');
-
-  fetch('api/users.php', {
-    method: 'POST',
-    body: formData
-  })
+  // Add an extra check to prevent deleting admins
+  fetch('api/users.php?id=' + id)
     .then(res => res.json())
     .then(data => {
-      if (data.success) {
-        showToast(`User "${username}" deleted successfully`, true);
-        fetchUsers();
-      } else {
-        showToast(data.error || 'Failed to delete user', false);
+      if (data.user && data.user.role === 'admin') {
+        showToast('Cannot delete administrator accounts', false);
+        return;
       }
+      
+      if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
+    
+      const formData = new FormData();
+      formData.append('id', id);
+      formData.append('_method', 'DELETE');
+    
+      fetch('api/users.php', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast(`User "${username}" deleted successfully`, true);
+            fetchUsers();
+          } else {
+            showToast(data.error || 'Failed to delete user', false);
+          }
+        })
+        .catch(error => {
+          console.error('Error deleting user:', error);
+          showToast('An error occurred. Please try again.', false);
+        });
     })
     .catch(error => {
-      console.error('Error deleting user:', error);
+      console.error('Error checking user:', error);
       showToast('An error occurred. Please try again.', false);
     });
 }
 
 function editUser(id) {
-  // This functionality is still the same as in the original file
-  showToast(`Edit functionality for user ID: ${id} will be implemented soon`, true);
+  fetch('api/users.php?id=' + id)
+    .then(res => res.json())
+    .then(data => {
+      if (data.user && data.user.role === 'admin') {
+        showToast('Cannot edit administrator accounts', false);
+        return;
+      }
+      
+      // This is the placeholder for edit functionality
+      showToast(`Edit functionality for user ID: ${id} will be implemented soon`, true);
+    })
+    .catch(error => {
+      console.error('Error checking user:', error);
+      showToast('An error occurred. Please try again.', false);
+    });
 }
 
 window.addEventListener('DOMContentLoaded', fetchUsers);
