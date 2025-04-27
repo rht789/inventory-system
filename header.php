@@ -16,14 +16,19 @@ $userId = $_SESSION['user_id'] ?? null;
 $username = $_SESSION['user_username'] ?? '';
 $email = $_SESSION['user_email'] ?? '';
 $role = $_SESSION['user_role'] ?? '';
-$profilePicture = $_SESSION['user_profile_picture'] ?? 'default.jpg';
+$profilePicture = $_SESSION['user_profile_picture'] ?? '';
 
-// Validate and fallback
-$uploadDir = __DIR__ . '/uploads/';
-$webUploadPath = 'uploads/'; // Changed to use a relative path without leading slash
-$profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePicture))
-    ? $profilePicture
-    : 'default.jpg';
+// Validate profile picture and set default if needed
+$uploadDir = 'uploads/profile/';
+$hasProfilePicture = false;
+
+if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
+    $profileImageSrc = $uploadDir . $profilePicture;
+    $hasProfilePicture = true;
+} else {
+    // Use a placeholder image from the web
+    $profileImageSrc = "https://ui-avatars.com/api/?name=" . urlencode($username) . "&background=random&color=fff&size=128";
+}
 ?>
 
 <!-- Tailwind and Font Awesome -->
@@ -170,7 +175,7 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
           <span class="text-sm font-medium text-gray-700 hidden md:block"><?= htmlspecialchars($username) ?></span>
           <span class="text-xs text-gray-500 capitalize hidden md:block"><?= htmlspecialchars($role) ?></span>
         </div>
-        <img src="<?= $webUploadPath . htmlspecialchars($profilePictureFile) ?>" alt="Profile Picture"
+        <img src="<?= $profileImageSrc ?>" alt="Profile Picture"
              class="w-9 h-9 rounded-full border-2 border-gray-200 group-hover:border-blue-400 transition duration-300 shadow-sm object-cover" />
       </button>
 
@@ -178,7 +183,7 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
       <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border shadow-xl rounded-lg overflow-hidden z-50 dropdown-animation">
         <div class="p-4 bg-gray-50 border-b border-gray-200">
           <div class="flex items-center gap-3">
-            <img src="<?= $webUploadPath . htmlspecialchars($profilePictureFile) ?>" alt="Profile"
+            <img src="<?= $profileImageSrc ?>" alt="Profile"
                  class="w-12 h-12 rounded-full border border-gray-300 shadow-sm object-cover" />
             <div>
               <div class="text-gray-800 font-medium"><?= htmlspecialchars($username) ?></div>

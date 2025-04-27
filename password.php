@@ -105,127 +105,133 @@ include 'sidebar.php';
     </div>
   </div>
 
-  <!-- Password Change Card -->
-  <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 max-w-2xl mx-auto">
-    <div class="p-6 border-b border-gray-200">
-      <h3 class="text-lg font-semibold text-gray-800 mb-1">Password Settings</h3>
-      <p class="text-sm text-gray-500">Create a strong password to protect your account</p>
+  <!-- Two-column Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Password Change Card - Takes 2/3 of space on large screens -->
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800 mb-1">Password Settings</h3>
+          <p class="text-sm text-gray-500">Create a strong password to protect your account</p>
+        </div>
+        <div class="p-6">
+          <form id="changePasswordForm" class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-700">Current Password</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-lock text-gray-400"></i>
+                </div>
+                <input type="password" name="current_password" id="current-password"
+                      class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-700">New Password</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-key text-gray-400"></i>
+                </div>
+                <input type="password" name="new_password" id="new-password"
+                      class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Must be at least 8 characters with uppercase, lowercase, number and special character.
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2 text-gray-700">Confirm New Password</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-key text-gray-400"></i>
+                </div>
+                <input type="password" name="confirm_password" id="confirm-password"
+                      class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-medium text-gray-700 mb-3">Password Requirements:</h4>
+              <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-center" id="length-check">
+                  <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
+                  At least 8 characters long
+                </li>
+                <li class="flex items-center" id="uppercase-check">
+                  <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
+                  Contains uppercase letter
+                </li>
+                <li class="flex items-center" id="lowercase-check">
+                  <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
+                  Contains lowercase letter
+                </li>
+                <li class="flex items-center" id="number-check">
+                  <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
+                  Contains number
+                </li>
+                <li class="flex items-center" id="special-check">
+                  <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
+                  Contains special character
+                </li>
+                <li class="flex items-center" id="match-check">
+                  <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
+                  Passwords match
+                </li>
+              </ul>
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" 
+                      class="w-full md:w-auto px-6 py-3 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors">
+                Update Password
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
-    <div class="p-6">
-      <form id="changePasswordForm" class="space-y-6">
-        <div>
-          <label class="block text-sm font-medium mb-2 text-gray-700">Current Password</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-lock text-gray-400"></i>
-            </div>
-            <input type="password" name="current_password" id="current-password"
-                  class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
-          </div>
-        </div>
 
-        <div>
-          <label class="block text-sm font-medium mb-2 text-gray-700">New Password</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-key text-gray-400"></i>
-            </div>
-            <input type="password" name="new_password" id="new-password"
-                  class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
-          </div>
-          <p class="text-xs text-gray-500 mt-1">
-            Must be at least 8 characters with uppercase, lowercase, number and special character.
-          </p>
+    <!-- Password Security Tips Card - Takes 1/3 of space on large screens -->
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 h-full">
+        <div class="p-4 border-b border-gray-200">
+          <h3 class="text-md font-semibold text-gray-800">Security Tips</h3>
         </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-2 text-gray-700">Confirm New Password</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-key text-gray-400"></i>
-            </div>
-            <input type="password" name="confirm_password" id="confirm-password"
-                  class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
-          </div>
-        </div>
-
-        <div>
-          <h4 class="font-medium text-gray-700 mb-3">Password Requirements:</h4>
-          <ul class="space-y-2 text-sm text-gray-600">
-            <li class="flex items-center" id="length-check">
-              <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-              At least 8 characters long
+        <div class="p-4">
+          <ul class="space-y-3">
+            <li class="flex items-start">
+              <i class="fas fa-shield-alt text-green-600 mt-1 mr-2 text-sm"></i>
+              <div>
+                <h4 class="font-medium text-sm text-gray-800">Use a unique password</h4>
+                <p class="text-xs text-gray-600">Don't reuse passwords across multiple sites.</p>
+              </div>
             </li>
-            <li class="flex items-center" id="uppercase-check">
-              <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-              Contains uppercase letter
+            <li class="flex items-start">
+              <i class="fas fa-key text-green-600 mt-1 mr-2 text-sm"></i>
+              <div>
+                <h4 class="font-medium text-sm text-gray-800">Create strong passwords</h4>
+                <p class="text-xs text-gray-600">Mix uppercase, lowercase, numbers, and special characters.</p>
+              </div>
             </li>
-            <li class="flex items-center" id="lowercase-check">
-              <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-              Contains lowercase letter
+            <li class="flex items-start">
+              <i class="fas fa-sync-alt text-green-600 mt-1 mr-2 text-sm"></i>
+              <div>
+                <h4 class="font-medium text-sm text-gray-800">Change regularly</h4>
+                <p class="text-xs text-gray-600">Update passwords for sensitive accounts periodically.</p>
+              </div>
             </li>
-            <li class="flex items-center" id="number-check">
-              <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-              Contains number
-            </li>
-            <li class="flex items-center" id="special-check">
-              <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-              Contains special character
-            </li>
-            <li class="flex items-center" id="match-check">
-              <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-              Passwords match
+            <li class="flex items-start">
+              <i class="fas fa-user-secret text-green-600 mt-1 mr-2 text-sm"></i>
+              <div>
+                <h4 class="font-medium text-sm text-gray-800">Keep passwords private</h4>
+                <p class="text-xs text-gray-600">Never share passwords or store them in plain text.</p>
+              </div>
             </li>
           </ul>
         </div>
-
-        <div class="pt-2">
-          <button type="submit" 
-                  class="w-full md:w-auto px-6 py-3 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors">
-            Update Password
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Password Security Tips Card -->
-  <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 max-w-2xl mx-auto mt-6">
-    <div class="p-6 border-b border-gray-200">
-      <h3 class="text-lg font-semibold text-gray-800 mb-1">Password Security Tips</h3>
-      <p class="text-sm text-gray-500">Best practices for keeping your account secure</p>
-    </div>
-    <div class="p-6">
-      <ul class="space-y-4">
-        <li class="flex items-start">
-          <i class="fas fa-shield-alt text-green-600 mt-1 mr-3"></i>
-          <div>
-            <h4 class="font-medium text-gray-800">Use a unique password</h4>
-            <p class="text-sm text-gray-600">Don't reuse passwords across multiple sites to prevent credential stuffing attacks.</p>
-          </div>
-        </li>
-        <li class="flex items-start">
-          <i class="fas fa-key text-green-600 mt-1 mr-3"></i>
-          <div>
-            <h4 class="font-medium text-gray-800">Create strong passwords</h4>
-            <p class="text-sm text-gray-600">Combine uppercase, lowercase, numbers, and special characters to create a strong password.</p>
-          </div>
-        </li>
-        <li class="flex items-start">
-          <i class="fas fa-sync-alt text-green-600 mt-1 mr-3"></i>
-          <div>
-            <h4 class="font-medium text-gray-800">Change passwords regularly</h4>
-            <p class="text-sm text-gray-600">Regularly update your password, especially for accounts with sensitive information.</p>
-          </div>
-        </li>
-        <li class="flex items-start">
-          <i class="fas fa-user-secret text-green-600 mt-1 mr-3"></i>
-          <div>
-            <h4 class="font-medium text-gray-800">Keep passwords private</h4>
-            <p class="text-sm text-gray-600">Never share your password with others or store it in plain text.</p>
-          </div>
-        </li>
-      </ul>
+      </div>
     </div>
   </div>
 </main>

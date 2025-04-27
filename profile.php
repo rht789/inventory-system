@@ -20,6 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = $_POST['email'] ?? '';
         $phone = $_POST['phone'] ?? '';
         
+        // Get new fields
+        $firstName = $_POST['first_name'] ?? '';
+        $lastName = $_POST['last_name'] ?? '';
+        $bio = $_POST['bio'] ?? '';
+        $preferredLanguage = $_POST['preferred_language'] ?? '';
+        
         // Validate inputs
         if (empty($username) || empty($email)) {
             echo json_encode(['success' => false, 'message' => 'Name and email are required']);
@@ -36,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
             
-            // Update user information
-            $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?");
-            $result = $stmt->execute([$username, $email, $phone, $userId]);
+            // Update user information with new fields
+            $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, phone = ?, first_name = ?, last_name = ?, bio = ?, preferred_language = ? WHERE id = ?");
+            $result = $stmt->execute([$username, $email, $phone, $firstName, $lastName, $bio, $preferredLanguage, $userId]);
             
             if ($result) {
                 // Update session data
@@ -74,9 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Check file size
-        $maxSize = 2 * 1024 * 1024; // 2MB
+        $maxSize = 5 * 1024 * 1024; // 5MB
         if ($file['size'] > $maxSize) {
-            echo json_encode(['success' => false, 'message' => 'File is too large. Maximum size is 2MB']);
+            echo json_encode(['success' => false, 'message' => 'File is too large. Maximum size is 5MB']);
             exit;
         }
         
@@ -145,161 +151,323 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
+<main class="lg:ml-64 min-h-screen bg-gray-100 p-0">
   <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50"></div>
 
-  <!-- Header -->
-  <div class="mb-8">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-      <div>
-        <h2 class="text-3xl font-bold text-gray-900">My Profile</h2>
-        <p class="text-gray-600 mt-1">Manage your account settings and information</p>
-      </div>
-      <div class="flex gap-3">
-        <a href="password.php" class="flex items-center gap-2 px-4 py-2.5 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors">
-          <i class="fas fa-key"></i>
-          <span>Change Password</span>
-        </a>
+  <!-- Hero Banner -->
+  <div class="bg-gray-700 text-white">
+    <div class="container mx-auto px-6 py-12">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div class="flex items-center gap-5">
+          <div class="relative">
+            <div class="w-20 h-20 md:w-24 md:h-24 overflow-hidden bg-gray-600 rounded-full border-4 border-gray-500 shadow-lg">
+              <?php if (!empty($user['profile_picture']) && file_exists('uploads/profile/' . $user['profile_picture'])): ?>
+                <img src="uploads/profile/<?= htmlspecialchars($user['profile_picture']) ?>" 
+                     alt="Profile Picture" 
+                     class="w-full h-full object-cover" />
+              <?php else: ?>
+                <div class="w-full h-full">
+                  <img src="https://ui-avatars.com/api/?name=<?= urlencode($user['username']) ?>&background=random&color=fff&size=128" 
+                       alt="Profile Picture"
+                       class="w-full h-full object-cover" />
+                </div>
+              <?php endif; ?>
+            </div>
+            <button id="change-picture-btn" class="absolute -bottom-1 -right-1 bg-white text-gray-700 rounded-full p-2 shadow-md hover:bg-gray-200 transition-colors">
+              <i class="fas fa-camera"></i>
+            </button>
+          </div>
+          
+          <div>
+            <h1 class="text-2xl md:text-3xl font-bold">
+              <?php if (!empty($user['first_name']) && !empty($user['last_name'])): ?>
+                <?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?>
+              <?php else: ?>
+                <?= htmlspecialchars($user['username']) ?>
+              <?php endif; ?>
+            </h1>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="bg-purple-600 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                <?= htmlspecialchars(ucfirst($user['role'])) ?>
+              </span>
+              <span class="text-gray-300 text-sm flex items-center gap-1">
+                <i class="fas fa-circle text-green-500 text-xs"></i> Active
+              </span>
+            </div>
+            <p class="text-gray-300 text-sm mt-1">
+              Member since <?= isset($user['created_at']) ? date('M d, Y', strtotime($user['created_at'])) : 'N/A' ?>
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-3">
+          <button id="edit-profile-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors flex items-center gap-2">
+            <i class="fas fa-edit"></i>
+            <span>Edit Profile</span>
+          </button>
+          <a href="password.php" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 rounded-lg transition-colors flex items-center gap-2">
+            <i class="fas fa-key"></i>
+            <span>Change Password</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Profile Section -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Left Column - Profile Picture -->
-    <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
-      <div class="p-6 text-center">
-        <div class="mb-4 relative mx-auto w-48 h-48">
-          <?php if (!empty($user['profile_picture']) && file_exists('uploads/profile/' . $user['profile_picture'])): ?>
-            <img src="uploads/profile/<?= htmlspecialchars($user['profile_picture']) ?>" 
-                alt="Profile Picture" 
-                class="w-full h-full rounded-full object-cover border-4 border-gray-200" />
-          <?php else: ?>
-            <div class="w-full h-full rounded-full bg-gray-300 flex items-center justify-center">
-              <i class="fas fa-user text-6xl text-gray-500"></i>
-            </div>
-          <?php endif; ?>
-          
-          <button id="change-picture-btn" type="button" 
-                  class="absolute bottom-0 right-0 bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600">
-            <i class="fas fa-camera"></i>
-          </button>
+  <!-- Content Area -->
+  <div class="container mx-auto px-6 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Contact Information Card -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="border-b border-gray-200 px-6 py-4">
+          <h2 class="text-lg font-semibold text-gray-800">Contact Information</h2>
         </div>
-        
-        <h3 class="text-xl font-semibold"><?= htmlspecialchars($user['username']) ?></h3>
-        <p class="text-gray-500"><?= htmlspecialchars($user['role']) ?></p>
-        
-        <form id="profilePictureForm" class="hidden">
-          <input type="file" id="profile_picture" name="profile_picture" accept="image/*" class="hidden" />
-        </form>
-      </div>
-    </div>
-    
-    <!-- Right Column - User Information -->
-    <div class="lg:col-span-2">
-      <!-- Personal Information -->
-      <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 mb-6">
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-800">Personal Information</h3>
-            <button id="edit-profile-btn" class="text-gray-700 hover:text-gray-900">
-              <i class="fas fa-edit"></i> Edit
-            </button>
-          </div>
-        </div>
-        
         <div class="p-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p class="text-sm text-gray-500">Username</p>
-              <p class="font-medium"><?= htmlspecialchars($user['username']) ?></p>
+          <div class="space-y-6">
+            <!-- Email -->
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 mt-1">
+                <div class="w-10 h-10 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <i class="fas fa-envelope"></i>
+                </div>
+              </div>
+              <div>
+                <h3 class="text-sm font-medium text-gray-500">Email Address</h3>
+                <p class="mt-1 text-gray-900"><?= htmlspecialchars($user['email']) ?></p>
+              </div>
             </div>
-            <div>
-              <p class="text-sm text-gray-500">Email Address</p>
-              <p class="font-medium"><?= htmlspecialchars($user['email']) ?></p>
+            
+            <!-- Phone -->
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 mt-1">
+                <div class="w-10 h-10 rounded-md bg-green-100 text-green-600 flex items-center justify-center">
+                  <i class="fas fa-phone"></i>
+                </div>
+              </div>
+              <div>
+                <h3 class="text-sm font-medium text-gray-500">Phone Number</h3>
+                <p class="mt-1 text-gray-900"><?= htmlspecialchars($user['phone'] ?? 'Not set') ?></p>
+              </div>
             </div>
-            <div>
-              <p class="text-sm text-gray-500">Phone Number</p>
-              <p class="font-medium"><?= htmlspecialchars($user['phone'] ?? 'Not set') ?></p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-500">Role</p>
-              <p class="font-medium"><?= htmlspecialchars($user['role']) ?></p>
+            
+            <!-- Social Media Icons -->
+            <div class="pt-2">
+              <h3 class="text-sm font-medium text-gray-500 mb-3">Social Media</h3>
+              <div class="flex items-center gap-4">
+                <a href="#" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
+                  <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center hover:bg-pink-600 transition-colors">
+                  <i class="fab fa-instagram"></i>
+                </a>
+                <a href="#" class="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center hover:bg-gray-800 transition-colors">
+                  <i class="fab fa-twitter"></i>
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Account Information -->
-      <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
-        <div class="p-6 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800">Account Information</h3>
+      <!-- Personal Information Card -->
+      <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="border-b border-gray-200 px-6 py-4">
+          <h2 class="text-lg font-semibold text-gray-800">Account Information</h2>
         </div>
-        
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p class="text-sm text-gray-500">Date Joined</p>
-              <p class="font-medium">
-                <?= isset($user['created_at']) && $user['created_at'] ? date('F j, Y', strtotime($user['created_at'])) : 'N/A' ?>
-              </p>
+            <!-- First Name -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-user text-gray-700"></i>
+                <h3 class="text-sm font-medium text-gray-500">First Name</h3>
+              </div>
+              <p class="font-medium text-gray-900 pl-9"><?= htmlspecialchars($user['first_name'] ?? 'Not set') ?></p>
             </div>
-            <div>
-              <p class="text-sm text-gray-500">Last Login</p>
-              <p class="font-medium">
-                <?= isset($user['last_login']) && $user['last_login'] ? date('F j, Y g:i A', strtotime($user['last_login'])) : 'N/A' ?>
+            
+            <!-- Last Name -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-user text-gray-700"></i>
+                <h3 class="text-sm font-medium text-gray-500">Last Name</h3>
+              </div>
+              <p class="font-medium text-gray-900 pl-9"><?= htmlspecialchars($user['last_name'] ?? 'Not set') ?></p>
+            </div>
+            
+            <!-- Username Info -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-id-badge text-gray-700"></i>
+                <h3 class="text-sm font-medium text-gray-500">Username</h3>
+              </div>
+              <p class="font-medium text-gray-900 pl-9"><?= htmlspecialchars($user['username']) ?></p>
+            </div>
+            
+            <!-- Preferred Language -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-language text-gray-700"></i>
+                <h3 class="text-sm font-medium text-gray-500">Preferred Language</h3>
+              </div>
+              <p class="font-medium text-gray-900 pl-9"><?= htmlspecialchars($user['preferred_language'] ?? 'Not set') ?></p>
+            </div>
+            
+            <!-- Role Info -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-user-shield text-gray-700"></i>
+                <h3 class="text-sm font-medium text-gray-500">Account Role</h3>
+              </div>
+              <p class="font-medium text-gray-900 pl-9 capitalize"><?= htmlspecialchars($user['role']) ?></p>
+            </div>
+            
+            <!-- Last Login -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-history text-gray-700"></i>
+                <h3 class="text-sm font-medium text-gray-500">Last Login Time</h3>
+              </div>
+              <p class="font-medium text-gray-900 pl-9">
+                <?= isset($user['last_login']) ? date('M d, Y g:i A', strtotime($user['last_login'])) : 'N/A' ?>
               </p>
             </div>
           </div>
+          
+          <!-- Bio Section -->
+          <?php if (!empty($user['bio'])): ?>
+          <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
+              <i class="fas fa-quote-left text-gray-700"></i> Bio
+            </h3>
+            <p class="text-gray-800 italic"><?= nl2br(htmlspecialchars($user['bio'])) ?></p>
+          </div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Hidden file input for profile picture -->
+  <form id="profilePictureForm" class="hidden">
+    <input type="file" id="profile_picture" name="profile_picture" accept="image/*" class="hidden" />
+  </form>
 </main>
 
 <!-- Edit Profile Modal -->
-<div id="edit-profile-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-lg max-w-md w-full mx-4 p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-semibold">Edit Profile</h3>
-      <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+<div id="edit-profile-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg max-w-md w-full mx-4 shadow-xl">
+    <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-800">Edit Profile</h3>
+      <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
         <i class="fas fa-times"></i>
       </button>
     </div>
     
-    <form id="updateProfileForm">
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-1 text-gray-700">Username</label>
-          <input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>"
-                class="w-full border-2 border-gray-300 rounded-md py-2 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700" required>
+    <div class="p-6">
+      <form id="updateProfileForm" class="space-y-5">
+        <!-- Personal Information Section -->
+        <div class="pb-4 mb-4 border-b border-gray-200">
+          <h4 class="font-medium text-gray-700 mb-3">Personal Information</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- First Name -->
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700">First Name</label>
+              <input type="text" name="first_name" value="<?= htmlspecialchars($user['first_name'] ?? '') ?>"
+                   class="w-full border rounded-lg py-2 px-3 focus:border-gray-700 focus:ring-1 focus:ring-gray-700">
+            </div>
+            
+            <!-- Last Name -->
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700">Last Name</label>
+              <input type="text" name="last_name" value="<?= htmlspecialchars($user['last_name'] ?? '') ?>"
+                   class="w-full border rounded-lg py-2 px-3 focus:border-gray-700 focus:ring-1 focus:ring-gray-700">
+            </div>
+          </div>
         </div>
         
-        <div>
-          <label class="block text-sm font-medium mb-1 text-gray-700">Email Address</label>
-          <input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>"
-                class="w-full border-2 border-gray-300 rounded-md py-2 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700" required>
+        <!-- Account Information Section -->
+        <div class="pb-4 mb-4 border-b border-gray-200">
+          <h4 class="font-medium text-gray-700 mb-3">Account Information</h4>
+          
+          <!-- Username -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1 text-gray-700">Username</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                <i class="fas fa-user"></i>
+              </div>
+              <input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>"
+                    class="w-full border rounded-lg py-2.5 pl-10 pr-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700" required>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1 text-gray-700">Email Address</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                <i class="fas fa-envelope"></i>
+              </div>
+              <input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>"
+                    class="w-full border rounded-lg py-2.5 pl-10 pr-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700" required>
+            </div>
+          </div>
+
+          <!-- Phone -->
+          <div>
+            <label class="block text-sm font-medium mb-1 text-gray-700">Phone Number</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                <i class="fas fa-phone"></i>
+              </div>
+              <input type="text" name="phone" value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
+                    class="w-full border rounded-lg py-2.5 pl-10 pr-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700">
+            </div>
+          </div>
         </div>
         
-        <div>
-          <label class="block text-sm font-medium mb-1 text-gray-700">Phone Number</label>
-          <input type="text" name="phone" value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
-                class="w-full border-2 border-gray-300 rounded-md py-2 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700">
+        <!-- Preferences Section -->
+        <div class="pb-4 mb-4 border-b border-gray-200">
+          <h4 class="font-medium text-gray-700 mb-3">Preferences</h4>
+          
+          <!-- Preferred Language -->
+          <div>
+            <label class="block text-sm font-medium mb-1 text-gray-700">Preferred Language</label>
+            <select name="preferred_language" class="w-full border rounded-lg py-2.5 px-3 focus:border-gray-700 focus:ring-1 focus:ring-gray-700">
+              <option value="">Select a language</option>
+              <option value="English" <?= ($user['preferred_language'] ?? '') === 'English' ? 'selected' : '' ?>>English</option>
+              <option value="Spanish" <?= ($user['preferred_language'] ?? '') === 'Spanish' ? 'selected' : '' ?>>Spanish</option>
+              <option value="French" <?= ($user['preferred_language'] ?? '') === 'French' ? 'selected' : '' ?>>French</option>
+              <option value="German" <?= ($user['preferred_language'] ?? '') === 'German' ? 'selected' : '' ?>>German</option>
+              <option value="Chinese" <?= ($user['preferred_language'] ?? '') === 'Chinese' ? 'selected' : '' ?>>Chinese</option>
+              <option value="Japanese" <?= ($user['preferred_language'] ?? '') === 'Japanese' ? 'selected' : '' ?>>Japanese</option>
+              <option value="Arabic" <?= ($user['preferred_language'] ?? '') === 'Arabic' ? 'selected' : '' ?>>Arabic</option>
+            </select>
+          </div>
         </div>
-      </div>
-      
-      <div class="mt-6 flex justify-end gap-3">
-        <button type="button" id="cancel-edit-btn"
-                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
-          Cancel
-        </button>
-        <button type="submit"
-                class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600">
-          Save Changes
-        </button>
-      </div>
-    </form>
+        
+        <!-- Bio Section -->
+        <div>
+          <label class="block text-sm font-medium mb-1 text-gray-700">Bio</label>
+          <textarea name="bio" rows="4" class="w-full border rounded-lg py-2 px-3 focus:border-gray-700 focus:ring-1 focus:ring-gray-700"
+                    placeholder="Tell us about yourself..."><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button type="submit"
+                  class="flex-1 py-2 bg-gray-700 text-white font-medium rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center gap-2">
+            <i class="fas fa-save"></i>
+            <span>Save Changes</span>
+          </button>
+          
+          <button type="button" id="cancel-edit-btn"
+                  class="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -322,17 +490,18 @@ const editBtn = document.getElementById('edit-profile-btn');
 const closeBtn = document.getElementById('close-modal-btn');
 const cancelBtn = document.getElementById('cancel-edit-btn');
 
-editBtn.addEventListener('click', () => {
+function openModal() {
   editModal.classList.remove('hidden');
-});
-
+}
+      
 function closeModal() {
   editModal.classList.add('hidden');
 }
 
+editBtn.addEventListener('click', openModal);
 closeBtn.addEventListener('click', closeModal);
 cancelBtn.addEventListener('click', closeModal);
-
+      
 // Handle profile update
 document.getElementById('updateProfileForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -401,4 +570,4 @@ pictureInput.addEventListener('change', async function() {
     showToast('Error updating profile picture', false);
   }
 });
-</script> 
+</script>
