@@ -27,35 +27,61 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('api/notification.php?action=mark_all_read', { method: 'POST' });
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to mark all as read');
+            
+            // Visual feedback - mark all items as read immediately
+            const allNotifications = notificationList.querySelectorAll('.notification-item');
+            allNotifications.forEach(item => {
+                item.classList.add('opacity-75');
+                item.classList.remove('cursor-pointer');
+                item.removeAttribute('onclick');
+            });
+            unreadBadge.textContent = '0';
+            unreadBadge.classList.add('hidden');
+            
+            // Show success message
+            showToast('All notifications marked as read', 'success');
+            
+            // Refresh notifications
             fetchNotifications();
         } catch (error) {
             console.error('Error marking all as read:', error);
-            alert('Failed to mark all as read: ' + error.message);
+            showToast('Failed to mark all as read', 'error');
         }
     });
+
+    // Show toast message
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white transition-opacity duration-300`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Fade out and remove after 3 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
 
     // Fetch notifications
     async function fetchNotifications() {
         try {
-            console.log('Fetching notifications...');
             const response = await fetch('api/notification.php?action=get');
-            console.log('Response status:', response.status);
             const data = await response.json();
-            console.log('Notifications data:', data);
             
             if (!data.success) throw new Error(data.error || 'Failed to fetch notifications');
             renderNotifications(data.notifications, data.unread_count);
         } catch (error) {
             console.error('Error fetching notifications:', error);
-            notificationList.innerHTML = '<p class="p-2 text-red-500">Failed to load notifications: ' + error.message + '</p>';
+            notificationList.innerHTML = '<p class="p-2 text-red-500">Failed to load notifications</p>';
+            showToast('Failed to load notifications', 'error');
         }
     }
 
     // Render notifications in the dropdown
     function renderNotifications(notifications, unreadCount) {
-        console.log('Rendering notifications:', notifications);
-        console.log('Unread count:', unreadCount);
-        
         notificationList.innerHTML = '';
         unreadBadge.textContent = unreadCount || '';
         unreadBadge.classList.toggle('hidden', unreadCount === 0);
@@ -67,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         notifications.forEach(notification => {
             const item = document.createElement('div');
-            item.className = `p-3 border-b border-gray-100 hover:bg-gray-50 flex gap-3 ${notification.is_read ? 'opacity-75' : ''}`;
+            item.className = `notification-item p-3 border-b border-gray-100 hover:bg-gray-50 flex gap-3 ${notification.is_read ? 'opacity-75' : ''}`;
             
             // Icon and color based on notification type
             const iconClass = {
@@ -90,33 +116,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="${iconClass} rounded-md w-10 h-10 flex items-center justify-center flex-shrink-0">
                     ${iconSymbol}
                 </div>
-                <div>
+                <div class="flex-1">
                     <p class="text-sm text-gray-800 font-medium">${notification.title}</p>
                     <p class="text-xs text-gray-500 mt-1">${notification.message}</p>
                     <p class="text-xs text-gray-400 mt-2">${relativeTime}</p>
                 </div>
+                ${!notification.is_read ? '<span class="w-2 h-2 bg-blue-500 rounded-full mt-2"></span>' : ''}
             `;
 
             // Mark as read on click
             if (!notification.is_read) {
                 item.classList.add('cursor-pointer');
-                item.addEventListener('click', () => markAsRead(notification.id));
+                item.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch(`api/notification.php?action=mark_read&id=${notification.id}`, { 
+                            method: 'POST' 
+                        });
+                        const data = await response.json();
+                        if (!data.success) throw new Error(data.error || 'Failed to mark as read');
+                        
+                        // Visual feedback
+                        item.classList.add('opacity-75');
+                        item.classList.remove('cursor-pointer');
+                        const unreadDot = item.querySelector('.bg-blue-500');
+                        if (unreadDot) unreadDot.remove();
+                        
+                        // Update unread count
+                        const currentCount = parseInt(unreadBadge.textContent || '0');
+                        const newCount = Math.max(0, currentCount - 1);
+                        unreadBadge.textContent = newCount || '';
+                        unreadBadge.classList.toggle('hidden', newCount === 0);
+                        
+                        showToast('Notification marked as read', 'success');
+                    } catch (error) {
+                        console.error('Error marking as read:', error);
+                        showToast('Failed to mark as read', 'error');
+                    }
+                });
             }
             notificationList.appendChild(item);
         });
-    }
-
-    // Mark a single notification as read
-    async function markAsRead(notificationId) {
-        try {
-            const response = await fetch(`api/notification.php?action=mark_read&id=${notificationId}`, { method: 'POST' });
-            const data = await response.json();
-            if (!data.success) throw new Error(data.error || 'Failed to mark as read');
-            fetchNotifications();
-        } catch (error) {
-            console.error('Error marking as read:', error);
-            alert('Failed to mark as read: ' + error.message);
-        }
     }
 
     // Calculate relative time
