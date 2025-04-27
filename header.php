@@ -47,15 +47,24 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
     border-radius: 50%;
     background-color: #ef4444;
   }
-  
+
   .dropdown-animation {
     transition: all 0.2s ease-in-out;
     transform-origin: top right;
   }
-  
+
   .header-light {
     background: white;
     border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Ensure header is fixed (reinforce the rule) */
+  header {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
   }
 </style>
 

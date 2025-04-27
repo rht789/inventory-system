@@ -9,7 +9,7 @@ $currentAdminId = $_SESSION['user_id'];
 
 <?php include 'header.php'; include 'sidebar.php'; ?>
 
-<main class="lg:ml-64 min-h-screen p-6 bg-gray-50">
+<main class="min-h-screen p-6 bg-gray-50">
   <!-- Page Header -->
   <div class="mb-8">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

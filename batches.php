@@ -4,7 +4,7 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
+<main class="min-h-screen p-6 bg-gray-100">
 
   <!-- Toast container -->
   <div id="toast"

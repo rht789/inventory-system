@@ -9,7 +9,7 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<main class="lg:ml-64 min-h-screen p-6 bg-gray-50">
+<main class="min-h-screen p-6 bg-gray-50">
   <!-- Toast container -->
   <div id="toast"
        class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg hidden z-50">
