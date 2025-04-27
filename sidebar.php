@@ -26,6 +26,12 @@ $role = getUserRole();
       </a>
     <?php endif; ?>
 
+    <?php if ($role === 'staff'): ?>
+      <a href="home.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'home.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
+        <i class="fa fa-home w-4"></i> Home
+      </a>
+    <?php endif; ?>
+
     <?php if (in_array($role, ['admin', 'staff'])): ?>
       <a href="sales.php" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 <?= $currentPage == 'sales.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
         <i class="fa fa-shopping-cart w-4"></i> Sales

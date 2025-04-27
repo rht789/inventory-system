@@ -2,7 +2,13 @@
 require_once 'authcheck.php';
 requireLogin(); // Ensures the user is logged in
 
-// Get user information
+// Redirect admins to dashboard.php
+if (getUserRole() === 'admin') {
+    header("Location: dashboard.php");
+    exit;
+}
+
+// Get user information for staff only
 $userId = $_SESSION['user_id'] ?? null;
 $username = $_SESSION['user_username'] ?? '';
 $role = $_SESSION['user_role'] ?? '';
@@ -34,258 +40,61 @@ if ($hour < 12) {
       <p class="mt-2 text-gray-600"><?php echo date('l, F j, Y'); ?></p>
       
       <div class="mt-6 flex gap-3">
-        <?php if ($role === 'admin'): ?>
-          <a href="dashboard.php" 
-             class="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md text-white transition-all">
-            <span>Admin Dashboard</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-          </a>
-          <a href="reports.php" 
-             class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 rounded-md text-gray-700 transition-all">
-            <span>View Reports</span>
-          </a>
-        <?php else: ?>
-          <a href="sales.php?action=new" 
-             class="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md text-white transition-all">
-            <span>Create New Sale</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-          </a>
-          <a href="stock.php?action=add" 
-             class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 rounded-md text-gray-700 transition-all">
-            <span>Restock Items</span>
-          </a>
-        <?php endif; ?>
+        <a href="sales.php?action=new" 
+           class="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md text-white transition-all">
+          <span>Create New Sale</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </a>
+        <a href="stock.php?action=add" 
+           class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 rounded-md text-gray-700 transition-all">
+          <span>Restock Items</span>
+        </a>
       </div>
     </div>
     
-    <!-- Role-specific decorative element -->
-    <?php if ($role === 'admin'): ?>
-      <div class="absolute top-0 right-0 w-48 h-48 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
-      <div class="absolute bottom-0 right-24 w-32 h-32 bg-indigo-50 rounded-full -mb-12 opacity-40"></div>
-    <?php else: ?>
-      <div class="absolute top-0 right-0 w-48 h-48 bg-gray-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
-      <div class="absolute bottom-0 right-24 w-32 h-32 bg-gray-100 rounded-full -mb-12 opacity-40"></div>
-    <?php endif; ?>
+    <!-- Decorative element -->
+    <div class="absolute top-0 right-0 w-48 h-48 bg-gray-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+    <div class="absolute bottom-0 right-24 w-32 h-32 bg-gray-100 rounded-full -mb-12 opacity-40"></div>
   </div>
 
   <!-- Quick Tasks Section -->
   <div class="mb-6">
     <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Tasks</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <?php if ($role === 'admin'): ?>
-        <!-- Admin-specific quick tasks -->
-        <a href="products.php?action=add" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-plus text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">Add Product</h4>
-        </a>
-        
-        <a href="users.php?action=add" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-user-plus text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">Add User</h4>
-        </a>
-        
-        <a href="reports.php" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-chart-bar text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">View Reports</h4>
-        </a>
-        
-        <a href="stock.php?status=low" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-exclamation-triangle text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">Low Stock</h4>
-        </a>
-      <?php else: ?>
-        <!-- Staff-specific quick tasks -->
-        <a href="sales.php?action=new" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-shopping-cart text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">New Sale</h4>
-        </a>
-        
-        <a href="stock.php?action=add" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-box text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">Restock Items</h4>
-        </a>
-        
-        <a href="products.php" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-search text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">Check Products</h4>
-        </a>
-        
-        <a href="batches.php?action=add" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
-          <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
-            <i class="fas fa-layer-group text-gray-700"></i>
-          </div>
-          <h4 class="font-medium text-gray-800">New Batch</h4>
-        </a>
-      <?php endif; ?>
+      <!-- Staff-specific quick tasks -->
+      <a href="sales.php?action=new" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
+        <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+          <i class="fas fa-shopping-cart text-gray-700"></i>
+        </div>
+        <h4 class="font-medium text-gray-800">New Sale</h4>
+      </a>
+      
+      <a href="stock.php?action=add" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
+        <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+          <i class="fas fa-box text-gray-700"></i>
+        </div>
+        <h4 class="font-medium text-gray-800">Restock Items</h4>
+      </a>
+      
+      <a href="products.php" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
+        <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+          <i class="fas fa-search text-gray-700"></i>
+        </div>
+        <h4 class="font-medium text-gray-800">Check Products</h4>
+      </a>
+      
+      <a href="batches.php?action=add" class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition duration-200 text-center">
+        <div class="w-12 h-12 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+          <i class="fas fa-layer-group text-gray-700"></i>
+        </div>
+        <h4 class="font-medium text-gray-800">New Batch</h4>
+      </a>
     </div>
   </div>
 
   <!-- Main Content Area -->
-  <?php if ($role === 'admin'): ?>
-  <!-- ADMIN LAYOUT -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Left Column - System Overview -->
-    <div class="lg:col-span-2 grid grid-cols-1 gap-6">
-      <!-- System Status Summary -->
-      <div class="bg-white rounded-lg shadow-sm p-5 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">System Status</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="p-4 bg-indigo-50 rounded-lg">
-            <p class="text-xs text-indigo-800 font-medium">TOTAL PRODUCTS</p>
-            <p class="text-2xl font-bold text-gray-800" id="admin-total-products">--</p>
-          </div>
-          <div class="p-4 bg-green-50 rounded-lg">
-            <p class="text-xs text-green-800 font-medium">TOTAL USERS</p>
-            <p class="text-2xl font-bold text-gray-800" id="admin-total-users">--</p>
-          </div>
-          <div class="p-4 bg-yellow-50 rounded-lg">
-            <p class="text-xs text-yellow-800 font-medium">LOW STOCK</p>
-            <p class="text-2xl font-bold text-gray-800" id="admin-low-stock">--</p>
-          </div>
-          <div class="p-4 bg-blue-50 rounded-lg">
-            <p class="text-xs text-blue-800 font-medium">PENDING SALES</p>
-            <p class="text-2xl font-bold text-gray-800" id="admin-pending-sales">--</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Attention Required Section -->
-      <div class="bg-white rounded-lg shadow-sm p-5 mb-6" id="attention-section">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">System Alerts</h3>
-          <a href="reports.php" class="text-sm text-gray-600 hover:text-gray-900">View All</a>
-        </div>
-        <div class="space-y-4" id="attention-content">
-          <div class="animate-pulse flex space-x-4">
-            <div class="flex-1 space-y-4 py-1">
-              <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div class="space-y-2">
-                <div class="h-4 bg-gray-200 rounded"></div>
-                <div class="h-4 bg-gray-200 rounded w-5/6"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Recent System Activities -->
-      <div class="bg-white rounded-lg shadow-sm p-5">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Recent System Activities</h3>
-          <a href="#" class="text-sm text-gray-600 hover:text-gray-900">View All</a>
-        </div>
-        <div class="space-y-4" id="system-activities">
-          <div class="flex justify-center items-center h-24">
-            <div class="animate-spin h-8 w-8 border-4 border-gray-400 rounded-full border-t-transparent"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Right Column - Admin Tools -->
-    <div class="space-y-6">
-      <!-- Sales Summary -->
-      <div class="bg-white rounded-lg shadow-sm p-5">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Sales Summary</h3>
-        <div class="space-y-3">
-          <div class="flex justify-between">
-            <span class="text-gray-600">Today</span>
-            <span class="font-medium text-gray-800" id="admin-sales-today">--</span>
-          </div>
-          <div class="w-full h-px bg-gray-100"></div>
-          
-          <div class="flex justify-between">
-            <span class="text-gray-600">This Week</span>
-            <span class="font-medium text-gray-800" id="admin-sales-week">--</span>
-          </div>
-          <div class="w-full h-px bg-gray-100"></div>
-          
-          <div class="flex justify-between">
-            <span class="text-gray-600">This Month</span>
-            <span class="font-medium text-gray-800" id="admin-sales-month">--</span>
-          </div>
-          
-          <div class="w-full h-px bg-gray-100 mt-3"></div>
-          <div class="pt-2">
-            <a href="reports.php" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center justify-center">
-              <span>View Detailed Reports</span>
-              <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Admin Shortcuts -->
-      <div class="bg-white rounded-lg shadow-sm p-5">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Admin Tools</h3>
-        <div class="space-y-2">
-          <a href="dashboard.php" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-tachometer-alt w-5 text-gray-500"></i>
-              <span class="ml-3">Analytics Dashboard</span>
-            </div>
-          </a>
-          <a href="users.php" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-users w-5 text-gray-500"></i>
-              <span class="ml-3">Manage Users</span>
-            </div>
-          </a>
-          <a href="reports.php?type=inventory" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-boxes w-5 text-gray-500"></i>
-              <span class="ml-3">Inventory Report</span>
-            </div>
-          </a>
-          <a href="settings.php" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-cog w-5 text-gray-500"></i>
-              <span class="ml-3">System Settings</span>
-            </div>
-          </a>
-        </div>
-      </div>
-      
-      <!-- User Management Quick Access -->
-      <div class="bg-white rounded-lg shadow-sm p-5">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">User Management</h3>
-        <div class="space-y-2">
-          <a href="users.php?action=add" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-user-plus w-5 text-gray-500"></i>
-              <span class="ml-3">Add New User</span>
-            </div>
-          </a>
-          <a href="users.php" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-user-edit w-5 text-gray-500"></i>
-              <span class="ml-3">Edit Users</span>
-            </div>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <?php else: ?>
   <!-- STAFF LAYOUT -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Left Section - My Tasks -->
@@ -302,16 +111,6 @@ if ($hour < 12) {
                 <div class="h-4 bg-gray-200 rounded w-5/6"></div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- My Recent Activities -->
-      <div class="bg-white rounded-lg shadow-sm p-5 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">My Recent Activities</h3>
-        <div class="space-y-4" id="user-activities">
-          <div class="flex justify-center items-center h-24">
-            <div class="animate-spin h-8 w-8 border-4 border-gray-400 rounded-full border-t-transparent"></div>
           </div>
         </div>
       </div>
@@ -382,166 +181,103 @@ if ($hour < 12) {
           </a>
         </div>
       </div>
-      
-      <!-- Help & Resources -->
-      <div class="bg-white rounded-lg shadow-sm p-5">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Help & Resources</h3>
-        <div class="space-y-2">
-          <a href="#" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-book w-5 text-gray-500"></i>
-              <span class="ml-3">User Guide</span>
-            </div>
-          </a>
-          <a href="#" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded-md text-gray-800 transition-colors">
-            <div class="flex items-center">
-              <i class="fas fa-question-circle w-5 text-gray-500"></i>
-              <span class="ml-3">Support</span>
-            </div>
-          </a>
-        </div>
-      </div>
     </div>
   </div>
-  <?php endif; ?>
 </main>
 
 <!-- Load dynamic content with JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  <?php if ($role === 'admin'): ?>
-  // Admin-specific data loading
-  fetchAdminMetrics();
-  fetchSystemAlerts();
-  fetchSystemActivities();
-  <?php else: ?>
   // Staff-specific data loading
   fetchUserAlerts();
-  fetchUserActivities();
   fetchRecentSales();
   fetchTodaysSummary();
-  <?php endif; ?>
 });
 
-<?php if ($role === 'admin'): ?>
-// Admin functions
-function fetchAdminMetrics() {
-  // Simulate loading admin metrics with a short delay
+// Show toast message
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'bg-blue-500');
+  
+  // Apply the appropriate background color based on the type
+  if (type === 'success') {
+    toast.classList.add('bg-green-500');
+  } else if (type === 'error') {
+    toast.classList.add('bg-red-500');
+  } else if (type === 'info') {
+    toast.classList.add('bg-blue-500');
+  } else {
+    toast.classList.add('bg-green-500'); // Default
+  }
+  
+  toast.classList.remove('hidden');
   setTimeout(() => {
-    document.getElementById('admin-total-products').textContent = '<?php echo rand(100, 500); ?>';
-    document.getElementById('admin-total-users').textContent = '<?php echo rand(5, 30); ?>';
-    document.getElementById('admin-low-stock').textContent = '<?php echo rand(0, 15); ?>';
-    document.getElementById('admin-pending-sales').textContent = '<?php echo rand(0, 10); ?>';
-    
-    document.getElementById('admin-sales-today').textContent = '$<?php echo number_format(rand(500, 2000), 2); ?>';
-    document.getElementById('admin-sales-week').textContent = '$<?php echo number_format(rand(3000, 10000), 2); ?>';
-    document.getElementById('admin-sales-month').textContent = '$<?php echo number_format(rand(12000, 50000), 2); ?>';
-  }, 800);
+    toast.classList.add('hidden');
+  }, 3000);
 }
 
-function fetchSystemAlerts() {
-  // Simulate loading system alerts
-  setTimeout(() => {
-    const alertsContainer = document.getElementById('attention-content');
+// Helper function to handle API errors
+function handleApiError(error, containerId, message) {
+  console.error(message, error);
+  document.getElementById(containerId).innerHTML = `
+    <div class="text-center text-gray-500 py-4">
+      <i class="fas fa-exclamation-circle text-red-500 text-3xl mb-2"></i>
+      <p>Failed to load data. Please refresh the page.</p>
+    </div>
+  `;
+}
+
+// Fallback data in case APIs are not available
+const fallbackData = {
+  alerts: [
+    { severity: 'warning', message: 'Low stock for 5 products', link: 'stock.php?status=low' }
+  ],
+  sales: [
+    { invoice_number: '#1092', customer_name: 'John Smith', total_amount: 125.00, sale_date: new Date(Date.now() - 45 * 60000).toISOString() },
+    { invoice_number: '#1091', customer_name: 'Mary Johnson', total_amount: 78.50, sale_date: new Date(Date.now() - 120 * 60000).toISOString() }
+  ],
+  todaysSummary: {
+    salesCount: 5,
+    revenue: 450.75,
+    stockUpdates: 3
+  }
+};
+
+// Helper function to fetch low stock products
+async function fetchLowStockProducts() {
+  try {
+    const response = await fetch('api/products.php?lowStock=true');
+    const data = await response.json();
     
-    // Sample alerts data - in production, this would come from an API
-    const alerts = [
-      { type: 'warning', message: 'Low stock for 5 products', link: 'stock.php?status=low' },
-      { type: 'info', message: '3 new user registrations pending approval', link: 'users.php?status=pending' },
-      { type: 'danger', message: 'Database backup not completed in the last 7 days', link: 'settings.php?section=backup' }
-    ];
-    
-    if (alerts.length === 0) {
-      alertsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No alerts at this time!</p>';
-      return;
+    if (!data.success) {
+      throw new Error('Failed to fetch low stock products');
     }
     
-    let alertsHTML = '';
-    alerts.forEach(alert => {
-      let bgColor = 'bg-blue-50';
-      let textColor = 'text-blue-800';
-      let iconClass = 'fas fa-info-circle text-blue-500';
-      
-      if (alert.type === 'warning') {
-        bgColor = 'bg-yellow-50';
-        textColor = 'text-yellow-800';
-        iconClass = 'fas fa-exclamation-circle text-yellow-500';
-      } else if (alert.type === 'danger') {
-        bgColor = 'bg-red-50';
-        textColor = 'text-red-800';
-        iconClass = 'fas fa-exclamation-triangle text-red-500';
-      }
-      
-      alertsHTML += `
-        <a href="${alert.link}" class="block ${bgColor} rounded-lg p-4 hover:shadow-md transition-shadow">
-          <div class="flex items-start">
-            <div class="flex-shrink-0 pt-0.5">
-              <i class="${iconClass}"></i>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm font-medium ${textColor}">${alert.message}</p>
-            </div>
-          </div>
-        </a>
-      `;
-    });
-    
-    alertsContainer.innerHTML = alertsHTML;
-  }, 1000);
+    return data.products || [];
+  } catch (error) {
+    console.warn('Error fetching low stock products:', error);
+    return [];
+  }
 }
 
-function fetchSystemActivities() {
-  // Simulate loading system activities
-  setTimeout(() => {
-    const activitiesContainer = document.getElementById('system-activities');
-    
-    // Sample activities - in production, this would come from an API
-    const activities = [
-      { user: 'John Doe', action: 'added new product', item: 'HP Laptop 15-inch', time: '10 minutes ago' },
-      { user: 'Jane Smith', action: 'updated inventory', item: 'Samsung Galaxy S21', time: '1 hour ago' },
-      { user: 'Mike Johnson', action: 'completed sale', item: 'Invoice #1234', time: '2 hours ago' },
-      { user: 'Sarah Williams', action: 'registered new account', item: '', time: 'Today at 9:30 AM' }
-    ];
-    
-    if (activities.length === 0) {
-      activitiesContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No recent activities.</p>';
-      return;
-    }
-    
-    let activitiesHTML = '';
-    activities.forEach(activity => {
-      activitiesHTML += `
-        <div class="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-            <i class="fas fa-user-circle text-gray-500"></i>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm text-gray-800">
-              <span class="font-medium">${activity.user}</span> ${activity.action}
-              ${activity.item ? `<span class="font-medium">${activity.item}</span>` : ''}
-            </p>
-            <p class="text-xs text-gray-500">${activity.time}</p>
-          </div>
-        </div>
-      `;
-    });
-    
-    activitiesContainer.innerHTML = activitiesHTML;
-  }, 1200);
-}
-
-<?php else: ?>
 // Staff functions
-function fetchUserAlerts() {
-  // Simulate loading staff alerts
-  setTimeout(() => {
+async function fetchUserAlerts() {
+  try {
     const alertsContainer = document.getElementById('attention-content');
+    let alerts = [];
     
-    // Sample alerts data for staff
-    const alerts = [
-      { type: 'warning', message: '3 products running low on stock', link: 'stock.php?status=low' },
-      { type: 'info', message: '2 price updates pending review', link: 'products.php?status=pending' }
-    ];
+    // Fetch low stock products
+    const lowStockProducts = await fetchLowStockProducts();
+    
+    if (lowStockProducts.length > 0) {
+      alerts.push({
+        type: 'warning',
+        severity: 'warning',
+        message: `${lowStockProducts.length} products running low on stock`,
+        link: 'stock.php?status=low'
+      });
+    }
     
     if (alerts.length === 0) {
       alertsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No alerts at this time!</p>';
@@ -554,18 +290,21 @@ function fetchUserAlerts() {
       let textColor = 'text-blue-800';
       let iconClass = 'fas fa-info-circle text-blue-500';
       
-      if (alert.type === 'warning') {
+      // Handle both 'severity' (API) and 'type' (fallback) properties
+      const alertType = alert.severity || alert.type || 'info';
+      
+      if (alertType === 'warning') {
         bgColor = 'bg-yellow-50';
         textColor = 'text-yellow-800';
         iconClass = 'fas fa-exclamation-circle text-yellow-500';
-      } else if (alert.type === 'danger') {
+      } else if (alertType === 'critical' || alertType === 'danger') {
         bgColor = 'bg-red-50';
         textColor = 'text-red-800';
         iconClass = 'fas fa-exclamation-triangle text-red-500';
       }
       
       alertsHTML += `
-        <a href="${alert.link}" class="block ${bgColor} rounded-lg p-4 hover:shadow-md transition-shadow">
+        <a href="${alert.link || '#'}" class="block ${bgColor} rounded-lg p-4 hover:shadow-md transition-shadow">
           <div class="flex items-start">
             <div class="flex-shrink-0 pt-0.5">
               <i class="${iconClass}"></i>
@@ -579,92 +318,235 @@ function fetchUserAlerts() {
     });
     
     alertsContainer.innerHTML = alertsHTML;
-  }, 1000);
+  } catch (error) {
+    console.error('Error in fetchUserAlerts:', error);
+    // Display fallback alerts instead of error message
+    displayFallbackAlerts('attention-content');
+  }
 }
 
-function fetchUserActivities() {
-  // Simulate loading staff activities
-  setTimeout(() => {
-    const activitiesContainer = document.getElementById('user-activities');
-    
-    // Sample activities for staff
-    const activities = [
-      { action: 'Completed sale', details: 'Invoice #1089', time: '30 minutes ago' },
-      { action: 'Updated product quantity', details: 'Apple iPhone 13', time: '2 hours ago' },
-      { action: 'Added new batch', details: 'Batch #4578', time: 'Today at 10:15 AM' }
-    ];
-    
-    if (activities.length === 0) {
-      activitiesContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No recent activities.</p>';
-      return;
-    }
-    
-    let activitiesHTML = '';
-    activities.forEach(activity => {
-      activitiesHTML += `
-        <div class="flex items-start p-3 hover:bg-gray-50 rounded-lg">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <i class="fas fa-check text-blue-600"></i>
-          </div>
-          <div class="ml-3 min-w-0 flex-1">
-            <p class="text-sm text-gray-800 font-medium">${activity.action}</p>
-            <p class="text-sm text-gray-600">${activity.details}</p>
-            <p class="text-xs text-gray-500 mt-1">${activity.time}</p>
-          </div>
-        </div>
-      `;
-    });
-    
-    activitiesContainer.innerHTML = activitiesHTML;
-  }, 1200);
-}
-
-function fetchRecentSales() {
-  // Simulate loading recent sales
-  setTimeout(() => {
+async function fetchRecentSales() {
+  try {
     const salesContainer = document.getElementById('recent-sales');
+    let sales = [];
     
-    // Sample sales data
-    const sales = [
-      { invoice: '#1092', customer: 'John Smith', amount: '$125.00', time: '45 minutes ago' },
-      { invoice: '#1091', customer: 'Mary Johnson', amount: '$78.50', time: '1 hour ago' },
-      { invoice: '#1090', customer: 'Robert Brown', amount: '$210.75', time: '3 hours ago' }
-    ];
+    try {
+      // Use the new dedicated endpoint for today's sales
+      const response = await fetch('api/home.php?action=today_sales');
+      const data = await response.json();
+      
+      if (data.success && data.sales && data.sales.length > 0) {
+        // Data is already filtered for current user by the API
+        sales = data.sales.slice(0, 5); // Limit to 5 most recent sales
+      } else {
+        console.warn('No sales found:', data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch sales from API:', error);
+      sales = fallbackData.sales;
+    }
     
     if (sales.length === 0) {
-      salesContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No recent sales.</p>';
+      salesContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No sales today.</p>';
       return;
     }
     
     let salesHTML = '';
     sales.forEach(sale => {
+      // Format order ID
+      const invoice = `ORD-${String(sale.id).padStart(3, '0')}`;
+      
+      // Get customer name
+      const customer = sale.customer_name || 'Walk-in Customer';
+      
+      // Get total amount
+      const amount = parseFloat(sale.total) || 0;
+      
+      // Format date
+      let dateText = 'Recently';
+      try {
+        dateText = formatTimestamp(sale.created_at);
+      } catch (e) {
+        console.warn('Invalid date format:', sale.created_at);
+      }
+      
       salesHTML += `
         <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg">
           <div>
-            <p class="text-sm font-medium text-gray-800">${sale.invoice}</p>
-            <p class="text-xs text-gray-500">${sale.customer}</p>
-            <p class="text-xs text-gray-500">${sale.time}</p>
+            <p class="text-sm font-medium text-gray-800">${invoice}</p>
+            <p class="text-xs text-gray-500">${customer}</p>
+            <p class="text-xs text-gray-500">${dateText}</p>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-800">${sale.amount}</p>
+            <p class="text-sm font-medium text-gray-800">৳${formatCurrency(amount)}</p>
           </div>
         </div>
       `;
     });
     
     salesContainer.innerHTML = salesHTML;
-  }, 1400);
+  } catch (error) {
+    console.error('Error in fetchRecentSales:', error);
+    // Display fallback sales instead of error message
+    displayFallbackSales('recent-sales');
+  }
 }
 
-function fetchTodaysSummary() {
-  // Simulate loading today's summary for staff
-  setTimeout(() => {
-    document.getElementById('today-sales-count').textContent = '<?php echo rand(3, 15); ?>';
-    document.getElementById('today-revenue').textContent = '$<?php echo number_format(rand(250, 1200), 2); ?>';
-    document.getElementById('today-stock-updates').textContent = '<?php echo rand(1, 8); ?>';
-  }, 800);
+async function fetchTodaysSummary() {
+  try {
+    let salesCount = 0, revenue = 0, stockUpdates = 0;
+    let noSalesData = false, noStockData = false;
+    
+    try {
+      const salesResponse = await fetch('api/home.php?action=today_sales');
+      const salesData = await salesResponse.json();
+      
+      if (salesData.success) {
+        // The API handles filtering by current user
+        salesCount = salesData.count || 0;
+        revenue = parseFloat(salesData.total) || 0;
+        
+        // Set flag if no sales data today
+        noSalesData = salesCount === 0;
+      } else {
+        console.warn('Failed to get sales summary:', salesData.message);
+      }
+    } catch (error) {
+      console.error('Error fetching sales summary:', error);
+    }
+    
+    try {
+      const stockResponse = await fetch('api/home.php?action=today_stock');
+      const stockData = await stockResponse.json();
+      
+      if (stockData.success) {
+        // The API handles filtering by current user and today's date
+        stockUpdates = stockData.count || 0;
+        
+        // Set flag if no stock data today
+        noStockData = stockUpdates === 0;
+      } else {
+        console.warn('Failed to get stock updates:', stockData.message);
+      }
+    } catch (error) {
+      console.error('Error fetching stock updates:', error);
+    }
+    
+    // Update UI with appropriate formatting
+    if (noSalesData) {
+      document.getElementById('today-sales-count').textContent = 'None';
+      document.getElementById('today-revenue').textContent = 'No sales today';
+    } else {
+      document.getElementById('today-sales-count').textContent = salesCount;
+      document.getElementById('today-revenue').textContent = '৳' + formatCurrency(revenue);
+    }
+    
+    document.getElementById('today-stock-updates').textContent = noStockData ? 'None' : stockUpdates;
+    
+  } catch (error) {
+    console.error('Error in fetchTodaysSummary:', error);
+    // Show error message instead of fallback data
+    document.getElementById('today-sales-count').textContent = 'Error';
+    document.getElementById('today-revenue').textContent = 'Failed to load data';
+    document.getElementById('today-stock-updates').textContent = 'Error';
+  }
 }
-<?php endif; ?>
+
+// Helper functions
+// Format currency to always show 2 decimal places
+function formatCurrency(value) {
+  // Check if the value is a valid number
+  const num = parseFloat(value);
+  if (isNaN(num)) return '0.00';
+  
+  // Ensure it's formatted with 2 decimal places
+  try {
+    return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  } catch (e) {
+    console.warn('Error formatting currency value:', e);
+    return num.toFixed(2);
+  }
+}
+
+// Helper function to format timestamps
+function formatTimestamp(timestamp) {
+  if (!timestamp) return 'Unknown time';
+  
+  let date;
+  try {
+    date = new Date(timestamp);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Recently';
+    }
+  } catch (e) {
+    console.warn('Invalid date format:', timestamp);
+    return 'Recently';
+  }
+  
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  
+  if (diffMin < 1) {
+    return 'Just now';
+  } else if (diffMin < 60) {
+    return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`;
+  } else if (diffHour < 24) {
+    return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
+  } else if (diffDay < 7) {
+    return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+}
+
+// Fallback display functions
+function displayFallbackAlerts(containerId) {
+  const container = document.getElementById(containerId);
+  let alertsHTML = '';
+  
+  // Only include the low stock alert in fallback data
+  alertsHTML = `
+    <a href="stock.php?status=low" class="block bg-yellow-50 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div class="flex items-start">
+        <div class="flex-shrink-0 pt-0.5">
+          <i class="fas fa-exclamation-circle text-yellow-500"></i>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-yellow-800">Low stock for 5 products</p>
+        </div>
+      </div>
+    </a>
+  `;
+  
+  container.innerHTML = alertsHTML;
+}
+
+function displayFallbackSales(containerId) {
+  const container = document.getElementById(containerId);
+  let salesHTML = '';
+  
+  fallbackData.sales.forEach(sale => {
+    salesHTML += `
+      <div class="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg">
+        <div>
+          <p class="text-sm font-medium text-gray-800">${sale.invoice_number}</p>
+          <p class="text-xs text-gray-500">${sale.customer_name}</p>
+          <p class="text-xs text-gray-500">${formatTimestamp(sale.sale_date)}</p>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-800">৳${formatCurrency(sale.total_amount)}</p>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = salesHTML;
+}
 </script>
 
 <?php
