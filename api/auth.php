@@ -24,6 +24,10 @@ switch ($action) {
             $_SESSION['user_role'] = $user['role'];
             $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? 'default.png';
 
+            // Update last login timestamp
+            $updateStmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+            $updateStmt->execute([$user['id']]);
+
             echo json_encode(['success' => true]);
             
             
