@@ -128,36 +128,140 @@ $pageTitle = "About Us";
         
         <!-- Team Section -->
         <div class="bg-white p-8 rounded-lg shadow border border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Our Team</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Team Member 1 -->
-                <div class="text-center">
-                    <div class="w-32 h-32 mx-auto bg-gray-300 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-user text-gray-400 text-3xl"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-8 text-center">Our Team</h2>
+            <div class="relative overflow-hidden">
+                <div class="team-scroll">
+                    <div class="team-track flex gap-6">
+                        <!-- Team Member 1 -->
+                        <div class="flex-none w-80">
+                            <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[400px]">
+                                <div class="relative h-72 overflow-hidden">
+                                    <img src="uploads/images/team/rezaul.jpg" 
+                                         alt="Md. Rezaul Karim" 
+                                         class="w-full h-full object-cover scale-105 hover:scale-108 transition-transform duration-500"
+                                         onerror="this.onerror=null; this.src='uploads/images/default-user.jpg';">
+                                </div>
+                                <div class="p-4 bg-white">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Md. Rezaul Karim</h3>
+                                    <p class="text-gray-600 mb-2">Founder & CEO</p>
+                                    <p class="text-gray-600 text-sm">Leading innovation in inventory management systems with over 15 years of experience.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Team Member 2 -->
+                        <div class="flex-none w-80">
+                            <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[400px]">
+                                <div class="relative h-72 overflow-hidden">
+                                    <img src="uploads/images/team/zahidul.jpg" 
+                                         alt="Zahidul Hasan Sajjad" 
+                                         class="w-full h-full object-cover scale-105 hover:scale-108 transition-transform duration-500"
+                                         onerror="this.onerror=null; this.src='uploads/images/default-user.jpg';">
+                                </div>
+                                <div class="p-4 bg-white">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Zahidul Hasan Sajjad</h3>
+                                    <p class="text-gray-600 mb-2">CTO</p>
+                                    <p class="text-gray-600 text-sm">Expert in cloud infrastructure and innovative technology solutions.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Team Member 3 -->
+                        <div class="flex-none w-80">
+                            <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[400px]">
+                                <div class="relative h-72 overflow-hidden">
+                                    <img src="uploads/images/team/abdullah.jpg" 
+                                         alt="Abdullah AL Shahariya Hasnat" 
+                                         class="w-full h-full object-cover scale-105 hover:scale-108 transition-transform duration-500"
+                                         onerror="this.onerror=null; this.src='uploads/images/default-user.jpg';">
+                                </div>
+                                <div class="p-4 bg-white">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Abdullah AL Shahariya Hasnat</h3>
+                                    <p class="text-gray-600 mb-2">Head of Customer Success</p>
+                                    <p class="text-gray-600 text-sm">Dedicated to ensuring exceptional customer experience and satisfaction.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Team Member 4 -->
+                        <div class="flex-none w-80">
+                            <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[400px]">
+                                <div class="relative h-72 overflow-hidden">
+                                    <img src="uploads/images/team/sunny.jpg" 
+                                         alt="Md Siddiqur Rahman Sunny" 
+                                         class="w-full h-full object-cover scale-105 hover:scale-108 transition-transform duration-500"
+                                         onerror="this.onerror=null; this.src='uploads/images/default-user.jpg';">
+                                </div>
+                                <div class="p-4 bg-white">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Md Siddiqur Rahman Sunny</h3>
+                                    <p class="text-gray-600 mb-2">Lead Developer</p>
+                                    <p class="text-gray-600 text-sm">Driving technical excellence and innovation in our development team.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Team Member 5 -->
+                        <div class="flex-none w-80">
+                            <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[400px]">
+                                <div class="relative h-72 overflow-hidden">
+                                    <img src="uploads/images/team/mizanur.jpg" 
+                                         alt="Md. Mizanu Rahman" 
+                                         class="w-full h-full object-cover scale-105 hover:scale-108 transition-transform duration-500"
+                                         onerror="this.onerror=null; this.src='uploads/images/default-user.jpg';">
+                                </div>
+                                <div class="p-4 bg-white">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Md. Mizanu Rahman</h3>
+                                    <p class="text-gray-600 mb-2">Senior System Architect</p>
+                                    <p class="text-gray-600 text-sm">Architecting robust and scalable solutions for complex business needs.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800">John Doe</h3>
-                    <p class="text-gray-600 mb-2">Founder & CEO</p>
-                    <p class="text-gray-700 text-sm">15+ years of experience in software development and business management.</p>
                 </div>
-                
-                <!-- Team Member 2 -->
-                <div class="text-center">
-                    <div class="w-32 h-32 mx-auto bg-gray-300 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-user text-gray-400 text-3xl"></i>
+            </div>
+        </div>
+
+        <!-- Location Section -->
+        <div class="bg-white p-8 rounded-lg shadow border border-gray-200 mt-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Visit Us</h2>
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <div class="w-full md:w-1/2 text-center md:text-left">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <i class="fas fa-building text-gray-400 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Our Office</h3>
+                        <div class="space-y-2 text-gray-600">
+                            <p>123 Business Avenue</p>
+                            <p>Dhaka, Bangladesh</p>
+                            <div class="flex items-center justify-center md:justify-start gap-4 mt-4">
+                                <a href="tel:+8801711123456" class="text-gray-600 hover:text-gray-900">
+                                    <i class="fas fa-phone mr-2"></i>+880 1711 123456
+                                </a>
+                                <span class="text-gray-300">|</span>
+                                <a href="mailto:info@smartinventory.com" class="text-gray-600 hover:text-gray-900">
+                                    <i class="fas fa-envelope mr-2"></i>Email Us
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800">Jane Smith</h3>
-                    <p class="text-gray-600 mb-2">CTO</p>
-                    <p class="text-gray-700 text-sm">Expert in cloud infrastructure and database systems with a focus on scalability.</p>
                 </div>
-                
-                <!-- Team Member 3 -->
-                <div class="text-center">
-                    <div class="w-32 h-32 mx-auto bg-gray-300 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-user text-gray-400 text-3xl"></i>
+                <div class="w-full md:w-1/2 text-center md:text-left">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <i class="fas fa-clock text-gray-400 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Business Hours</h3>
+                        <div class="space-y-2 text-gray-600">
+                            <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
+                            <p>Saturday: 10:00 AM - 4:00 PM</p>
+                            <p>Sunday: Closed</p>
+                            <div class="mt-4">
+                                <a href="https://www.google.com/maps/dir//Dhaka" 
+                                   target="_blank"
+                                   class="inline-flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">
+                                    <i class="fas fa-directions"></i>
+                                    Get Directions
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800">Mark Johnson</h3>
-                    <p class="text-gray-600 mb-2">Head of Customer Success</p>
-                    <p class="text-gray-700 text-sm">Dedicated to ensuring our customers get the most out of SmartInventory.</p>
                 </div>
             </div>
         </div>
@@ -218,5 +322,53 @@ $pageTitle = "About Us";
             </div>
         </div>
     </footer>
+
+    <style>
+        .team-scroll {
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        .team-track {
+            animation: scroll 25s linear infinite;
+            width: calc(320px * 10 + 1.5rem * 10);
+        }
+
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(calc(-320px * 5 - 1.5rem * 5));
+            }
+        }
+
+        .team-track:hover {
+            animation-play-state: paused;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .team-track {
+                animation-play-state: paused;
+            }
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const track = document.querySelector('.team-track');
+            const originalContent = track.innerHTML;
+            track.innerHTML = originalContent + originalContent;
+        });
+    </script>
 </body>
 </html> 

@@ -204,13 +204,38 @@ $pageTitle = "Contact Us";
             </div>
         </div>
         
-        <!-- Google Maps -->
-        <div class="mt-8 bg-white p-6 rounded-lg shadow border border-gray-200">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Find Us</h2>
-            <div class="bg-gray-200 h-96 flex items-center justify-center">
-                <div class="text-center">
-                    <i class="fas fa-map-marked-alt text-gray-400 text-5xl mb-3"></i>
-                    <p class="text-gray-500">Interactive map would be displayed here</p>
+        <!-- Location Info -->
+        <div class="mt-8 bg-white p-8 rounded-lg shadow border border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Our Location</h2>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-8 text-center md:text-left">
+                <div class="w-full md:w-1/2">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <i class="fas fa-building text-gray-400 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Main Office</h3>
+                        <div class="space-y-2 text-gray-600">
+                            <p>123 Business Avenue</p>
+                            <p>Dhaka, Bangladesh</p>
+                            <p class="pt-2">
+                                <a href="https://www.google.com/maps/dir//Dhaka" 
+                                   target="_blank"
+                                   class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700">
+                                    <i class="fas fa-directions"></i>
+                                    Get Directions
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <i class="fas fa-clock text-gray-400 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Business Hours</h3>
+                        <div class="space-y-2 text-gray-600">
+                            <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
+                            <p>Saturday: 10:00 AM - 4:00 PM</p>
+                            <p>Sunday: Closed</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
