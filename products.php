@@ -12,6 +12,50 @@ include 'sidebar.php';
 
 <main class="lg:ml-64 min-h-screen p-6 bg-gray-100">
 
+  <!-- Dashboard Summary Cards -->
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-800">Products Management</h2>
+    <p class="text-gray-500 mb-6">Manage your products, categories, and inventory</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="bg-white rounded-2xl shadow flex items-center gap-4 p-6">
+        <div class="bg-indigo-100 p-3 rounded-xl">
+          <svg class="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7V6a2 2 0 012-2h14a2 2 0 012 2v1M3 7v11a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9 6 9-6"/></svg>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold" id="cardTotalProducts">0</span>
+          <span class="text-gray-500 text-sm">Total Products</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow flex items-center gap-4 p-6">
+        <div class="bg-green-100 p-3 rounded-xl">
+          <svg class="w-7 h-7 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18"/></svg>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold" id="cardCategories">0</span>
+          <span class="text-gray-500 text-sm">Categories</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow flex items-center gap-4 p-6">
+        <div class="bg-red-100 p-3 rounded-xl">
+          <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold" id="cardLowStock">0</span>
+          <span class="text-gray-500 text-sm">Low Stock</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow flex items-center gap-4 p-6">
+        <div class="bg-purple-100 p-3 rounded-xl">
+          <svg class="w-7 h-7 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15A7 7 0 005 15"/></svg>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold" id="cardActive">0</span>
+          <span class="text-gray-500 text-sm">Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast container -->
   <div id="toast"
        class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg hidden">
@@ -53,18 +97,19 @@ include 'sidebar.php';
   </div>
 
   <!-- Product Table -->
-  <div class="bg-white rounded shadow-sm overflow-hidden">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-100 text-gray-600">
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden mt-4">
+    <table class="w-full text-base">
+      <thead class="bg-gray-100 text-gray-700">
         <tr>
-          <th class="px-4 py-3 text-center">Name</th>
-          <th class="px-4 py-3 text-center">Category</th>
-          <th class="px-4 py-3 text-left">Size & Stock</th>
-          <th class="px-4 py-3 text-center">Total Stock</th>
-          <th class="px-4 py-3 text-center">Barcode</th>
-          <th class="px-4 py-3 text-center">Cost Price (৳)</th>
-          <th class="px-4 py-3 text-center">Selling Price (৳)</th>
-          <th class="px-4 py-3 text-center">Actions</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Image</th>
+          <th class="px-6 py-4 text-left font-bold text-lg">Name</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Category</th>
+          <th class="px-6 py-4 text-left font-bold text-lg">Size & Stock</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Total Stock</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Barcode</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Cost Price (৳)</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Selling Price (৳)</th>
+          <th class="px-6 py-4 text-center font-bold text-lg">Actions</th>
         </tr>
       </thead>
       <tbody id="product-list">
@@ -100,7 +145,7 @@ include 'sidebar.php';
 <!-- Add Product Modal -->
 <div id="addProductModal"
      class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
+  <div class="bg-white rounded-lg p-6 w-full max-w-4xl overflow-auto max-h-screen">
     <div class="flex justify-between items-center mb-2">
       <h3 class="text-lg font-semibold">Add Product</h3>
       <button onclick="closeAddProductModal()">
@@ -108,12 +153,12 @@ include 'sidebar.php';
       </button>
     </div>
     <p class="text-sm text-gray-500 mb-4">Add a new product to inventory.</p>
-    <form id="addProductForm" class="space-y-4">
+    <form id="addProductForm" class="space-y-4" enctype="multipart/form-data">
       <input type="hidden" name="id" />
       <input type="hidden" name="barcode" />
 
-      <!-- Name & Category -->
-      <div class="grid grid-cols-2 gap-4">
+      <!-- First Row: Name, Category, Description -->
+      <div class="grid grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium">Product Name</label>
           <input type="text" name="name"
@@ -126,91 +171,42 @@ include 'sidebar.php';
                   class="w-full border px-3 py-2 rounded"
                   required></select>
         </div>
-      </div>
-
-      <!-- Description -->
-      <div>
-        <label class="block text-sm font-medium">Description</label>
-        <input type="text" name="description"
-               placeholder="Enter product description"
-               class="w-full border px-3 py-2 rounded" />
-      </div>
-
-      <!-- Sizes & Stock -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Sizes & Stock</label>
-        <div class="flex gap-2 mb-2">
-          <input type="text" id="newSizeInput"
-                 placeholder="Enter size (e.g., S, M, L, XL)"
-                 class="flex-1 border px-3 py-2 rounded" />
-          <button type="button" id="addSizeBtn"
-                  class="bg-gray-700 text-white px-4 py-2 rounded">
-            Add Size
-          </button>
-        </div>
-        <ul id="sizeList"
-            class="space-y-2 max-h-40 overflow-y-auto"></ul>
-        <div class="text-sm font-medium mt-2">
-          Total <span id="totalUnits">0</span> units
-        </div>
-      </div>
-      <input type="hidden" name="stock" id="stockInput" />
-
-      <!-- Initial Batch -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Initial Batch</label>
-        <div class="space-y-2">
-          <div>
-            <label class="block text-sm">Size</label>
-            <select id="initialBatchSize" name="initial_batch_size" class="w-full border px-3 py-2 rounded">
-              <option value="">Select a size</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm">Batch Number</label>
-            <input type="text" name="batch_number"
-                   placeholder="e.g., BATCH-2025-001"
-                   class="w-full border px-3 py-2 rounded" />
-          </div>
-          <div>
-            <label class="block text-sm">Manufactured Date</label>
-            <input type="date" name="manufactured_date"
-                   class="w-full border px-3 py-2 rounded" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Location -->
-      <div>
-        <label class="block text-sm font-medium">Location</label>
-        <input type="text" name="location"
-               placeholder="Enter location (e.g., Shelf A, Side B)"
-               class="w-full border px-3 py-2 rounded" />
-      </div>
-
-      <!-- Minimum Stock -->
-      <div>
-        <label class="block text-sm font-medium">Minimum Stock Level</label>
-        <input type="number" name="min_stock"
-               class="w-full border px-3 py-2 rounded"
-               min="0" value="5" />
-      </div>
-
-      <!-- Prices -->
-      <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium">
-            Cost Price (৳)
-          </label>
+          <label class="block text-sm font-medium">Description</label>
+          <input type="text" name="description"
+                 placeholder="Enter product description"
+                 class="w-full border px-3 py-2 rounded" />
+        </div>
+      </div>
+      <!-- Image Upload Row -->
+      <div class="mb-2">
+        <label class="block text-sm font-medium">Product Image</label>
+        <input type="file" name="image" accept="image/*" class="border px-3 py-2 rounded w-full" />
+      </div>
+
+      <!-- Second Row: Location, Min Stock, Prices -->
+      <div class="grid grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Location</label>
+          <input type="text" name="location"
+                 placeholder="e.g., Shelf A, Side B"
+                 class="w-full border px-3 py-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Minimum Stock</label>
+          <input type="number" name="min_stock"
+                 class="w-full border px-3 py-2 rounded"
+                 min="0" value="5" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Cost Price (৳)</label>
           <input type="number" name="price"
                  step="0.01"
                  class="w-full border px-3 py-2 rounded"
                  required />
         </div>
         <div>
-          <label class="block text-sm font-medium">
-            Selling Price (৳)
-          </label>
+          <label class="block text-sm font-medium">Selling Price (৳)</label>
           <input type="number" name="selling_price"
                  step="0.01"
                  class="w-full border px-3 py-2 rounded"
@@ -218,8 +214,54 @@ include 'sidebar.php';
         </div>
       </div>
 
+      <!-- Third Row: Sizes & Stock -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Sizes & Stock</label>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="newSizeInput"
+                   placeholder="Enter size (e.g., S, M, L, XL)"
+                   class="flex-1 border px-3 py-2 rounded" />
+            <button type="button" id="addSizeBtn"
+                    class="bg-gray-700 text-white px-4 py-2 rounded">
+              Add Size
+            </button>
+          </div>
+          <ul id="sizeList"
+              class="space-y-2 max-h-40 overflow-y-auto"></ul>
+          <div class="text-sm font-medium mt-2">
+            Total <span id="totalUnits">0</span> units
+          </div>
+          <input type="hidden" name="stock" id="stockInput" />
+        </div>
+
+        <!-- Fourth Row: Initial Batch -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Initial Batch</label>
+          <div class="space-y-2">
+            <div>
+              <label class="block text-sm">Size</label>
+              <select id="initialBatchSize" name="initial_batch_size" class="w-full border px-3 py-2 rounded">
+                <option value="">Select a size</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm">Batch Number</label>
+              <input type="text" name="batch_number"
+                     placeholder="e.g., BATCH-2025-001"
+                     class="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label class="block text-sm">Manufactured Date</label>
+              <input type="date" name="manufactured_date"
+                     class="w-full border px-3 py-2 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button type="submit"
-              class="bg-black text-white w-full py-2 rounded">
+              class="bg-black text-white w-full py-2 rounded mt-4">
         Save Product
       </button>
     </form>
@@ -456,19 +498,22 @@ async function fetchProducts() {
       const total  = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
 
       return `
-        <tr class="border-t hover:bg-gray-50">
-          <td class="px-4 py-3 font-semibold text-center">${p.name}</td>
-          <td class="px-4 py-3 text-center">${p.category_name}</td>
-          <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
-          <td class="px-4 py-3 font-bold text-center">${total}</td>
-          <td class="px-4 py-3 text-center">
+        <tr class="border-t hover:bg-gray-50 transition duration-150 ease-in-out">
+          <td class="px-6 py-3 text-center">
+            ${p.image ? `<img src="./uploads/${p.image}" alt="Product Image" class="h-16 w-16 object-cover rounded-lg mx-auto shadow" />` : '<span class="text-gray-400">No Image</span>'}
+          </td>
+          <td class="px-6 py-3 font-semibold text-left align-middle">${p.name}</td>
+          <td class="px-6 py-3 text-center align-middle">${p.category_name}</td>
+          <td class="px-6 py-3 flex flex-wrap gap-2 align-middle">${badges}</td>
+          <td class="px-6 py-3 font-bold text-center align-middle">${total}</td>
+          <td class="px-6 py-3 text-center align-middle">
             <img src="./${p.barcode}"
                  alt="Barcode"
-                 class="barcode-img h-8 mx-auto cursor-pointer"/>
+                 class="barcode-img h-10 mx-auto cursor-pointer"/>
           </td>
-          <td class="px-4 py-3 text-center">৳ ${cost}</td>
-          <td class="px-4 py-3 text-center">৳ ${sell}</td>
-          <td class="px-4 py-3 text-center">
+          <td class="px-6 py-3 text-center align-middle">৳ ${cost}</td>
+          <td class="px-6 py-3 text-center align-middle">৳ ${sell}</td>
+          <td class="px-6 py-3 text-center align-middle">
             <button onclick="startEditProduct(${p.id})" class="text-blue-600 mr-2">
               <i class="fas fa-edit"></i>
             </button>
@@ -654,8 +699,9 @@ function updateEditTotal() {
 // Add Product Modal: Save new product
 addProductForm.onsubmit = async e => {
   e.preventDefault();
-  const data = Object.fromEntries(new FormData(addProductForm).entries());
+  const formData = new FormData(addProductForm);
 
+  // Add sizes as JSON string
   if (addSizes.length === 0) {
     showToast('Please add at least one size', false);
     return;
@@ -666,49 +712,41 @@ addProductForm.onsubmit = async e => {
     return;
   }
 
-  if (!data.initial_batch_size || !data.batch_number || !data.manufactured_date) {
+  if (!formData.get('initial_batch_size') || !formData.get('batch_number') || !formData.get('manufactured_date')) {
     showToast('Initial batch size, batch number, and manufactured date are required', false);
     return;
   }
 
   // Validate manufactured date
   const currentDate = new Date('2025-04-22');
-  const manufacturedDate = new Date(data.manufactured_date);
+  const manufacturedDate = new Date(formData.get('manufactured_date'));
   if (manufacturedDate > currentDate) {
     showToast('Manufactured date cannot be in the future', false);
     return;
   }
 
-  const selectedSize = addSizes.find(s => s.size === data.initial_batch_size);
+  const selectedSize = addSizes.find(s => s.size === formData.get('initial_batch_size'));
   if (!selectedSize) {
     showToast('Selected initial batch size not found in sizes list', false);
     return;
   }
 
-  const payload = {
-    name: data.name,
-    category_id: +data.category_id,
-    description: data.description,
-    location: data.location || null,
-    min_stock: +data.min_stock,
-    price: parseFloat(data.price),
-    selling_price: parseFloat(data.selling_price),
-    stock: +data.stock,
-    sizes: addSizes,
-    initial_batch_size: data.initial_batch_size,
-    batch_number: data.batch_number,
-    manufactured_date: data.manufactured_date,
-    initial_batch_stock: addSizes.find(s => s.size === data.initial_batch_size).stock
-  };
+  // Add sizes as JSON
+  formData.append('sizes', JSON.stringify(addSizes));
+  formData.append('initial_batch_stock', selectedSize.stock);
 
   try {
-    const res = await apiPost('./api/products.php', payload);
-    if (res.success) {
+    const res = await fetch('./api/products.php', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
       showToast('Product added!');
       closeAddProductModal();
       fetchProducts();
     } else {
-      showToast(res.message || 'Save failed', false);
+      showToast(data.message || 'Save failed', false);
     }
   } catch (err) {
     console.error(err);

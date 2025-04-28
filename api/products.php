@@ -249,6 +249,28 @@ if ($method === 'POST') {
         }
     }
 
+    // Handle file upload for image
+    $imageFileName = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . '/../uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $imageFileName = uniqid('prod_', true) . '.' . $ext;
+        $targetPath = $uploadDir . $imageFileName;
+        if (!move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Failed to upload image']);
+            exit;
+        }
+    }
+
+    // If sizes is a JSON string, decode it
+    if (isset($input['sizes']) && is_string($input['sizes'])) {
+        $input['sizes'] = json_decode($input['sizes'], true);
+    }
+
     // Log the incoming payload for debugging
     error_log("Received payload: " . json_encode($input));
 
@@ -397,7 +419,7 @@ if ($method === 'POST') {
             'stock'          => $input['stock'],
             'min_stock'      => $input['min_stock']   ?? 5,
             'location'       => $input['location']    ?? null,
-            'image'          => $input['image']       ?? null,
+            'image'          => $imageFileName ?? ($input['image'] ?? null),
             'description'    => $input['description'] ?? null
         ]);
         $newId = $pdo->lastInsertId();
