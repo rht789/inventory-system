@@ -589,6 +589,23 @@ if ($method === 'POST') {
                     // Update product total stock
                     updateProductStock($pdo, $productId);
                     
+                    // Check for low stock condition
+                    $stmt = $pdo->prepare("
+                        SELECT p.name, p.min_stock, ps.stock 
+                        FROM products p 
+                        JOIN product_sizes ps ON p.id = ps.product_id 
+                        WHERE ps.id = ?
+                    ");
+                    $stmt->execute([$productSizeId]);
+                    $stockInfo = $stmt->fetch();
+                    
+                    if ($stockInfo && $stockInfo['stock'] <= $stockInfo['min_stock']) {
+                        // Create low stock notification
+                        $notificationTitle = "Low Stock Alert";
+                        $notificationMessage = "{$stockInfo['name']} is running low on stock. Current quantity: {$stockInfo['stock']}";
+                        createNotification($pdo, 'low_stock', $notificationTitle, $notificationMessage, 'admin');
+                    }
+                    
                     // Log stock change
                     $changes = "Reduced $quantity Stock";
                     $reason = "Sale " . formatOrderId($saleId);

@@ -99,6 +99,23 @@ if ($method === 'POST') {
         $pdo->prepare("UPDATE product_sizes SET stock = stock + ? WHERE id = ?")
             ->execute([$stock_change, $size_id]);
 
+        // Check for low stock condition
+        $stmt = $pdo->prepare("
+            SELECT p.name, p.min_stock, ps.stock 
+            FROM products p 
+            JOIN product_sizes ps ON p.id = ps.product_id 
+            WHERE ps.id = ?
+        ");
+        $stmt->execute([$size_id]);
+        $stockInfo = $stmt->fetch();
+        
+        if ($stockInfo && $stockInfo['stock'] <= $stockInfo['min_stock']) {
+            // Create low stock notification
+            $notificationTitle = "Low Stock Alert";
+            $notificationMessage = "{$stockInfo['name']} is running low on stock. Current quantity: {$stockInfo['stock']}";
+            createNotification($pdo, 'low_stock', $notificationTitle, $notificationMessage, 'admin');
+        }
+
         // Insert into stock_logs
         $stmt = $pdo->prepare("
             INSERT INTO stock_logs (product_id, changes, reason, user_id, timestamp)
