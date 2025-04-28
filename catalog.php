@@ -130,8 +130,8 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             <nav class="hidden md:flex items-center space-x-6">
                 <a href="catalog.php" class="text-gray-700 hover:text-gray-900 font-medium">Home</a>
                 <a href="#" class="text-gray-700 hover:text-gray-900">Products</a>
-                <a href="#" class="text-gray-700 hover:text-gray-900">About Us</a>
-                <a href="#" class="text-gray-700 hover:text-gray-900">Contact Us</a>
+                <a href="about.php" class="text-gray-700 hover:text-gray-900">About Us</a>
+                <a href="contact.php" class="text-gray-700 hover:text-gray-900">Contact Us</a>
                 <a href="#" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors">Order Now</a>
             </nav>
             
@@ -185,15 +185,7 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
                                class="flex items-center p-2 rounded-md transition-all <?= $currentCategoryId == $category['id'] ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-50' ?>">
                                 <span class="w-8 h-8 flex items-center justify-center rounded-md mr-3 
                                   <?= $currentCategoryId == $category['id'] ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700' ?>">
-                                    <?php 
-                                    $iconClass = 'fas fa-box';
-                                    switch(strtolower($category['name'])) {
-                                        case 'food': $iconClass = 'fas fa-utensils'; break;
-                                        case 'electronics': $iconClass = 'fas fa-laptop'; break;
-                                        case 'cloths': $iconClass = 'fas fa-tshirt'; break;
-                                    }
-                                    ?>
-                                    <i class="<?= $iconClass ?>"></i>
+                                    <i class="fas fa-folder"></i>
                                 </span>
                                 <?= htmlspecialchars($category['name']) ?>
                             </a>
@@ -372,10 +364,10 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             <!-- Links -->
             <div class="flex flex-wrap justify-center mb-6">
                 <div class="px-4 py-2">
-                    <a href="#" class="text-gray-600 hover:text-gray-900">About</a>
+                    <a href="about.php" class="text-gray-600 hover:text-gray-900">About</a>
                 </div>
                 <div class="px-4 py-2">
-                    <a href="#" class="text-gray-600 hover:text-gray-900">Contact</a>
+                    <a href="contact.php" class="text-gray-600 hover:text-gray-900">Contact</a>
                 </div>
                 <div class="px-4 py-2">
                     <a href="#" class="text-gray-600 hover:text-gray-900">FAQ</a>
