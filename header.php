@@ -120,9 +120,6 @@ $profilePictureFile = ($profilePicture && file_exists($uploadDir . $profilePictu
           <span id="mark-all-read" class="text-xs text-blue-500 cursor-pointer hover:underline">Mark all as read</span>
         </div>
         <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
-        <a id="view-all" href="notifications.php" class="block p-2 text-center text-sm text-blue-600 bg-gray-50 hover:bg-gray-100">
-          View all notifications
-        </a>
       </div>
     </div>
 
