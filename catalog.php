@@ -46,13 +46,17 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             background: #374151; /* gray-700 */
         }
         .noUi-handle {
-            border-radius: 3px;
+            border-radius: 50%;
             background: #374151;
-            border: 1px solid #374151;
-            box-shadow: none;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            width: 20px !important;
+            height: 20px !important;
+            top: -8px !important;
+            right: -10px !important;
         }
         .noUi-handle:before, .noUi-handle:after {
-            background: white;
+            display: none;
         }
         .noUi-tooltip {
             background-color: #374151;
@@ -60,6 +64,21 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             color: white;
             font-size: 12px;
             padding: 3px 6px;
+            border-radius: 4px;
+        }
+        .noUi-horizontal {
+            height: 6px;
+        }
+        
+        /* Custom radio button styles */
+        input[type="radio"]:checked ~ .radio-container {
+            border-color: #374151;
+        }
+        input[type="radio"]:checked ~ .radio-container .radio-dot {
+            display: block;
+        }
+        .radio-container {
+            transition: all 0.2s ease;
         }
         body {
             background-color: #F3F4F6;
@@ -151,18 +170,31 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
                 <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
                     <h2 class="font-bold text-lg text-gray-800 mb-4">Categories</h2>
                     
-                    <ul class="space-y-2">
+                    <ul class="space-y-3">
                         <li>
-                            <a href="catalog.php" class="flex items-center <?= !$currentCategoryId ? 'text-gray-900 font-medium' : 'text-gray-700 hover:text-gray-900' ?>">
-                                <span class="w-5 text-center mr-2"><i class="fas fa-th-large"></i></span>
+                            <a href="catalog.php" class="flex items-center p-2 rounded-md transition-all <?= !$currentCategoryId ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-50' ?>">
+                                <span class="w-8 h-8 flex items-center justify-center bg-gray-700 text-white rounded-md mr-3">
+                                    <i class="fas fa-th-large"></i>
+                                </span>
                                 All Products
                             </a>
                         </li>
                         <?php foreach ($categories as $category): ?>
                         <li>
                             <a href="catalog.php?category_id=<?= $category['id'] ?>" 
-                               class="flex items-center <?= $currentCategoryId == $category['id'] ? 'text-gray-900 font-medium' : 'text-gray-700 hover:text-gray-900' ?>">
-                                <span class="w-5 text-center mr-2"><i class="fas fa-folder"></i></span>
+                               class="flex items-center p-2 rounded-md transition-all <?= $currentCategoryId == $category['id'] ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-50' ?>">
+                                <span class="w-8 h-8 flex items-center justify-center rounded-md mr-3 
+                                  <?= $currentCategoryId == $category['id'] ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700' ?>">
+                                    <?php 
+                                    $iconClass = 'fas fa-box';
+                                    switch(strtolower($category['name'])) {
+                                        case 'food': $iconClass = 'fas fa-utensils'; break;
+                                        case 'electronics': $iconClass = 'fas fa-laptop'; break;
+                                        case 'cloths': $iconClass = 'fas fa-tshirt'; break;
+                                    }
+                                    ?>
+                                    <i class="<?= $iconClass ?>"></i>
+                                </span>
                                 <?= htmlspecialchars($category['name']) ?>
                             </a>
                         </li>
@@ -174,44 +206,44 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
                 <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
                     <h2 class="font-bold text-lg text-gray-800 mb-4">Price Range</h2>
                     
-                    <div class="mt-4 px-2">
-                        <div id="price-slider" class="mb-4"></div>
-                        <div class="flex justify-between text-sm text-gray-600 mb-4">
-                            <span>$<span id="price-range-min"><?= floor($priceRange['min_price']) ?></span></span>
-                            <span>$<span id="price-range-max"><?= ceil($priceRange['max_price']) ?></span></span>
+                    <div class="px-1">
+                        <div class="flex justify-between text-sm text-gray-600 mb-2">
+                            <span>৳<span id="price-range-min"><?= floor($priceRange['min_price']) ?></span></span>
+                            <span>৳<span id="price-range-max"><?= ceil($priceRange['max_price']) ?></span></span>
                         </div>
                         
+                        <div id="price-slider" class="mb-6"></div>
+                        
                         <!-- Manual price input fields -->
-                        <div class="flex items-center space-x-2">
-                            <div class="flex-1">
-                                <label for="manual-min-price" class="block text-xs text-gray-500 mb-1">Min ($)</label>
+                        <div class="flex items-center gap-3">
+                            <div class="relative flex-1">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">৳</span>
                                 <input 
                                     type="number" 
                                     id="manual-min-price" 
-                                    class="w-full border-2 border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all" 
+                                    class="w-full border-2 border-gray-300 rounded-md px-7 py-2 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-all" 
                                     min="<?= floor($priceRange['min_price']) ?>" 
                                     max="<?= ceil($priceRange['max_price']) ?>" 
                                     value="<?= floor($priceRange['min_price']) ?>"
                                 >
                             </div>
-                            <div class="pt-5">—</div>
-                            <div class="flex-1">
-                                <label for="manual-max-price" class="block text-xs text-gray-500 mb-1">Max ($)</label>
+                            <div class="h-px w-3 bg-gray-300"></div>
+                            <div class="relative flex-1">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">৳</span>
                                 <input 
                                     type="number" 
                                     id="manual-max-price" 
-                                    class="w-full border-2 border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all" 
+                                    class="w-full border-2 border-gray-300 rounded-md px-7 py-2 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500 transition-all" 
                                     min="<?= floor($priceRange['min_price']) ?>" 
                                     max="<?= ceil($priceRange['max_price']) ?>" 
                                     value="<?= ceil($priceRange['max_price']) ?>"
                                 >
                             </div>
-                            <div class="pt-5">
-                                <button id="apply-price-range" class="bg-gray-700 text-white px-3 py-1.5 rounded-md text-sm hover:bg-gray-600 transition-colors">
-                                    Apply
-                                </button>
-                            </div>
                         </div>
+                        
+                        <button id="apply-price-range" class="mt-4 w-full flex justify-center items-center bg-gray-700 text-white px-4 py-2.5 rounded-md text-sm hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-filter mr-2"></i> Apply Filter
+                        </button>
                     </div>
                 </div>
                 
@@ -220,19 +252,31 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
                     <h2 class="font-bold text-lg text-gray-800 mb-4">Availability</h2>
                     
                     <div class="space-y-3">
-                        <label class="flex items-center text-sm">
-                            <input type="radio" name="stock" class="stock-filter mr-2 h-4 w-4 text-gray-700 focus:ring-gray-500" value="all" checked>
-                            <span>All Products</span>
+                        <label class="flex items-center p-2 rounded-md border-2 border-transparent hover:border-gray-200 cursor-pointer">
+                            <div class="relative flex items-center">
+                                <input type="radio" name="stock" class="stock-filter mr-2 h-4 w-4 opacity-0 absolute" value="all" checked>
+                                <div class="w-5 h-5 border-2 rounded-full border-gray-400 flex items-center justify-center radio-container">
+                                    <div class="hidden w-3 h-3 bg-gray-700 rounded-full radio-dot"></div>
+                                </div>
+                            </div>
+                            <span class="ml-2 text-gray-800">All Products</span>
+                            <span class="ml-auto bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">All</span>
                         </label>
-                        <label class="flex items-center text-sm">
-                            <input type="radio" name="stock" class="stock-filter mr-2 h-4 w-4 text-gray-700 focus:ring-gray-500" value="in_stock">
-                            <span>In Stock Only</span>
+                        <label class="flex items-center p-2 rounded-md border-2 border-transparent hover:border-gray-200 cursor-pointer">
+                            <div class="relative flex items-center">
+                                <input type="radio" name="stock" class="stock-filter mr-2 h-4 w-4 opacity-0 absolute" value="in_stock">
+                                <div class="w-5 h-5 border-2 rounded-full border-gray-400 flex items-center justify-center radio-container">
+                                    <div class="hidden w-3 h-3 bg-gray-700 rounded-full radio-dot"></div>
+                                </div>
+                            </div>
+                            <span class="ml-2 text-gray-800">In Stock Only</span>
+                            <span class="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Available</span>
                         </label>
                     </div>
                 </div>
                 
                 <!-- Reset Filters Button -->
-                <button id="resetFilters" class="w-full border-2 border-gray-300 text-gray-700 py-2.5 rounded-md hover:bg-gray-100 font-medium flex justify-center items-center space-x-2">
+                <button id="resetFilters" class="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-md hover:bg-gray-50 font-medium flex justify-center items-center space-x-2 shadow-sm">
                     <i class="fas fa-undo-alt"></i>
                     <span>Reset Filters</span>
                 </button>
@@ -305,47 +349,6 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
         </div>
     </main>
     
-    <!-- Featured Categories Section -->
-    <section class="bg-white py-16 border-t border-gray-200">
-        <div class="container mx-auto px-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-8">OTHER PRODUCT CATEGORIES</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Category Card 1 -->
-                <div class="flex overflow-hidden rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex-1 p-6">
-                        <h3 class="text-lg font-bold mb-2">Clothing Collection</h3>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Explore our stylish and trendy clothing for all occasions
-                        </p>
-                        <a href="#" class="inline-flex items-center gap-2 text-sm border border-gray-400 rounded px-4 py-2 hover:bg-gray-100 transition-colors">
-                            EXPLORE PRODUCT <i class="fas fa-arrow-right ml-1"></i>
-                        </a>
-                    </div>
-                    <div class="hidden md:block w-1/2 bg-gray-100">
-                        <img src="https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" alt="Clothing" class="w-full h-full object-cover">
-                    </div>
-                </div>
-                
-                <!-- Category Card 2 -->
-                <div class="flex overflow-hidden rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex-1 p-6">
-                        <h3 class="text-lg font-bold mb-2">Accessories</h3>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Explore our trendy types of accessories that are stylish and fashionable
-                        </p>
-                        <a href="#" class="inline-flex items-center gap-2 text-sm border border-gray-400 rounded px-4 py-2 hover:bg-gray-100 transition-colors">
-                            EXPLORE PRODUCT <i class="fas fa-arrow-right ml-1"></i>
-                        </a>
-                    </div>
-                    <div class="hidden md:block w-1/2 bg-gray-100">
-                        <img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=768&q=80" alt="Accessories" class="w-full h-full object-cover">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    
     <!-- Catalog Showcase Banner -->
     <section class="py-16 bg-cover bg-center bg-gray-700 text-white relative" style="background-image: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80');">
         <div class="absolute inset-0 bg-black bg-opacity-60"></div>
@@ -364,79 +367,57 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
     </section>
     
     <!-- Footer -->
-    <footer class="bg-white pt-16 pb-8 border-t border-gray-200">
+    <footer class="bg-white py-8 border-t border-gray-200">
         <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                <!-- General Links -->
-                <div>
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">GENERAL</h3>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">About Us</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">Blog</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">How It Works</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">Contact Us</a></li>
-                    </ul>
+            <!-- Links -->
+            <div class="flex flex-wrap justify-center mb-6">
+                <div class="px-4 py-2">
+                    <a href="#" class="text-gray-600 hover:text-gray-900">About</a>
                 </div>
-                
-                <!-- Products Links -->
-                <div>
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">PRODUCTS</h3>
-                    <ul class="space-y-2">
-                        <?php foreach (array_slice($categories, 0, 4) as $category): ?>
-                        <li>
-                            <a href="catalog.php?category_id=<?= $category['id'] ?>" class="text-gray-600 hover:text-gray-900">
-                                <?= htmlspecialchars($category['name']) ?>
-                            </a>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
+                <div class="px-4 py-2">
+                    <a href="#" class="text-gray-600 hover:text-gray-900">Contact</a>
                 </div>
-                
-                <!-- Customer Service Links -->
-                <div>
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">CUSTOMER SERVICE</h3>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">FAQ</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">Help & Support</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">Shipping Information</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-gray-900">Privacy Policy</a></li>
-                    </ul>
+                <div class="px-4 py-2">
+                    <a href="#" class="text-gray-600 hover:text-gray-900">FAQ</a>
                 </div>
-                
-                <!-- Social Media Links -->
-                <div>
-                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">SOCIAL MEDIA</h3>
-                    <ul class="space-y-2">
-                        <li>
-                            <a href="#" class="text-gray-600 hover:text-gray-900 flex items-center">
-                                <i class="fab fa-instagram w-5"></i> Instagram
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-gray-600 hover:text-gray-900 flex items-center">
-                                <i class="fab fa-facebook w-5"></i> Facebook
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-gray-600 hover:text-gray-900 flex items-center">
-                                <i class="fab fa-twitter w-5"></i> Twitter
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-gray-600 hover:text-gray-900 flex items-center">
-                                <i class="fab fa-youtube w-5"></i> YouTube
-                            </a>
-                        </li>
-                    </ul>
+                <div class="px-4 py-2">
+                    <a href="#" class="text-gray-600 hover:text-gray-900">Privacy</a>
+                </div>
+                <div class="px-4 py-2">
+                    <a href="#" class="text-gray-600 hover:text-gray-900">Shipping</a>
                 </div>
             </div>
             
-            <!-- Brand and Copyright -->
-            <div class="pt-8 border-t border-gray-200 text-center">
-                <div class="text-6xl font-bold text-gray-200 mb-4">SMARTINVENTORY</div>
-                <div class="text-sm text-gray-500">
-                    &copy; <?= date('Y') ?> SmartInventory. All rights reserved.
+            <!-- Categories -->
+            <div class="flex flex-wrap justify-center mb-6">
+                <?php foreach (array_slice($categories, 0, 4) as $category): ?>
+                <div class="px-4 py-2">
+                    <a href="catalog.php?category_id=<?= $category['id'] ?>" class="text-gray-600 hover:text-gray-900">
+                        <?= htmlspecialchars($category['name']) ?>
+                    </a>
                 </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <!-- Social Media Icons -->
+            <div class="flex justify-center space-x-4 mb-6">
+                <a href="#" class="text-gray-400 hover:text-gray-700">
+                    <i class="fab fa-instagram text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-700">
+                    <i class="fab fa-facebook text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-700">
+                    <i class="fab fa-twitter text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-gray-700">
+                    <i class="fab fa-youtube text-xl"></i>
+                </a>
+            </div>
+            
+            <!-- Copyright -->
+            <div class="text-center text-sm text-gray-500">
+                &copy; <?= date('Y') ?> SmartInventory. All rights reserved.
             </div>
         </div>
     </footer>
@@ -635,9 +616,23 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             }, 500);
         });
         
-        // Dynamic filtering for stock radio buttons
-        stockFilters.forEach(radio => {
+        // Custom radio button functionality
+        document.querySelectorAll('input[type="radio"].stock-filter').forEach(radio => {
             radio.addEventListener('change', function() {
+                // First reset all radio containers
+                document.querySelectorAll('.radio-container').forEach(container => {
+                    const dot = container.querySelector('.radio-dot');
+                    if (dot) dot.classList.add('hidden');
+                });
+                
+                // Then show the selected one
+                if (this.checked) {
+                    const container = this.nextElementSibling;
+                    const dot = container.querySelector('.radio-dot');
+                    if (dot) dot.classList.remove('hidden');
+                }
+                
+                // Execute the existing filter functionality
                 stockFilter = this.value;
                 currentPage = 1;
                 loadProducts();
@@ -789,9 +784,10 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             
             products.forEach(product => {
                 // Format price
-                const formattedPrice = new Intl.NumberFormat('en-US', {
+                const formattedPrice = new Intl.NumberFormat('en-IN', {
                     style: 'currency',
-                    currency: 'USD'
+                    currency: 'BDT',
+                    currencyDisplay: 'symbol'
                 }).format(product.selling_price);
                 
                 // Create size badges HTML
