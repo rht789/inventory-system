@@ -14,6 +14,21 @@ $dbname = 'inventory_system'; // Use the same name as in db.php
 requireLogin();
 allowRoles(['admin', 'staff']);
 
+// Helper function to create a notification
+function createNotification($pdo, $type, $title, $message, $role = 'all') {
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (type, title, message, role, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$type, $title, $message, $role]);
+        return $pdo->lastInsertId();
+    } catch (Exception $e) {
+        error_log("Error creating notification: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Add recent sales endpoint for dashboard
 if (isset($_GET['recent']) && $_GET['recent'] === 'true') {
     $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 5;
@@ -574,6 +589,23 @@ if ($method === 'POST') {
                     // Update product total stock
                     updateProductStock($pdo, $productId);
                     
+                    // Check for low stock condition
+                    $stmt = $pdo->prepare("
+                        SELECT p.name, p.min_stock, ps.stock 
+                        FROM products p 
+                        JOIN product_sizes ps ON p.id = ps.product_id 
+                        WHERE ps.id = ?
+                    ");
+                    $stmt->execute([$productSizeId]);
+                    $stockInfo = $stmt->fetch();
+                    
+                    if ($stockInfo && $stockInfo['stock'] <= $stockInfo['min_stock']) {
+                        // Create low stock notification
+                        $notificationTitle = "Low Stock Alert";
+                        $notificationMessage = "{$stockInfo['name']} is running low on stock. Current quantity: {$stockInfo['stock']}";
+                        createNotification($pdo, 'low_stock', $notificationTitle, $notificationMessage, 'admin');
+                    }
+                    
                     // Log stock change
                     $changes = "Reduced $quantity Stock";
                     $reason = "Sale " . formatOrderId($saleId);
@@ -585,6 +617,11 @@ if ($method === 'POST') {
         // Log audit action
         $action = "Created Sale " . formatOrderId($saleId);
         logAudit($pdo, $userId, $saleId, $action);
+        
+        // Create notification for new sale
+        $notificationTitle = "Sale completed";
+        $notificationMessage = "Sale #" . $saleId . " has been completed successfully";
+        createNotification($pdo, 'sale', $notificationTitle, $notificationMessage, 'all');
         
         $pdo->commit();
         
@@ -1074,3 +1111,4 @@ if ($method === 'PUT') {
 http_response_code(405);
 echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 exit;
+?>

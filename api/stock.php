@@ -2,6 +2,21 @@
 require_once __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
+// Helper function to create a notification
+function createNotification($pdo, $type, $title, $message, $role = 'all') {
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (type, title, message, role, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$type, $title, $message, $role]);
+        return $pdo->lastInsertId();
+    } catch (Exception $e) {
+        error_log("Error creating notification: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Save stock adjustment (POST)
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -52,12 +67,14 @@ if ($method === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        // Validate product_id exists
-        $stmt = $pdo->prepare("SELECT id FROM products WHERE id = ? AND deleted_at IS NULL");
+        // Validate product_id exists and fetch product name for notification
+        $stmt = $pdo->prepare("SELECT id, name FROM products WHERE id = ? AND deleted_at IS NULL");
         $stmt->execute([$product_id]);
-        if (!$stmt->fetch()) {
+        $product = $stmt->fetch();
+        if (!$product) {
             throw new Exception("Invalid product selected");
         }
+        $product_name = $product['name'];
 
         // Validate size_id exists and belongs to the product
         $stmt = $pdo->prepare("SELECT stock FROM product_sizes WHERE id = ? AND product_id = ?");
@@ -82,12 +99,34 @@ if ($method === 'POST') {
         $pdo->prepare("UPDATE product_sizes SET stock = stock + ? WHERE id = ?")
             ->execute([$stock_change, $size_id]);
 
+        // Check for low stock condition
+        $stmt = $pdo->prepare("
+            SELECT p.name, p.min_stock, ps.stock 
+            FROM products p 
+            JOIN product_sizes ps ON p.id = ps.product_id 
+            WHERE ps.id = ?
+        ");
+        $stmt->execute([$size_id]);
+        $stockInfo = $stmt->fetch();
+        
+        if ($stockInfo && $stockInfo['stock'] <= $stockInfo['min_stock']) {
+            // Create low stock notification
+            $notificationTitle = "Low Stock Alert";
+            $notificationMessage = "{$stockInfo['name']} is running low on stock. Current quantity: {$stockInfo['stock']}";
+            createNotification($pdo, 'low_stock', $notificationTitle, $notificationMessage, 'admin');
+        }
+
         // Insert into stock_logs
         $stmt = $pdo->prepare("
             INSERT INTO stock_logs (product_id, changes, reason, user_id, timestamp)
             VALUES (?, ?, ?, ?, NOW())
         ");
         $stmt->execute([$product_id, $changes, $reason, $user_id]);
+
+        // Create notification for stock update
+        $notificationTitle = "Stock updated";
+        $notificationMessage = "$action $quantity units for $product_name.";
+        createNotification($pdo, 'stock', $notificationTitle, $notificationMessage, 'all');
 
         $pdo->commit();
         echo json_encode(['success' => true]);
@@ -220,3 +259,4 @@ if ($method === 'GET') {
 
 http_response_code(405);
 echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+?>
