@@ -291,6 +291,33 @@ if ($method === 'POST') {
             $input['description'] = isset($input['description']) && $input['description'] !== '' ? $input['description'] : null;
             $input['location'] = isset($input['location']) && $input['location'] !== '' ? $input['location'] : null;
 
+            // Process image upload
+            $imagePath = isset($input['current_image']) ? $input['current_image'] : null;
+            
+            if (!empty($_FILES['product_image']['name'])) {
+                $uploadDir = __DIR__ . '/../uploads/products/';
+                
+                // Create directory if it doesn't exist
+                if (!is_dir($uploadDir)) {
+                    if (!mkdir($uploadDir, 0755, true)) {
+                        throw new Exception("Failed to create image upload directory");
+                    }
+                }
+                
+                // Generate unique filename
+                $extension = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
+                $fileName = 'product_' . $input['id'] . '_' . time() . '.' . $extension;
+                $uploadPath = $uploadDir . $fileName;
+                $relativePath = 'uploads/products/' . $fileName;
+                
+                // Try to upload the file
+                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $uploadPath)) {
+                    $imagePath = $relativePath;
+                } else {
+                    throw new Exception("Failed to upload image");
+                }
+            }
+
             // First check if the product exists
             $checkStmt = $pdo->prepare("SELECT id FROM products WHERE id = ?");
             $checkStmt->execute([$input['id']]);
@@ -308,7 +335,8 @@ if ($method === 'POST') {
                 stock          = :stock,
                 min_stock      = :min_stock,
                 location       = :location,
-                description    = :description
+                description    = :description,
+                image          = :image
               WHERE id = :id
             ");
             $upd->execute([
@@ -320,7 +348,8 @@ if ($method === 'POST') {
                 'stock'          => $input['stock'],
                 'min_stock'      => $input['min_stock'],
                 'location'       => $input['location'],
-                'description'    => $input['description']
+                'description'    => $input['description'],
+                'image'          => $imagePath
             ]);
 
             // Handle barcode separately - only create if it doesn't exist
@@ -351,7 +380,12 @@ if ($method === 'POST') {
             }
 
             // Update product sizes
-            if (!empty($input['sizes']) && is_array($input['sizes'])) {
+            if (!empty($input['sizes_json'])) {
+                $sizes = json_decode($input['sizes_json'], true);
+                if (is_array($sizes)) {
+                    saveSizes($pdo, $input['id'], $sizes);
+                }
+            } else if (!empty($input['sizes']) && is_array($input['sizes'])) {
                 saveSizes($pdo, $input['id'], $input['sizes']);
             } else {
                 // If no sizes provided, ensure there's at least one default size
@@ -381,6 +415,31 @@ if ($method === 'POST') {
     try {
         $pdo->beginTransaction();
 
+        // Process image upload
+        $imagePath = null;
+        if (!empty($_FILES['product_image']['name'])) {
+            $uploadDir = __DIR__ . '/../uploads/products/';
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadDir)) {
+                if (!mkdir($uploadDir, 0755, true)) {
+                    throw new Exception("Failed to create image upload directory");
+                }
+            }
+            
+            // Generate a temporary filename - we'll update it after we get the product ID
+            $tempFileName = 'product_temp_' . time() . '.' . pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
+            $uploadPath = $uploadDir . $tempFileName;
+            $tempRelativePath = 'uploads/products/' . $tempFileName;
+            
+            // Try to upload the file
+            if (move_uploaded_file($_FILES['product_image']['tmp_name'], $uploadPath)) {
+                $imagePath = $tempRelativePath;
+            } else {
+                throw new Exception("Failed to upload image");
+            }
+        }
+
         $ins = $pdo->prepare("
           INSERT INTO products
             (name, category_id, price, selling_price, stock,
@@ -397,10 +456,23 @@ if ($method === 'POST') {
             'stock'          => $input['stock'],
             'min_stock'      => $input['min_stock']   ?? 5,
             'location'       => $input['location']    ?? null,
-            'image'          => $input['image']       ?? null,
+            'image'          => $imagePath,
             'description'    => $input['description'] ?? null
         ]);
         $newId = $pdo->lastInsertId();
+
+        // Rename the image file with the product ID if we uploaded one
+        if ($imagePath && strpos($imagePath, 'product_temp_') !== false) {
+            $newFileName = 'product_' . $newId . '_' . time() . '.' . pathinfo($imagePath, PATHINFO_EXTENSION);
+            $newUploadPath = __DIR__ . '/../uploads/products/' . $newFileName;
+            $newRelativePath = 'uploads/products/' . $newFileName;
+            
+            if (rename(__DIR__ . '/../' . $imagePath, $newUploadPath)) {
+                $pdo->prepare("UPDATE products SET image = ? WHERE id = ?")
+                    ->execute([$newRelativePath, $newId]);
+                $imagePath = $newRelativePath;
+            }
+        }
 
         $gen  = new BarcodeGeneratorPNG();
         $barcodePath = 'barcodes/' . $newId . '.png';
@@ -422,7 +494,13 @@ if ($method === 'POST') {
         $pdo->prepare("UPDATE products SET barcode = ? WHERE id = ?")
             ->execute([$barcodePath, $newId]);
 
-        if (!empty($input['sizes']) && is_array($input['sizes'])) {
+        // Process sizes
+        if (!empty($input['sizes_json'])) {
+            $sizes = json_decode($input['sizes_json'], true);
+            if (is_array($sizes)) {
+                saveSizes($pdo, $newId, $sizes);
+            }
+        } else if (!empty($input['sizes']) && is_array($input['sizes'])) {
             saveSizes($pdo, $newId, $input['sizes']);
         } else {
             saveSizes($pdo, $newId, [['size'=>'Default','stock'=>$input['stock']]]);

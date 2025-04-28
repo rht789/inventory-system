@@ -57,7 +57,7 @@ include 'sidebar.php';
     <table class="w-full text-sm">
       <thead class="bg-gray-100 text-gray-600">
         <tr>
-          <th class="px-4 py-3 text-center">Name</th>
+          <th class="px-4 py-3 text-left">Product</th>
           <th class="px-4 py-3 text-center">Category</th>
           <th class="px-4 py-3 text-left">Size & Stock</th>
           <th class="px-4 py-3 text-center">Total Stock</th>
@@ -100,7 +100,7 @@ include 'sidebar.php';
 <!-- Add Product Modal -->
 <div id="addProductModal"
      class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
+  <div class="bg-white rounded-lg p-6 w-full max-w-2xl overflow-auto max-h-screen">
     <div class="flex justify-between items-center mb-2">
       <h3 class="text-lg font-semibold">Add Product</h3>
       <button onclick="closeAddProductModal()">
@@ -128,12 +128,25 @@ include 'sidebar.php';
         </div>
       </div>
 
-      <!-- Description -->
-      <div>
-        <label class="block text-sm font-medium">Description</label>
-        <input type="text" name="description"
-               placeholder="Enter product description"
-               class="w-full border px-3 py-2 rounded" />
+      <!-- Description & Image -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Description</label>
+          <input type="text" name="description"
+                 placeholder="Enter product description"
+                 class="w-full border px-3 py-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Product Image</label>
+          <div class="flex items-center gap-2">
+            <input type="file" name="product_image" 
+                   accept="image/*" 
+                   class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-gray-700 file:text-white hover:file:bg-gray-600" />
+          </div>
+          <div id="image-preview-add" class="mt-2 h-20 flex items-center justify-center">
+            <span class="text-xs text-gray-500">No image selected</span>
+          </div>
+        </div>
       </div>
 
       <!-- Sizes & Stock -->
@@ -229,7 +242,7 @@ include 'sidebar.php';
 <!-- Edit Product Modal -->
 <div id="editProductModal"
      class="fixed inset-0 hidden bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md overflow-auto max-h-screen">
+  <div class="bg-white rounded-lg p-6 w-full max-w-2xl overflow-auto max-h-screen">
     <div class="flex justify-between items-center mb-2">
       <h3 class="text-lg font-semibold">Edit Product</h3>
       <button onclick="closeEditProductModal()">
@@ -256,12 +269,26 @@ include 'sidebar.php';
         </div>
       </div>
 
-      <!-- Description -->
-      <div>
-        <label class="block text-sm font-medium">Description</label>
-        <input type="text" name="description"
-               placeholder="Enter product description"
-               class="w-full border px-3 py-2 rounded" />
+      <!-- Description & Image -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Description</label>
+          <input type="text" name="description"
+                 placeholder="Enter product description"
+                 class="w-full border px-3 py-2 rounded" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Product Image</label>
+          <div class="flex items-center gap-2">
+            <input type="file" name="product_image" 
+                   accept="image/*" 
+                   class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-gray-700 file:text-white hover:file:bg-gray-600" />
+          </div>
+          <div id="image-preview-edit" class="mt-2 h-20 flex items-center justify-center">
+            <span class="text-xs text-gray-500">No image selected</span>
+          </div>
+          <input type="hidden" name="current_image" />
+        </div>
       </div>
 
       <!-- Sizes & Stock -->
@@ -409,6 +436,35 @@ const
 
 let addSizes = [], editSizes = [], editingProductId = null, editingCategoryId = null;
 
+// Image preview handlers
+document.querySelector('input[name="product_image"]').addEventListener('change', function(e) {
+  handleImagePreview(e, 'image-preview-add');
+});
+
+document.querySelector('#editProductForm input[name="product_image"]').addEventListener('change', function(e) {
+  handleImagePreview(e, 'image-preview-edit');
+});
+
+function handleImagePreview(event, previewId) {
+  const preview = document.getElementById(previewId);
+  preview.innerHTML = '';
+  
+  if (event.target.files && event.target.files[0]) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'h-full object-contain';
+      preview.appendChild(img);
+    }
+    
+    reader.readAsDataURL(event.target.files[0]);
+  } else {
+    preview.innerHTML = '<span class="text-xs text-gray-500">No image selected</span>';
+  }
+}
+
 // Show toast
 function showToast(msg, success = true) {
   toast.textContent = msg;
@@ -454,10 +510,22 @@ async function fetchProducts() {
          </span>`
       ).join('');
       const total  = p.sizes.reduce((sum, s) => sum + +s.stock, 0);
+      
+      // Product image display
+      const imageHtml = p.image ? 
+        `<img src="./${p.image}" alt="${p.name}" class="h-10 w-10 object-cover rounded">` :
+        `<div class="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+           <i class="fas fa-image text-gray-400"></i>
+         </div>`;
 
       return `
         <tr class="border-t hover:bg-gray-50">
-          <td class="px-4 py-3 font-semibold text-center">${p.name}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              ${imageHtml}
+              <span class="font-semibold">${p.name}</span>
+            </div>
+          </td>
           <td class="px-4 py-3 text-center">${p.category_name}</td>
           <td class="px-4 py-3 flex flex-wrap gap-2">${badges}</td>
           <td class="px-4 py-3 font-bold text-center">${total}</td>
@@ -533,6 +601,16 @@ window.startEditProduct = async id => {
     editProductForm.price.value = p.price;
     editProductForm.selling_price.value = p.selling_price;
     editProductForm.category_id.value = p.category_id;
+    
+    // Handle image preview
+    const imagePreview = document.getElementById('image-preview-edit');
+    if (p.image) {
+      imagePreview.innerHTML = `<img src="./${p.image}" class="h-full object-contain" alt="${p.name}">`;
+      editProductForm.querySelector('input[name="current_image"]').value = p.image;
+    } else {
+      imagePreview.innerHTML = '<span class="text-xs text-gray-500">No image</span>';
+      editProductForm.querySelector('input[name="current_image"]').value = '';
+    }
     
     // Store sizes
     editSizes = p.sizes.map(s => ({ size: s.size_name, stock: +s.stock }));
@@ -654,7 +732,9 @@ function updateEditTotal() {
 // Add Product Modal: Save new product
 addProductForm.onsubmit = async e => {
   e.preventDefault();
-  const data = Object.fromEntries(new FormData(addProductForm).entries());
+  
+  // Create FormData object to handle file uploads
+  const formData = new FormData(addProductForm);
 
   if (addSizes.length === 0) {
     showToast('Please add at least one size', false);
@@ -666,43 +746,35 @@ addProductForm.onsubmit = async e => {
     return;
   }
 
-  if (!data.initial_batch_size || !data.batch_number || !data.manufactured_date) {
+  if (!formData.get('initial_batch_size') || !formData.get('batch_number') || !formData.get('manufactured_date')) {
     showToast('Initial batch size, batch number, and manufactured date are required', false);
     return;
   }
 
   // Validate manufactured date
   const currentDate = new Date('2025-04-22');
-  const manufacturedDate = new Date(data.manufactured_date);
+  const manufacturedDate = new Date(formData.get('manufactured_date'));
   if (manufacturedDate > currentDate) {
     showToast('Manufactured date cannot be in the future', false);
     return;
   }
 
-  const selectedSize = addSizes.find(s => s.size === data.initial_batch_size);
+  const selectedSize = addSizes.find(s => s.size === formData.get('initial_batch_size'));
   if (!selectedSize) {
     showToast('Selected initial batch size not found in sizes list', false);
     return;
   }
 
-  const payload = {
-    name: data.name,
-    category_id: +data.category_id,
-    description: data.description,
-    location: data.location || null,
-    min_stock: +data.min_stock,
-    price: parseFloat(data.price),
-    selling_price: parseFloat(data.selling_price),
-    stock: +data.stock,
-    sizes: addSizes,
-    initial_batch_size: data.initial_batch_size,
-    batch_number: data.batch_number,
-    manufactured_date: data.manufactured_date,
-    initial_batch_stock: addSizes.find(s => s.size === data.initial_batch_size).stock
-  };
+  // Add sizes to FormData
+  formData.append('sizes_json', JSON.stringify(addSizes));
+  formData.append('initial_batch_stock', addSizes.find(s => s.size === formData.get('initial_batch_size')).stock);
 
   try {
-    const res = await apiPost('./api/products.php', payload);
+    const res = await fetch('./api/products.php', {
+      method: 'POST',
+      body: formData
+    }).then(response => response.json());
+    
     if (res.success) {
       showToast('Product added!');
       closeAddProductModal();
@@ -719,7 +791,11 @@ addProductForm.onsubmit = async e => {
 // Edit Product Modal: Update existing product
 editProductForm.onsubmit = async e => {
   e.preventDefault();
-  const data = Object.fromEntries(new FormData(editProductForm).entries());
+  
+  // Create FormData object to handle file uploads
+  const formData = new FormData(editProductForm);
+  formData.append('action', 'update');
+  formData.append('id', editingProductId);
 
   if (editSizes.length === 0) {
     showToast('Please add at least one size', false);
@@ -731,24 +807,17 @@ editProductForm.onsubmit = async e => {
     return;
   }
 
-  const payload = {
-    action: 'update',
-    id: editingProductId,
-    name: data.name,
-    category_id: +data.category_id,
-    description: data.description,
-    location: data.location || null,
-    min_stock: +data.min_stock,
-    price: parseFloat(data.price),
-    selling_price: parseFloat(data.selling_price),
-    stock: +data.stock,
-    sizes: editSizes
-  };
+  // Add sizes to FormData
+  formData.append('sizes_json', JSON.stringify(editSizes));
 
-  console.log('Sending payload for edit:', payload);
+  console.log('Sending payload for edit:', Object.fromEntries(formData));
 
   try {
-    const res = await apiPost('./api/products.php', payload);
+    const res = await fetch('./api/products.php', {
+      method: 'POST',
+      body: formData
+    }).then(response => response.json());
+    
     if (res.success) {
       showToast('Product updated!');
       closeEditProductModal();
