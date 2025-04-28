@@ -231,6 +231,85 @@ $currentAdminId = $_SESSION['user_id'];
     </div>
   </div>
 
+  <!-- Edit User Modal -->
+  <div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center">
+    <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-0 relative">
+      <div class="bg-gray-50 p-4 border-b border-gray-200 rounded-t-lg">
+        <h2 class="text-xl font-bold text-gray-800">Edit User</h2>
+        <p class="text-sm text-gray-500 mt-1">Update user information</p>
+      </div>
+      
+      <form id="editUserForm" class="p-6">
+        <input type="hidden" id="edit_user_id" name="id">
+        
+        <div class="space-y-4">
+          <div>
+            <label for="edit_username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-user text-gray-400"></i>
+              </div>
+              <input id="edit_username" name="username" type="text" required 
+                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-gray-500 focus:border-gray-500">
+            </div>
+          </div>
+          
+          <div>
+            <label for="edit_email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-envelope text-gray-400"></i>
+              </div>
+              <input id="edit_email" name="email" type="email" required 
+                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-gray-500 focus:border-gray-500">
+            </div>
+          </div>
+          
+          <div>
+            <label for="edit_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number (Optional)</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-phone text-gray-400"></i>
+              </div>
+              <input id="edit_phone" name="phone" type="text" 
+                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-gray-500 focus:border-gray-500">
+            </div>
+          </div>
+          
+          <div>
+            <label for="edit_status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-user-check text-gray-400"></i>
+              </div>
+              <select id="edit_status" name="status" 
+                      class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-gray-500 focus:border-gray-500">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-6 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeEditUserModal()" 
+                  class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
+            Cancel
+          </button>
+          <button type="submit" 
+                  class="px-4 py-2 border border-transparent rounded-lg text-white bg-gray-700 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
+            Save Changes
+          </button>
+        </div>
+      </form>
+      
+      <button onclick="closeEditUserModal()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-500 transition">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-5 py-3 rounded-lg shadow-xl hidden z-50 transition-opacity duration-300 max-w-md">
     <div class="flex items-start gap-3">
@@ -617,14 +696,71 @@ function editUser(id) {
         return;
       }
       
-      // This is the placeholder for edit functionality
-      showToast(`Edit functionality for user ID: ${id} will be implemented soon`, true);
+      // Fill the edit form with user data
+      document.getElementById('edit_user_id').value = data.user.id;
+      document.getElementById('edit_username').value = data.user.username;
+      document.getElementById('edit_email').value = data.user.email;
+      document.getElementById('edit_phone').value = data.user.phone || '';
+      document.getElementById('edit_status').value = data.user.status || 'active';
+      
+      // Show the edit modal
+      document.getElementById('editUserModal').classList.remove('hidden');
     })
     .catch(error => {
       console.error('Error checking user:', error);
       showToast('An error occurred. Please try again.', false);
     });
 }
+
+function openEditUserModal() {
+  document.getElementById('editUserModal').classList.remove('hidden');
+}
+
+function closeEditUserModal() {
+  document.getElementById('editUserModal').classList.add('hidden');
+  document.getElementById('editUserForm').reset();
+}
+
+// Handle edit form submission
+document.getElementById('editUserForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+  const userId = formData.get('id');
+
+  // Show loading state
+  const submitBtn = this.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+  submitBtn.disabled = true;
+
+  fetch('api/users.php', {
+    method: 'POST',
+    body: formData
+  })
+    .then(res => res.json())
+    .then(data => {
+      // Restore button state
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
+      
+      if (data.success) {
+        showToast('User updated successfully', true);
+        closeEditUserModal();
+        fetchUsers(); // Refresh the user list
+      } else {
+        showToast(data.error || 'Failed to update user', false);
+      }
+    })
+    .catch(error => {
+      // Restore button state
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
+      
+      console.error('Error updating user:', error);
+      showToast('An error occurred. Please try again.', false);
+    });
+});
 
 window.addEventListener('DOMContentLoaded', fetchUsers);
 </script>
