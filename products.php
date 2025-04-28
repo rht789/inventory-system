@@ -25,20 +25,20 @@ include 'sidebar.php';
         <p class="text-gray-600 mt-1">Manage your inventory products and categories</p>
       </div>
       <div class="flex flex-wrap gap-3">
-        <button onclick="openCategoryModal()"
+      <button onclick="openCategoryModal()"
                 class="flex items-center gap-2 px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-medium rounded-md hover:border-gray-400 hover:bg-gray-50 transition-colors">
           <i class="fas fa-tags"></i>
           <span>Manage Categories</span>
-        </button>
-        <button onclick="openAddProductModal()"
+      </button>
+      <button onclick="openAddProductModal()"
                 class="flex items-center gap-2 px-4 py-2.5 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600 transition-colors">
           <i class="fas fa-plus"></i>
           <span>Add Product</span>
-        </button>
-      </div>
+      </button>
     </div>
+  </div>
 
-    <!-- Filters & Search -->
+  <!-- Filters & Search -->
     <div class="bg-white p-6 rounded-lg shadow mb-8 border border-gray-200">
       <div class="flex flex-col md:flex-row md:items-center gap-5">
         <div class="flex-1">
@@ -46,7 +46,7 @@ include 'sidebar.php';
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i class="fas fa-search text-gray-400"></i>
             </div>
-            <input type="text" id="searchInput"
+      <input type="text" id="searchInput"
                   placeholder="Search products by name, category..."
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
           </div>
@@ -59,12 +59,12 @@ include 'sidebar.php';
             <option value="in_stock">In Stock</option>
             <option value="low_stock">Low Stock</option>
             <option value="out_of_stock">Out of Stock</option>
-          </select>
+        </select>
           <select id="categorySelect" 
                  class="border-2 border-gray-300 rounded-md px-3 py-2.5 text-gray-700 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8"
                  style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
             <option value="">All Categories</option>
-          </select>
+        </select>
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@ include 'sidebar.php';
   <!-- Product Table -->
   <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+    <table class="w-full text-sm">
         <thead>
           <tr>
             <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-left">Product</th>
@@ -84,8 +84,8 @@ include 'sidebar.php';
             <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Cost Price (৳)</th>
             <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Selling Price (৳)</th>
             <th class="px-6 py-4 bg-gray-700 text-white font-semibold text-center">Actions</th>
-          </tr>
-        </thead>
+        </tr>
+      </thead>
         <tbody id="product-list" class="divide-y divide-gray-200">
           <!-- Loading placeholder -->
           <tr>
@@ -99,8 +99,8 @@ include 'sidebar.php';
               </div>
             </td>
           </tr>
-        </tbody>
-      </table>
+      </tbody>
+    </table>
     </div>
   </div>
 </main>
@@ -120,8 +120,8 @@ include 'sidebar.php';
         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           <i class="fas fa-tag text-gray-400"></i>
         </div>
-        <input type="text" id="newCategoryInput"
-               placeholder="Enter new category name"
+      <input type="text" id="newCategoryInput"
+             placeholder="Enter new category name"
                class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
       </div>
       <button id="addCategoryBtn"
@@ -136,7 +136,7 @@ include 'sidebar.php';
 <!-- Add Product Modal -->
 <div id="addProductModal"
      class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
-  <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-auto m-4 shadow-xl">
+  <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto m-4 shadow-xl">
     <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
       <div>
         <h3 class="text-2xl font-bold text-gray-900">Add Product</h3>
@@ -151,16 +151,16 @@ include 'sidebar.php';
       <input type="hidden" name="barcode" />
 
       <!-- Name & Category -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div>
           <label class="block text-sm font-medium mb-2 text-gray-700">Product Name</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-box text-gray-400"></i>
             </div>
-            <input type="text" name="name"
+          <input type="text" name="name"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all"
-                  required />
+                 required />
           </div>
         </div>
         <div>
@@ -169,10 +169,21 @@ include 'sidebar.php';
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-tags text-gray-400"></i>
             </div>
-            <select name="category_id"
+          <select name="category_id"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8"
                   style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em"
                   required></select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Location</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <i class="fas fa-map-marker-alt text-gray-400"></i>
+            </div>
+            <input type="text" name="location"
+                  placeholder="Enter location (e.g., Shelf A, Side B)"
+                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
           </div>
         </div>
       </div>
@@ -185,8 +196,8 @@ include 'sidebar.php';
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-align-left text-gray-400"></i>
             </div>
-            <input type="text" name="description"
-                  placeholder="Enter product description"
+          <input type="text" name="description"
+                 placeholder="Enter product description"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
           </div>
         </div>
@@ -194,7 +205,7 @@ include 'sidebar.php';
           <label class="block text-sm font-medium mb-2 text-gray-700">Product Image</label>
           <div class="flex items-center gap-2">
             <input type="file" name="product_image" 
-                  accept="image/*" 
+                   accept="image/*" 
                   class="text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-gray-700 file:text-white hover:file:bg-gray-600" />
           </div>
           <div id="image-preview-add" class="mt-2 h-20 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md">
@@ -211,8 +222,8 @@ include 'sidebar.php';
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-ruler text-gray-400"></i>
             </div>
-            <input type="text" id="newSizeInput"
-                  placeholder="Enter size (e.g., S, M, L, XL)"
+          <input type="text" id="newSizeInput"
+                 placeholder="Enter size (e.g., S, M, L, XL)"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
           </div>
           <button type="button" id="addSizeBtn"
@@ -234,59 +245,48 @@ include 'sidebar.php';
       <div>
         <label class="block text-sm font-medium mb-2 text-gray-700">Initial Batch</label>
         <div class="space-y-4 p-4 border-2 border-gray-200 rounded-md">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm mb-1 text-gray-700">Size</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <i class="fas fa-tag text-gray-400"></i>
+              <label class="block text-sm mb-1 text-gray-700">Size</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-tag text-gray-400"></i>
+                </div>
+                <select id="initialBatchSize" name="initial_batch_size" 
+                       class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8"
+                       style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
+              <option value="">Select a size</option>
+            </select>
               </div>
-              <select id="initialBatchSize" name="initial_batch_size" 
-                     class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8"
-                     style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em">
-                <option value="">Select a size</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm mb-1 text-gray-700">Batch Number</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <i class="fas fa-hashtag text-gray-400"></i>
-              </div>
-              <input type="text" name="batch_number"
-                    placeholder="e.g., BATCH-2025-001"
-                    class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
-            </div>
           </div>
           <div>
-            <label class="block text-sm mb-1 text-gray-700">Manufactured Date</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <i class="fas fa-calendar-alt text-gray-400"></i>
+              <label class="block text-sm mb-1 text-gray-700">Batch Number</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-hashtag text-gray-400"></i>
+                </div>
+            <input type="text" name="batch_number"
+                   placeholder="e.g., BATCH-2025-001"
+                      class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
               </div>
-              <input type="date" name="manufactured_date"
-                    class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+          </div>
+          <div>
+              <label class="block text-sm mb-1 text-gray-700">Manufactured Date</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-calendar-alt text-gray-400"></i>
+                </div>
+            <input type="date" name="manufactured_date"
+                      class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Location -->
-      <div>
-        <label class="block text-sm font-medium mb-2 text-gray-700">Location</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <i class="fas fa-map-marker-alt text-gray-400"></i>
-          </div>
-          <input type="text" name="location"
-                placeholder="Enter location (e.g., Shelf A, Side B)"
-                class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
         </div>
       </div>
 
       <!-- Pricing -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div>
           <label class="block text-sm font-medium mb-2 text-gray-700">Cost Price (৳)</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -295,8 +295,8 @@ include 'sidebar.php';
             <input type="number" step="0.01" min="0" name="price"
                   placeholder="0.00"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
-          </div>
-        </div>
+      </div>
+      </div>
         <div>
           <label class="block text-sm font-medium mb-2 text-gray-700">Selling Price (৳)</label>
           <div class="relative">
@@ -308,28 +308,26 @@ include 'sidebar.php';
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
           </div>
         </div>
-      </div>
-
-      <!-- Minimum Stock -->
-      <div>
-        <label class="block text-sm font-medium mb-2 text-gray-700">Minimum Stock Level</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <i class="fas fa-exclamation-triangle text-gray-400"></i>
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Minimum Stock Level</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <i class="fas fa-exclamation-triangle text-gray-400"></i>
+            </div>
+            <input type="number" name="min_stock"
+                  min="0" value="5"
+                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+            <p class="text-xs text-gray-500 mt-1 ml-1">Alert when stock falls below this value</p>
           </div>
-          <input type="number" name="min_stock"
-                min="0" value="5"
-                class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
-          <p class="text-xs text-gray-500 mt-1 ml-1">Alert will be triggered when stock falls below this value</p>
         </div>
       </div>
 
       <div class="pt-5 mt-3 border-t border-gray-200">
-        <button type="submit"
+      <button type="submit"
                 class="w-full bg-gray-700 text-white py-2.5 rounded-md hover:bg-gray-600 transition-colors font-medium flex items-center justify-center gap-2">
           <i class="fas fa-save"></i>
           <span>Save Product</span>
-        </button>
+      </button>
       </div>
     </form>
   </div>
@@ -338,7 +336,7 @@ include 'sidebar.php';
 <!-- Edit Product Modal -->
 <div id="editProductModal"
      class="fixed inset-0 hidden bg-gray-700 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
-  <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-auto m-4 shadow-xl">
+  <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto m-4 shadow-xl">
     <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-200">
       <div>
         <h3 class="text-2xl font-bold text-gray-900">Edit Product</h3>
@@ -354,16 +352,16 @@ include 'sidebar.php';
       <input type="hidden" name="current_image" />
 
       <!-- Name & Category -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div>
           <label class="block text-sm font-medium mb-2 text-gray-700">Product Name</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-box text-gray-400"></i>
             </div>
-            <input type="text" name="name"
+          <input type="text" name="name"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all"
-                  required />
+                 required />
           </div>
         </div>
         <div>
@@ -372,10 +370,21 @@ include 'sidebar.php';
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-tags text-gray-400"></i>
             </div>
-            <select name="category_id"
+          <select name="category_id"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] pr-8"
                   style="background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e'); background-size: 1em"
                   required></select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Location</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <i class="fas fa-map-marker-alt text-gray-400"></i>
+            </div>
+            <input type="text" name="location"
+                  placeholder="Enter location (e.g., Shelf A, Side B)"
+                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
           </div>
         </div>
       </div>
@@ -388,8 +397,8 @@ include 'sidebar.php';
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <i class="fas fa-align-left text-gray-400"></i>
             </div>
-            <input type="text" name="description"
-                  placeholder="Enter product description"
+          <input type="text" name="description"
+                 placeholder="Enter product description"
                   class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
           </div>
         </div>
@@ -397,7 +406,7 @@ include 'sidebar.php';
           <label class="block text-sm font-medium mb-2 text-gray-700">Product Image</label>
           <div class="flex items-center gap-2">
             <input type="file" name="product_image" 
-                  accept="image/*" 
+                   accept="image/*" 
                   class="text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-gray-700 file:text-white hover:file:bg-gray-600" />
           </div>
           <div id="image-preview-edit" class="mt-2 h-20 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md">
@@ -407,82 +416,72 @@ include 'sidebar.php';
       </div>
 
       <!-- Sizes & Stock -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div>
-        <label class="block text-sm font-medium mb-2 text-gray-700">Sizes & Stock</label>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Sizes & Stock</label>
         <div class="flex gap-2 mb-2">
-          <div class="relative flex-1">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-ruler text-gray-400"></i>
+            <div class="relative flex-1">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <i class="fas fa-ruler text-gray-400"></i>
+              </div>
+          <input type="text" id="editSizeInput"
+                 placeholder="Enter size (e.g., S, M, L, XL)"
+                    class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
             </div>
-            <input type="text" id="editSizeInput"
-                  placeholder="Enter size (e.g., S, M, L, XL)"
-                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
-          </div>
-          <button type="button" id="addEditSizeBtn"
-                 class="bg-gray-700 text-white px-4 py-2.5 rounded-md hover:bg-gray-600 transition-colors font-medium flex items-center gap-1">
-            <i class="fas fa-plus"></i>
-            <span>Add Size</span>
+            <button type="button" id="addEditSizeBtn"
+                   class="bg-gray-700 text-white px-4 py-2.5 rounded-md hover:bg-gray-600 transition-colors font-medium flex items-center gap-1">
+              <i class="fas fa-plus"></i>
+              <span>Add Size</span>
           </button>
         </div>
         <ul id="editSizeList"
-           class="space-y-2 max-h-40 overflow-y-auto p-2 border-2 border-gray-200 rounded-md"></ul>
-        <div class="text-sm font-medium mt-2 flex items-center">
-          <i class="fas fa-cubes text-gray-500 mr-2"></i>
-          Total <span id="editTotalUnits" class="mx-1 font-bold">0</span> units
+             class="space-y-2 max-h-40 overflow-y-auto p-2 border-2 border-gray-200 rounded-md"></ul>
+          <div class="text-sm font-medium mt-2 flex items-center">
+            <i class="fas fa-cubes text-gray-500 mr-2"></i>
+            Total <span id="editTotalUnits" class="mx-1 font-bold">0</span> units
         </div>
       </div>
       <input type="hidden" name="stock" id="editStockInput" />
 
-      <!-- Location -->
-      <div>
-        <label class="block text-sm font-medium mb-2 text-gray-700">Location</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <i class="fas fa-map-marker-alt text-gray-400"></i>
-          </div>
-          <input type="text" name="location"
-                placeholder="Enter location (e.g., Shelf A, Side B)"
-                class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
-        </div>
-      </div>
-
-      <!-- Pricing -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Pricing -->
         <div>
-          <label class="block text-sm font-medium mb-2 text-gray-700">Cost Price (৳)</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-tags text-gray-400"></i>
-            </div>
-            <input type="number" step="0.01" min="0" name="price"
-                  placeholder="0.00"
-                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
-          </div>
+          <label class="block text-sm font-medium mb-2 text-gray-700">Pricing & Minimum Stock</label>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border-2 border-gray-200 rounded-md">
+      <div>
+              <label class="block text-sm mb-1 text-gray-700">Cost Price (৳)</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-tags text-gray-400"></i>
+                </div>
+                <input type="number" step="0.01" min="0" name="price"
+                      placeholder="0.00"
+                      class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+              </div>
+      </div>
+      <div>
+              <label class="block text-sm mb-1 text-gray-700">Selling Price (৳)</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-tag text-gray-400"></i>
+                </div>
+                <input type="number" step="0.01" min="0" name="selling_price"
+                      placeholder="0.00"
+                      class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
+      </div>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-2 text-gray-700">Selling Price (৳)</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-tag text-gray-400"></i>
+              <label class="block text-sm mb-1 text-gray-700">Min Stock</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-exclamation-triangle text-gray-400"></i>
+                </div>
+                <input type="number" name="min_stock"
+                      min="0" value="5"
+                      class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
+              </div>
             </div>
-            <input type="number" step="0.01" min="0" name="selling_price"
-                  placeholder="0.00"
-                  class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" required />
           </div>
-        </div>
-      </div>
-
-      <!-- Minimum Stock -->
-      <div>
-        <label class="block text-sm font-medium mb-2 text-gray-700">Minimum Stock Level</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <i class="fas fa-exclamation-triangle text-gray-400"></i>
-          </div>
-          <input type="number" name="min_stock"
-                min="0" value="5"
-                class="pl-10 w-full border-2 border-gray-300 rounded-md py-2.5 px-4 focus:border-black focus:ring-1 focus:ring-black transition-all" />
-          <p class="text-xs text-gray-500 mt-1 ml-1">Alert will be triggered when stock falls below this value</p>
+          <p class="text-xs text-gray-500 mt-1 ml-1">Alert will be triggered when stock falls below minimum value</p>
         </div>
       </div>
 
@@ -492,11 +491,11 @@ include 'sidebar.php';
           <i class="fas fa-trash-alt"></i>
           <span>Delete</span>
         </button>
-        <button type="submit"
+      <button type="submit"
                 class="px-6 py-2.5 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors font-medium flex items-center gap-2">
           <i class="fas fa-save"></i>
           <span>Save Changes</span>
-        </button>
+      </button>
       </div>
     </form>
   </div>

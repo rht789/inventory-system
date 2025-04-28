@@ -495,10 +495,10 @@ include 'sidebar.php';
 </div>
 
 <!-- Include modularized JavaScript files -->
-<script src="js/sales-utils.js"></script>
-<script src="js/sales-api.js"></script>
-<script src="js/sales-ui.js"></script>
-<script src="js/sales.js"></script>
+<script src="js/sales/sales-utils.js"></script>
+<script src="js/sales/sales-api.js"></script>
+<script src="js/sales/sales-ui.js"></script>
+<script src="js/sales/sales.js"></script>
 
 <?php include 'footer.php'; ?>
 
