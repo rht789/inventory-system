@@ -415,7 +415,7 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
     </footer>
 
     <!-- Toast Message -->
-    <div id="toast-message" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-3 rounded-lg shadow-lg hidden z-50 flex items-center">
+    <div id="toast-message" class="fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg hidden z-50 flex items-center">
         <i class="fas fa-info-circle mr-2"></i>
         <span id="toast-text">This feature will be implemented in the future</span>
     </div>
@@ -432,7 +432,36 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
         const toast = document.getElementById('toast-message');
         const toastText = document.getElementById('toast-text');
         
-        function showToast(message) {
+        function showToast(message, type = 'info') {
+            // Reset all classes
+            toast.className = "fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center";
+            
+            // Set icon and background based on type
+            let icon = 'fa-info-circle';
+            
+            switch(type) {
+                case 'success':
+                    toast.classList.add('bg-green-500', 'text-white');
+                    icon = 'fa-check-circle';
+                    break;
+                case 'error':
+                    toast.classList.add('bg-red-500', 'text-white');
+                    icon = 'fa-exclamation-circle';
+                    break;
+                case 'warning':
+                    toast.classList.add('bg-yellow-500', 'text-white');
+                    icon = 'fa-exclamation-triangle';
+                    break;
+                default: // info
+                    toast.classList.add('bg-gray-700', 'text-white');
+                    icon = 'fa-info-circle';
+            }
+            
+            // Update icon
+            const iconElement = toast.querySelector('i');
+            iconElement.className = `fas ${icon} mr-2`;
+            
+            // Update message
             toastText.textContent = message || 'This feature will be implemented in the future';
             toast.classList.remove('hidden');
             
@@ -449,7 +478,7 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             
             if (futureFeature) {
                 e.preventDefault();
-                showToast(futureFeature.dataset.message || 'This feature will be implemented in the future');
+                showToast(futureFeature.dataset.message || 'This feature will be implemented in the future', 'info');
             }
         });
         

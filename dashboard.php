@@ -326,16 +326,51 @@ async function loadTodaySales() {
     }
 }
 
-// Show toast notification
+/**
+ * Show a toast notification
+ */
 function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`;
-    toast.textContent = message;
-    toast.classList.remove('hidden');
-    
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
+  const toast = document.getElementById('toast');
+  
+  if (!toast) {
+    console.error("Toast element not found");
+    return;
+  }
+
+  // Reset toast state
+  toast.className = "fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50";
+  
+  // Set icon and color based on message type
+  let icon = '';
+  
+  switch(type) {
+    case 'success':
+      toast.classList.add('bg-green-500', 'text-white');
+      icon = '<i class="fas fa-check-circle mr-2"></i>';
+      break;
+    case 'error':
+      toast.classList.add('bg-red-500', 'text-white');
+      icon = '<i class="fas fa-exclamation-circle mr-2"></i>';
+      break;
+    case 'warning':
+      toast.classList.add('bg-yellow-500', 'text-white');
+      icon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
+      break;
+    default:
+      toast.classList.add('bg-gray-700', 'text-white');
+      icon = '<i class="fas fa-info-circle mr-2"></i>';
+  }
+  
+  // Set toast content with icon
+  toast.innerHTML = `${icon}<span>${message}</span>`;
+  
+  // Show toast
+  toast.classList.remove('hidden');
+  
+  // Hide after 3 seconds
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 3000);
 }
 
 // Fetch low stock items

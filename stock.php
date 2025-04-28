@@ -322,12 +322,49 @@ let products = [];
 let currentPage = 1;
 let logsPerPage = 15;
 
-// Function to show toast notifications
-function showToast(msg, success = true) {
-  toast.textContent = msg;
-  toast.className = `fixed bottom-4 right-4 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-gray-700' : 'bg-red-600'} z-50`;
+/**
+ * Show a toast notification
+ */
+function showToast(message, type = 'success') {
+  if (!toast) {
+    console.error("Toast element not found");
+    return;
+  }
+
+  // Reset toast state
+  toast.className = "fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50";
+  
+  // Set icon and color based on message type
+  let icon = '';
+  
+  switch(type) {
+    case 'success':
+      toast.classList.add('bg-green-500', 'text-white');
+      icon = '<i class="fas fa-check-circle mr-2"></i>';
+      break;
+    case 'error':
+      toast.classList.add('bg-red-500', 'text-white');
+      icon = '<i class="fas fa-exclamation-circle mr-2"></i>';
+      break;
+    case 'warning':
+      toast.classList.add('bg-yellow-500', 'text-white');
+      icon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
+      break;
+    default:
+      toast.classList.add('bg-gray-700', 'text-white');
+      icon = '<i class="fas fa-info-circle mr-2"></i>';
+  }
+  
+  // Set toast content with icon
+  toast.innerHTML = `${icon}<span>${message}</span>`;
+  
+  // Show toast
   toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
+  
+  // Hide after 3 seconds
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 3000);
 }
 
 // Open and Close Modals
@@ -478,7 +515,7 @@ async function loadStock() {
     });
   } catch (err) {
     console.error(err);
-    showToast('Error loading stock', false);
+    showToast('Error loading stock', 'error');
   }
 }
 
@@ -525,7 +562,7 @@ async function populateProductDropdown(selectedProductId = null) {
     });
   } catch (err) {
     console.error(err);
-    showToast('Could not load product list', false);
+    showToast('Could not load product list', 'error');
   }
 }
 
@@ -565,7 +602,7 @@ async function populateLocationDropdown() {
     });
   } catch (err) {
     console.error(err);
-    showToast('Could not load locations', false);
+    showToast('Could not load locations', 'error');
   }
 }
 
@@ -576,19 +613,19 @@ form.onsubmit = async e => {
 
   // Validate required fields
   if (!formData.get('product_id')) {
-    showToast('Please select a product', false);
+    showToast('Please select a product', 'error');
     return;
   }
   if (!formData.get('product_size_id')) {
-    showToast('Please select a size', false);
+    showToast('Please select a size', 'error');
     return;
   }
   if (!formData.get('quantity') || formData.get('quantity') <= 0) {
-    showToast('Please enter a valid quantity greater than 0', false);
+    showToast('Please enter a valid quantity greater than 0', 'error');
     return;
   }
   if (!formData.get('reason')) {
-    showToast('Please enter a reason', false);
+    showToast('Please enter a reason', 'error');
     return;
   }
 
@@ -608,11 +645,11 @@ form.onsubmit = async e => {
       closeAdjustStockModal();
       loadStock();
     } else {
-      showToast(data.message || 'Adjustment failed', false);
+      showToast(data.message || 'Adjustment failed', 'error');
     }
   } catch (err) {
     console.error(err);
-    showToast(err.message || 'An error occurred while adjusting stock', false);
+    showToast(err.message || 'An error occurred while adjusting stock', 'error');
   }
 };
 
@@ -672,11 +709,11 @@ async function loadStockLogs() {
     if (response.success) {
       renderStockLogs(response.logs, response.pagination);
     } else {
-      showToast(response.message || 'Failed to load stock logs', false);
+      showToast(response.message || 'Failed to load stock logs', 'error');
     }
   } catch (err) {
     console.error(err);
-    showToast('Error loading stock logs', false);
+    showToast('Error loading stock logs', 'error');
   }
 }
 

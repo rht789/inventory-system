@@ -282,12 +282,51 @@ const
   addBatchProductSelect = document.getElementById('addBatchProductSelect'),
   addBatchSizeSelect = document.getElementById('addBatchSizeSelect');
 
-// Show toast
-function showToast(msg, success = true) {
-  toast.textContent = msg;
-  toast.className = `fixed bottom-4 right-4 z-50 text-white px-4 py-2 rounded-lg shadow-lg ${success ? 'bg-gray-700' : 'bg-red-600'}`;
+/**
+ * Show a toast notification
+ */
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  
+  if (!toast) {
+    console.error("Toast element not found");
+    return;
+  }
+
+  // Reset toast state
+  toast.className = "fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50";
+  
+  // Set icon and color based on message type
+  let icon = '';
+  
+  switch(type) {
+    case 'success':
+      toast.classList.add('bg-green-500', 'text-white');
+      icon = '<i class="fas fa-check-circle mr-2"></i>';
+      break;
+    case 'error':
+      toast.classList.add('bg-red-500', 'text-white');
+      icon = '<i class="fas fa-exclamation-circle mr-2"></i>';
+      break;
+    case 'warning':
+      toast.classList.add('bg-yellow-500', 'text-white');
+      icon = '<i class="fas fa-exclamation-triangle mr-2"></i>';
+      break;
+    default:
+      toast.classList.add('bg-gray-700', 'text-white');
+      icon = '<i class="fas fa-info-circle mr-2"></i>';
+  }
+  
+  // Set toast content with icon
+  toast.innerHTML = `${icon}<span>${message}</span>`;
+  
+  // Show toast
   toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
+  
+  // Hide after 3 seconds
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 3000);
 }
 
 // Initial load
@@ -311,7 +350,7 @@ async function loadProducts() {
       products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   } catch (err) {
     console.error(err);
-    showToast('Could not load products', false);
+    showToast('Could not load products', 'error');
   }
 }
 
@@ -329,7 +368,7 @@ addBatchProductSelect.onchange = async () => {
     }
   } catch (err) {
     console.error(err);
-    showToast('Could not load sizes', false);
+    showToast('Could not load sizes', 'error');
   }
 };
 
@@ -423,7 +462,7 @@ async function fetchBatches() {
       </tr>`).join('');
   } catch (err) {
     console.error(err);
-    showToast('Could not load batches', false);
+    showToast('Could not load batches', 'error');
   }
 }
 
@@ -439,7 +478,7 @@ addBatchForm.onsubmit = async e => {
   const data = Object.fromEntries(new FormData(addBatchForm).entries());
 
   if (parseInt(data.stock) < 0) {
-    showToast('Stock cannot be negative', false);
+    showToast('Stock cannot be negative', 'error');
     return;
   }
 
@@ -447,7 +486,7 @@ addBatchForm.onsubmit = async e => {
   const currentDate = new Date('2025-04-22');
   const manufacturedDate = new Date(data.manufactured_date);
   if (manufacturedDate > currentDate) {
-    showToast('Manufactured date cannot be in the future', false);
+    showToast('Manufactured date cannot be in the future', 'error');
     return;
   }
 
@@ -465,11 +504,11 @@ addBatchForm.onsubmit = async e => {
       closeAddBatchModal();
       fetchBatches();
     } else {
-      showToast(res.message || 'Failed to add batch', false);
+      showToast(res.message || 'Failed to add batch', 'error');
     }
   } catch (err) {
     console.error(err);
-    showToast('Error adding batch: ' + (err.message || 'Unknown error'), false);
+    showToast('Error adding batch: ' + (err.message || 'Unknown error'), 'error');
   }
 };
 
@@ -479,7 +518,7 @@ editBatchForm.onsubmit = async e => {
   const data = Object.fromEntries(new FormData(editBatchForm).entries());
 
   if (parseInt(data.stock) < 0) {
-    showToast('Stock cannot be negative', false);
+    showToast('Stock cannot be negative', 'error');
     return;
   }
 
@@ -487,7 +526,7 @@ editBatchForm.onsubmit = async e => {
   const currentDate = new Date('2025-04-22');
   const manufacturedDate = new Date(data.manufactured_date);
   if (manufacturedDate > currentDate) {
-    showToast('Manufactured date cannot be in the future', false);
+    showToast('Manufactured date cannot be in the future', 'error');
     return;
   }
 
@@ -504,11 +543,11 @@ editBatchForm.onsubmit = async e => {
       closeEditBatchModal();
       fetchBatches();
     } else {
-      showToast(res.message || 'Failed to update batch', false);
+      showToast(res.message || 'Failed to update batch', 'error');
     }
   } catch (err) {
     console.error(err);
-    showToast('Error updating batch: ' + (err.message || 'Unknown error'), false);
+    showToast('Error updating batch: ' + (err.message || 'Unknown error'), 'error');
   }
 };
 
@@ -522,11 +561,11 @@ window.deleteBatch = async id => {
       closeEditBatchModal();
       fetchBatches();
     } else {
-      showToast(res.message || 'Delete failed', false);
+      showToast(res.message || 'Delete failed', 'error');
     }
   } catch (err) {
     console.error(err);
-    showToast('Delete error: ' + (err.message || 'Unknown error'), false);
+    showToast('Delete error: ' + (err.message || 'Unknown error'), 'error');
   }
 };
 </script>
