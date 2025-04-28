@@ -704,7 +704,7 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             const [sortBy, sortDir] = sortSelect.value.split('-');
             
             // Build API URL
-            let apiUrl = `api/public_products.php?page=${currentPage}&sort_by=${sortBy}&sort_dir=${sortDir}`;
+            let apiUrl = `api/catalog.php?page=${currentPage}&sort_by=${sortBy}&sort_dir=${sortDir}`;
             
             if (categoryId) {
                 apiUrl += `&category_id=${categoryId}`;
