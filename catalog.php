@@ -414,6 +414,12 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
         </div>
     </footer>
 
+    <!-- Toast Message -->
+    <div id="toast-message" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-3 rounded-lg shadow-lg hidden z-50 flex items-center">
+        <i class="fas fa-info-circle mr-2"></i>
+        <span id="toast-text">This feature will be implemented in the future</span>
+    </div>
+
     <!-- JavaScript -->
     <script type="module">
     import { apiGet } from './js/ajax.js';
@@ -422,6 +428,31 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
     import noUiSlider from 'https://cdn.jsdelivr.net/npm/nouislider@15.6.1/+esm';
     
     document.addEventListener('DOMContentLoaded', function() {
+        // Toast functionality
+        const toast = document.getElementById('toast-message');
+        const toastText = document.getElementById('toast-text');
+        
+        function showToast(message) {
+            toastText.textContent = message || 'This feature will be implemented in the future';
+            toast.classList.remove('hidden');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Add click listener to document to handle future feature clicks
+        document.addEventListener('click', function(e) {
+            // Check if the clicked element or its parent is meant to be a future feature
+            const futureFeature = e.target.closest('.future-feature');
+            
+            if (futureFeature) {
+                e.preventDefault();
+                showToast(futureFeature.dataset.message || 'This feature will be implemented in the future');
+            }
+        });
+        
         // Global variables
         let currentPage = 1;
         const urlParams = new URLSearchParams(window.location.search);
@@ -638,6 +669,13 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
             loadProducts();
             updateURL();
         });
+
+        // Add "future feature" class to elements without real functionality
+        document.querySelectorAll('a[href="#"]').forEach(link => {
+            if (!link.classList.contains('page-link')) {
+                link.classList.add('future-feature');
+            }
+        });
         
         // Functions
         function resetFilters() {
@@ -817,8 +855,8 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
                         
                         <div class="flex justify-between items-center mt-4">
                             <span class="font-bold text-lg">${formattedPrice}</span>
-                            <button class="bg-gray-700 text-white px-3 py-2 rounded text-sm hover:bg-gray-600 transition-colors flex items-center">
-                                <i class="fas fa-shopping-cart mr-1"></i> Add to Cart
+                            <button class="future-feature bg-gray-700 text-white px-3 py-2 rounded text-sm hover:bg-gray-600 transition-colors flex items-center" data-message="Shopping cart will be implemented in the future">
+                                <i class="fas fa-info-circle mr-1"></i> Details
                             </button>
                         </div>
                     </div>

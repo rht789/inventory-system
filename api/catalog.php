@@ -119,7 +119,7 @@ try {
         $product['sizes'] = $sizesStmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Add helpful flags
-        $product['is_new'] = (strtotime($product['created_at']) > strtotime('-30 days'));
+        $product['is_new'] = (strtotime($product['created_at']) > strtotime('-7 days'));
         $product['is_low_stock'] = ($product['stock'] > 0 && $product['stock'] <= $product['min_stock']);
         
         // Format values for display
