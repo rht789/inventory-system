@@ -307,6 +307,37 @@ function fetchUsers() {
           `;
         }
         
+        // Create user status badge with appropriate color based on status
+        const statusColors = {
+          'active': 'bg-green-100 text-green-800',
+          'inactive': 'bg-gray-100 text-gray-800',
+          'suspended': 'bg-red-100 text-red-800'
+        };
+        const status = u.status || 'active'; // Default to active if not set
+        const statusCapitalized = status.charAt(0).toUpperCase() + status.slice(1);
+        
+        // Status badge with dropdown for admin
+        const statusBadge = `
+          <div class="relative inline-block">
+            <button onclick="toggleStatusDropdown(${u.id})" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status]} focus:outline-none">
+              ${statusCapitalized}
+              ${canModify ? '<i class="fas fa-caret-down ml-1"></i>' : ''}
+            </button>
+            ${canModify ? `
+            <div id="status-dropdown-${u.id}" class="hidden absolute z-10 mt-1 bg-white shadow-lg rounded-md py-1 w-32 text-xs border border-gray-200">
+              <button onclick="updateUserStatus(${u.id}, 'active', '${u.username}')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center ${status === 'active' ? 'font-semibold text-green-600' : ''}">
+                <span class="h-2 w-2 rounded-full bg-green-500 mr-2"></span>Active
+              </button>
+              <button onclick="updateUserStatus(${u.id}, 'inactive', '${u.username}')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center ${status === 'inactive' ? 'font-semibold text-gray-600' : ''}">
+                <span class="h-2 w-2 rounded-full bg-gray-500 mr-2"></span>Inactive
+              </button>
+              <button onclick="updateUserStatus(${u.id}, 'suspended', '${u.username}')" class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center ${status === 'suspended' ? 'font-semibold text-red-600' : ''}">
+                <span class="h-2 w-2 rounded-full bg-red-500 mr-2"></span>Suspended
+              </button>
+            </div>` : ''}
+          </div>
+        `;
+        
         // Buttons with conditionally disabled state
         const actionButtons = canModify ? 
           `<button onclick="editUser(${u.id})" class="text-gray-600 hover:text-gray-800 bg-gray-100 p-1.5 rounded-md transition">
@@ -340,9 +371,7 @@ function fetchUsers() {
             <div class="text-sm text-gray-500">${u.phone || 'No phone number'}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-              Active
-            </span>
+            ${statusBadge}
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -400,6 +429,7 @@ function setupSearch() {
       const username = row.querySelector('td:first-child .text-gray-900')?.textContent.toLowerCase() || '';
       const email = row.querySelector('td:nth-child(2) .text-gray-900')?.textContent.toLowerCase() || '';
       const role = row.querySelector('td:nth-child(4) span')?.textContent.trim().toLowerCase() || '';
+      const status = row.querySelector('td:nth-child(3) button')?.textContent.trim().toLowerCase() || '';
       
       const matchesSearch = username.includes(searchTerm) || email.includes(searchTerm);
       const matchesRole = roleValue === 'all' || role.includes(roleValue);
@@ -418,6 +448,67 @@ function setupSearch() {
   
   searchInput.addEventListener('input', filterUsers);
   roleFilter.addEventListener('change', filterUsers);
+}
+
+// Function to toggle the status dropdown visibility
+function toggleStatusDropdown(userId) {
+  const dropdown = document.getElementById(`status-dropdown-${userId}`);
+  
+  // Close all other dropdowns first
+  document.querySelectorAll('[id^="status-dropdown-"]').forEach(el => {
+    if (el.id !== `status-dropdown-${userId}`) {
+      el.classList.add('hidden');
+    }
+  });
+  
+  // Toggle this dropdown
+  dropdown.classList.toggle('hidden');
+  
+  // Add a one-time click handler to close dropdown when clicking outside
+  setTimeout(() => {
+    const closeDropdown = function(e) {
+      if (!dropdown.contains(e.target) && e.target.id !== `status-dropdown-${userId}`) {
+        dropdown.classList.add('hidden');
+        document.removeEventListener('click', closeDropdown);
+      }
+    };
+    
+    document.addEventListener('click', closeDropdown);
+  }, 0);
+}
+
+// Function to update user status
+function updateUserStatus(userId, newStatus, username) {
+  // Show confirmation for suspension
+  if (newStatus === 'suspended' && !confirm(`Are you sure you want to suspend user "${username}"?`)) {
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('user_id', userId);
+  formData.append('status', newStatus);
+  
+  // Show loading toast
+  showToast(`Updating ${username}'s status...`, true);
+  
+  fetch('api/users.php', {
+    method: 'POST',
+    body: formData
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast(`${username}'s status updated to ${newStatus}`, true);
+        // Refresh user data
+        fetchUsers();
+      } else {
+        showToast(data.error || 'Failed to update status', false);
+      }
+    })
+    .catch(error => {
+      console.error('Error updating status:', error);
+      showToast('An error occurred. Please try again.', false);
+    });
 }
 
 document.getElementById('addUserForm').addEventListener('submit', function(e) {

@@ -14,7 +14,7 @@ $override = $_POST['_method'] ?? null;
 if ($method === 'GET' && isset($_GET['id'])) {
     $id = $_GET['id'];
     try {
-        $stmt = $pdo->prepare("SELECT id, username, email, phone, role, profile_picture FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, username, email, phone, role, profile_picture, status FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -54,10 +54,65 @@ if ($method === 'POST' && $override === 'DELETE') {
     exit;
 }
 
+// Handle status update
+if ($method === 'POST' && isset($_POST['user_id']) && isset($_POST['status'])) {
+    // Include authcheck for role verification
+    include_once '../authcheck.php';
+    requireLogin();
+    requireRole('admin');
+    
+    $userId = $_POST['user_id'];
+    $newStatus = $_POST['status'];
+    
+    // Validate user ID
+    if (!$userId || !is_numeric($userId)) {
+        echo json_encode(['error' => 'Invalid user ID']);
+        exit;
+    }
+    
+    // Validate status
+    $validStatuses = ['active', 'inactive', 'suspended'];
+    if (!$newStatus || !in_array($newStatus, $validStatuses)) {
+        echo json_encode(['error' => 'Invalid status value']);
+        exit;
+    }
+    
+    try {
+        // First check if user exists and isn't an admin
+        $checkStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+        $checkStmt->execute([$userId]);
+        $user = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            echo json_encode(['error' => 'User not found']);
+            exit;
+        }
+        
+        // Prevent changing admin status
+        if ($user['role'] === 'admin') {
+            echo json_encode(['error' => 'Cannot modify administrator accounts']);
+            exit;
+        }
+        
+        // Update the user's status
+        $updateStmt = $pdo->prepare("UPDATE users SET status = ? WHERE id = ?");
+        $updateStmt->execute([$newStatus, $userId]);
+        
+        if ($updateStmt->rowCount() > 0) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Failed to update user status']);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
 switch ($method) {
     case 'GET':
         // Include profile_picture in the query
-        $stmt = $pdo->query("SELECT id, username, email, phone, role, profile_picture FROM users ORDER BY id ASC");
+        $stmt = $pdo->query("SELECT id, username, email, phone, role, profile_picture, status FROM users ORDER BY id ASC");
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $grouped = ['admin' => [], 'staff' => []];
 
@@ -73,6 +128,7 @@ switch ($method) {
         $email = $_POST['email'] ?? '';
         $phone = $_POST['phone'] ?? '';
         $role = $_POST['role'] ?? 'staff';
+        $status = $_POST['status'] ?? 'active'; // Default to active
 
         if (!$username || !$email) {
             echo json_encode(['error' => 'Please fill all required fields.']);
@@ -85,8 +141,8 @@ switch ($method) {
             $hash = password_hash($password, PASSWORD_BCRYPT);
 
             // First, create the user
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, phone, role) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$username, $email, $hash, $phone, $role]);
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, phone, role, status) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $email, $hash, $phone, $role, $status]);
             
             // User created successfully
             $userId = $pdo->lastInsertId();

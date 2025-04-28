@@ -17,20 +17,26 @@ switch ($action) {
         $user = $stmt->fetch();
     
         if ($user && password_verify($password, $user['password_hash'])) {
+            // Check user status before allowing login
+            if ($user['status'] === 'active') {
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_username'] = $user['username'];
+                $_SESSION['user_role'] = $user['role'];
+                $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? 'default.png';
 
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_username'] = $user['username'];
-            $_SESSION['user_role'] = $user['role'];
-            $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? 'default.png';
+                // Update last login timestamp
+                $updateStmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+                $updateStmt->execute([$user['id']]);
 
-            // Update last login timestamp
-            $updateStmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-            $updateStmt->execute([$user['id']]);
-
-            echo json_encode(['success' => true]);
-            
-            
+                echo json_encode(['success' => true]);
+            } elseif ($user['status'] === 'inactive') {
+                echo json_encode(['error' => 'Your account is currently inactive. Please contact the system administrator for assistance.']);
+            } elseif ($user['status'] === 'suspended') {
+                echo json_encode(['error' => 'Your account has been suspended. Please contact the system administrator for more information.']);
+            } else {
+                echo json_encode(['error' => 'Invalid account status. Please contact the system administrator.']);
+            }
         } else {
             echo json_encode(['error' => 'Invalid credentials']);
         }
