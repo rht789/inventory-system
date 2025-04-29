@@ -1,0 +1,129 @@
+:root {
+  /* Day Mode Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --border-color: #e5e7eb;
+  --card-bg: #ffffff;
+  --header-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --hover-bg: #f9fafb;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --table-header-bg: #f9fafb;
+  --table-row-hover: #f3f4f6;
+}
+
+[data-theme="dark"] {
+  /* Night Mode Colors */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --border-color: #374151;
+  --card-bg: #2d2d2d;
+  --header-bg: #1a1a1a;
+  --sidebar-bg: #1a1a1a;
+  --hover-bg: #374151;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --input-bg: #2d2d2d;
+  --table-header-bg: #2d2d2d;
+  --table-row-hover: #374151;
+}
+
+/* Theme Transition */
+body {
+  transition: background-color 0.3s ease;
+}
+
+/* Apply Theme Colors */
+body {
+  background-color: var(--bg-primary);
+}
+
+.bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+.border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+.bg-gray-50 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.bg-gray-100 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.hover\:bg-gray-50:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+/* Table Styles */
+table thead tr {
+  background-color: var(--table-header-bg) !important;
+}
+
+table tbody tr:hover {
+  background-color: var(--table-row-hover) !important;
+}
+
+/* Input Styles */
+input, select, textarea {
+  background-color: var(--input-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Modal Styles */
+.modal-content {
+  background-color: var(--card-bg) !important;
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--card-bg) !important;
+  box-shadow: 0 1px 3px var(--shadow-color) !important;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: relative;
+  width: 60px;
+  height: 30px;
+  border-radius: 15px;
+  background-color: var(--bg-secondary);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border: 2px solid var(--border-color);
+}
+
+.theme-toggle::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--text-primary);
+  transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .theme-toggle::before {
+  transform: translateX(30px);
+}
+
+.theme-toggle i {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.theme-toggle i.fa-sun {
+  left: 8px;
+}
+
+.theme-toggle i.fa-moon {
+  right: 8px;
+} 

@@ -35,7 +35,10 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<!-- Theme CSS -->
+<link href="css/theme.css" rel="stylesheet">
 <script src="js/notification.js"></script>
+<script src="js/theme.js"></script>
 
 <!-- Custom styles for the header -->
 <style>
@@ -60,12 +63,7 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
     transform-origin: top right;
   }
 
-  .header-light {
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  /* Ensure header is fixed (reinforce the rule) */
+  /* Ensure header is fixed */
   header {
     position: fixed !important;
     top: 0;
@@ -75,7 +73,7 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
   }
 </style>
 
-<header class="sticky top-0 z-50 header-light shadow-sm px-6 py-3 flex justify-between items-center">
+<header class="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center">
   <!-- Sidebar toggle (mobile) -->
   <div class="flex items-center gap-4">
     <button id="sidebarToggle" class="lg:hidden text-gray-600 hover:text-gray-900 transition">
@@ -94,6 +92,12 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
 
   <!-- Right side header elements -->
   <div class="flex items-center gap-5 relative">
+    <!-- Theme Toggle -->
+    <div class="theme-toggle" title="Toggle Theme">
+        <i class="fas fa-sun"></i>
+        <i class="fas fa-moon"></i>
+    </div>
+
     <!-- Quick actions dropdown -->
     <div class="relative hidden md:block">
       <button id="quickActionsToggle" class="flex items-center gap-2 text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-md transition text-sm focus:outline-none">

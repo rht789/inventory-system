@@ -204,9 +204,7 @@ $role = getUserRole();
           <a href="password.php" class="px-3 py-2 rounded hover:bg-gray-100 <?= $currentPage == 'password.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
             <span class="nav-text">Password</span>
           </a>
-          <a href="preference.php" class="px-3 py-2 rounded hover:bg-gray-100 <?= $currentPage == 'preference.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
-            <span class="nav-text">Preferences</span>
-          </a>
+          
           <a href="settings.php" class="px-3 py-2 rounded hover:bg-gray-100 <?= $currentPage == 'settings.php' ? 'bg-gray-100 text-gray-900 font-medium' : '' ?>">
             <span class="nav-text">Company</span>
           </a>
