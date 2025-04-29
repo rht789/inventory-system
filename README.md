@@ -1,271 +1,158 @@
-**Inventory System Documentation**
-
-**Introduction**
-This document provides functional, module‑level documentation for the Inventory System. It describes each subsystem’s purpose, key workflows, UI components, and API endpoints—without low‑level database schemas—to give a clear operational overview.
-
----
-
-## Table of Contents
-1. [Authentication System](#authentication-system)
-2. [Product Management](#product-management)
-3. [Sales & Order Management](#sales--order-management)
-4. [Batch & Stock Management](#batch--stock-management)
-5. [User Management](#user-management)
-6. [Dashboard & Reports](#dashboard--reports)
-7. [Notifications](#notifications)
-8. [Catalog](#catalog)
-9. [Role Management](#role-management)
-10. [Settings](#settings)
-11. [Navigation](#navigation)
-12. [Miscellaneous Features](#miscellaneous-features)
-
----
-
-## Authentication System
-
-**Purpose:** Secure access to the application via login, session handling, and role‑based access control.
-
-**Key Workflows:**
-- **Login**: Validate credentials, establish session, redirect based on role.
-- **Logout**: Destroy session, clear cookies.
-- **Password Recovery**: Request reset, email token, set new password.
-- **Access Enforcement**: Middleware functions to guard pages by login status and role.
-
-**UI Components:**
-- Responsive login form with client‑side validation.
-- “Forgot Password” modal.
-- Role‑aware navigation menu.
-
-**API Endpoints (`api/auth.php`):**
-| Action    | Method | Parameters            | Response                                   |
-|-----------|--------|-----------------------|--------------------------------------------|
-| login     | POST   | email, password       | { success: bool, user: { id, name, role } } |
-| forgot    | POST   | email                 | { success: bool, message }                 |
-| reset     | POST   | token, new_password   | { success: bool, message }                 |
-
----
-
-## Product Management
-
-**Purpose:** Full CRUD for products and categories, image handling, barcode generation, and stock overview.
-
-**Key Workflows:**
-- **Add/Edit Product:** Enter details (name, category, price, images), assign sizes, set initial stock.
-- **Delete Product:** Soft‑delete to preserve history.
-- **Category Maintenance:** Create, edit, or remove product categories.
-- **Barcode/Label Printing:** Generate and batch‑print barcodes for inventory labeling.
-
-**UI Components (`products.php`):**
-- **Header & Controls:** Add Product, Manage Categories.
-- **Filters & Search:** Live filtering by name, category, stock status.
-- **Product Grid/Table:** Image thumbnail, pricing, stock badge, action buttons.
-- **Modals**: Add/Edit Product, Category Editor.
-
-**API Endpoints (`api/products.php`):**
-| Endpoint         | Method | Parameters                               | Response                          |
-|------------------|--------|------------------------------------------|-----------------------------------|
-| GET /products    | GET    | search, category_id, stock_filter        | List of products                  |
-| POST /products   | POST   | name, category, price, images, sizes     | Created product object            |
-| PUT /products    | PUT    | id, updated fields                       | Updated product object            |
-| DELETE /products | DELETE | id                                       | { success: bool }                 |
-
----
+Inventory System
+The Inventory System is a web-based application designed to streamline inventory management, sales, and user operations for businesses. Built with PHP and MySQL, it offers secure authentication, role-based access control (RBAC), a responsive UI, and robust APIs. This README provides an overview, setup instructions, and key features.
+Table of Contents
 
-## Sales & Order Management
-
-**Purpose:** Manage order placement, status tracking, invoicing, and customer history.
-
-**Key Workflows:**
-- **Create Order:** Select customer, add items, apply discounts.
-- **Update Status:** Pending → Confirmed → Delivered → Canceled.
-- **Invoice Generation:** Auto‑generate PDF invoice and email to customer.
-- **Refund/Cancellation:** Restock items, record transaction.
-
-**UI Components (`sales.php`):**
-- **Stats Cards:** Total sales, pending orders, etc.
-- **Order Table:** Bulk actions, status dropdowns, date filters.
-- **Order Detail Modal:** Line items, pricing breakdown, notes.
-
-**API Endpoints (`api/sales.php`):**
-| Endpoint                   | Method | Parameters                                     | Response                      |
-|----------------------------|--------|------------------------------------------------|-------------------------------|
-| GET /sales                 | GET    | recent, limit, status                          | List of sales                 |
-| POST /sales                | POST   | customer_id, items[{ product_id, qty }], note  | Created order object          |
-| PUT /sales                 | PUT    | id, status                                     | Updated order status          |
-| GET /sales/analytics       | GET    | timeRange, period, product, category           | Aggregated analytics data     |
+Features
+Technologies
+Installation
+Usage
+Modules
+Security
+Contributing
+License
 
----
+Features
 
-## Batch & Stock Management
+Secure Authentication: Session-based login with RBAC (Admin/Staff roles).
+Product Management: CRUD operations for products, categories, and stock with barcode generation.
+Sales & Order Management: Order processing, customer management, and PDF invoicing.
+Batch & Stock Management: Batch tracking, stock adjustments, and low-stock alerts.
+User Management: User creation, role assignment, and email notifications.
+Dashboard & Reports: Real-time analytics and exports (PDF/Excel/CSV).
+Notifications: In-app and email alerts for stock, sales, and system events.
+Catalog: Searchable product listings with filters and detailed views.
 
-**Purpose:** Track manufacturing batches, adjust stock levels, and maintain audit logs.
+Technologies
 
-**Key Workflows:**
-- **Add Batch:** Link batch to product, record manufacturing date, initial quantity.
-- **Adjust Stock:** Increase or decrease stock with reason (in, out, transfer).
-- **Low‑Stock Alerts:** Trigger notifications when levels fall below threshold.
-- **Audit Trail:** View history of all adjustments with user and timestamp.
+Frontend: HTML, CSS, JavaScript (AJAX for real-time updates)
+Backend: PHP 7.4+
+Database: MySQL 5.7+
+Libraries: Dompdf for PDF generation
+APIs: RESTful endpoints for all modules
+Environment: Apache/Nginx, PHP-enabled server
 
-**UI Components (`batches.php` & `stock.php`):**
-- **Batch Table:** Batch number, product, date, current stock.
-- **Stock Adjustment Modal:** Fields: product, size, quantity change, reason, location.
-- **Stock Logs View:** Filter by type, date range, product.
+Installation
+Prerequisites
 
-**API Endpoints (`api/stock.php`):**
-| Endpoint                   | Method | Parameters                                           | Response             |
-|----------------------------|--------|------------------------------------------------------|----------------------|
-| POST /stock                | POST   | product_id, size_id, quantity, type (in/out), reason | { success: bool }    |
-| GET /stock/logs            | GET    | search, type, date_from, date_to, page, per_page     | Paginated logs       |
+PHP 7.4 or higher
+MySQL 5.7 or higher
+Apache/Nginx web server
+Composer for dependency management
 
----
+Steps
 
-## User Management
+Clone the Repository:
+git clone https://github.com/your-repo/inventory-system.git
+cd inventory-system
 
-**Purpose:** Administer system users, roles, and profiles with secure onboarding and offboarding.
 
-**Key Workflows:**
-- **Invite User:** Collect email, assign role, send welcome link.
-- **Edit Profile:** Update name, email, avatar.
-- **Change Status:** Activate, suspend, or deactivate accounts.
-- **Password Reset:** Admin‑triggered or self‑service.
+Install Dependencies:
+composer install
 
-**UI Components (`users.php`):**
-- **User List:** Search, filter by role/status, bulk actions.
-- **Add/Edit Modal:** Fields: name, email, role, status.
-- **Profile View:** Personal details, last login, activity log.
 
-**API Endpoints (`api/users.php`):**
-| Endpoint           | Method | Parameters                        | Response              |
-|--------------------|--------|-----------------------------------|-----------------------|
-| GET /users         | GET    | search, role, status              | List of users         |
-| POST /users        | POST   | name, email, role                 | Created user object   |
-| PUT /users         | PUT    | id, updated fields                | Updated user object   |
-| DELETE /users      | DELETE | id                                | { success: bool }      |
+Configure Environment:
 
----
+Copy .env.example to .env:cp .env.example .env
 
-## Dashboard & Reports
 
-**Purpose:** Real‑time monitoring and custom report generation for actionable insights.
+Update .env with database credentials and email settings:DB_HOST=localhost
+DB_DATABASE=inventory
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+MAIL_HOST=smtp.example.com
+MAIL_USERNAME=your_email
+MAIL_PASSWORD=your_email_password
 
-**Key Features:**
-- **Dashboard:** Live KPIs (sales, inventory levels, low‑stock items).
-- **Charts:** Time series, bar, and pie charts for trends and comparisons.
-- **Reports:** Ad‑hoc exports (PDF, Excel, CSV) on any data dimension.
-- **Scheduled Reports:** Email reports automatically at set intervals.
 
-**UI Components:**
-- **dashboard.php:** Stats cards, chart panels, recent activity feed.
-- **reports.php:** Filterable report builder with export options.
 
-**API Endpoints:**
-| Endpoint                | Method | Parameters                          | Response                  |
-|-------------------------|--------|-------------------------------------|---------------------------|
-| GET /dashboard/metrics  | GET    | metrics[], date_range               | KPI values                |
-| POST /reports/generate  | POST   | type, filters[], format             | { fileUrl }               |
 
----
+Set Up Database:
 
-## Notifications
+Create a MySQL database (e.g., inventory).
+Import the schema from database/schema.sql:mysql -u your_username -p inventory < database/schema.sql
 
-**Purpose:** Deliver real‑time alerts and summaries via in‑app banners, emails, or push.
 
-**Types & Triggers:**
-- **System Alerts:** Errors, maintenance notices.
-- **Stock Alerts:** Low‑stock, batch expirations.
-- **Sales Alerts:** Large orders, payment failures.
-- **User Alerts:** Password changes, role updates.
 
-**API Endpoints:**
-| Endpoint               | Method | Parameters                     | Response             |
-|------------------------|--------|--------------------------------|----------------------|
-| POST /notifications    | POST   | type, message, user_id         | { success: bool }    |
-| GET /notifications     | GET    | user_id, status (read/unread)  | List of notifications|
 
----
+Configure Web Server:
 
-## Catalog
+Point the web server to the public/ directory.
+Ensure .htaccess is enabled for Apache or configure Nginx accordingly.
 
-**Purpose:** Present product offerings with search, filter, and detail views.
 
-**Key Workflows:**
-- **Product Listing:** Paginated grid with filters by category, price range, availability.
-- **Detail View:** Full product information, images, stock status.
-- **Search:** Keyword search with relevance ranking.
+Start the Application:
 
-**UI Components:** Front‑end listing pages and product detail pages.
+Access the app via your browser (e.g., http://localhost/inventory-system).
+Default admin credentials: admin@example.com / password (change immediately).
 
-**API Endpoints:**
-| Endpoint             | Method | Parameters                     | Response             |
-|----------------------|--------|--------------------------------|----------------------|
-| GET /catalog         | GET    | page, per_page, filters[]      | List of products     |
-| GET /catalog/:id     | GET    | id                             | Product details      |
 
----
 
-## Role Management
+Usage
 
-**Purpose:** Define and enforce permissions tied to `admin` and `staff` roles.
+Login: Access the system at /login.php with your credentials.
+Dashboard: View real-time metrics and navigate to modules.
+Manage Products: Add/edit products, categories, and stock at /products.php.
+Process Sales: Create orders and generate invoices at /sales.php.
+Admin Tasks: Manage users and settings at /users.php and /settings.php.
+Reports: Generate and export reports at /reports.php.
 
-**Key Concepts:**
-- **Role Definitions:** Which modules and actions each role can access.
-- **Permission Checks:** Middleware functions to verify rights before executing operations.
+Modules
+Authentication
 
-**Implementation Snippet:**
-```php
-function requireRole(array $allowedRoles) {
-  if (!in_array(getUserRole(), $allowedRoles)) {
-    redirect('access_denied.php');
-  }
-}
-```
+Session-based login with password recovery and RBAC.
+API: /api/auth.php (login, forgot, reset).
 
----
+Product Management
 
-## Settings
+CRUD for products, categories, and sizes with barcode support.
+API: /api/products.php (list, create, update, delete).
 
-**Purpose:** Centralize application configuration and user preferences.
+Sales & Order Management
 
-**Key Workflows:**
-- **General Settings:** Email server, notification preferences, UI themes.
-- **User Preferences:** Language, time zone, dashboard layout.
-- **Audit Settings:** Log verbosity, retention policies.
+Order creation, status tracking, and PDF invoicing.
+API: /api/sales.php (list, create, update, analytics).
 
-**UI Components:** Settings panels under Admin and in user profile.
+Batch & Stock Management
 
-**API Endpoints:**
-| Endpoint               | Method | Parameters               | Response           |
-|------------------------|--------|--------------------------|--------------------|
-| GET /settings          | GET    | context (system/user)    | Key/value pairs    |
-| PUT /settings          | PUT    | key, value               | { success: bool }  |
+Batch tracking, stock adjustments, and low-stock alerts.
+API: /api/stock.php(adjust, logs).
 
----
+User Management
 
-## Navigation
+User creation, role assignment, and email notifications.
+API: /api/users.php (list, create, update, delete).
 
-**Purpose:** Dynamically build menu structure based on user’s role and permissions.
+Dashboard & Reports
 
-**Key Workflow:**
-- **Menu Generation:** On login, retrieve role, assemble menu items from configuration.
+Real-time KPIs, charts, and exportable reports.
+API: /api/dashboard.php (metrics), /api/reports.php (generate).
 
-**Implementation Snippet:**
-```php
-$menu = buildNavigation(getUserRole());
-foreach ($menu as $item) {
-  echo "<li><a href='{$item['url']}'>$item[name]</a></li>";
-}
-```
+Notifications
 
----
+In-app and email alerts for stock, sales, and system events.
+API: /api/notifications.php (send, list).
 
-## Miscellaneous Features
+Catalog
 
-- **Search System:** Global search widget covering all entities.
-- **Help & Documentation:** Embedded help panels, FAQ, video tutorials.
-- **Backup & Restore:** Manual and scheduled backups with restore interface.
-- **Logging & Audit:** Central log viewer for errors, user actions, performance metrics.
+Searchable product listings with filters.
+API: /api/catalog.php (list, details).
 
----
+Security
 
-**End of Documentation**
+Password hashing with bcrypt.
+Protection against SQL injection, XSS, and CSRF.
+Secure session management with timeouts.
+Role-based access (Admin: full control; Staff: limited).
+HTTPS and secure cookies recommended.
 
+Contributing
+
+Fork the repository.
+Create a feature branch (git checkout -b feature/your-feature).
+Commit changes (git commit -m "Add your feature").
+Push to the branch (git push origin feature/your-feature).
+Open a pull request.
+
+Please follow the code of conduct and ensure tests pass.
+License
+This project is licensed under the MIT License. See LICENSE for details.
