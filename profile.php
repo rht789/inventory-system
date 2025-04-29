@@ -571,3 +571,5 @@ pictureInput.addEventListener('change', async function() {
   }
 });
 </script>
+
+<?php include 'footer.php'; ?>

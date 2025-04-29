@@ -764,3 +764,5 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
 
 window.addEventListener('DOMContentLoaded', fetchUsers);
 </script>
+
+<?php include 'footer.php'; ?>

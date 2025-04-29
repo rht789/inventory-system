@@ -569,3 +569,5 @@ window.deleteBatch = async id => {
   }
 };
 </script>
+
+<?php include 'footer.php'; ?>

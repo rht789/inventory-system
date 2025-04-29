@@ -389,5 +389,7 @@ $isLoggedIn = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
             });
         });
     </script>
+
+<?php include 'footer.php'; ?>
 </body>
 </html>

@@ -493,3 +493,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
+
+<?php include 'footer.php'; ?>

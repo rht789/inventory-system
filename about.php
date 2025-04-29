@@ -370,5 +370,7 @@ $pageTitle = "About Us";
             track.innerHTML = originalContent + originalContent;
         });
     </script>
+
+<?php include 'footer.php'; ?>
 </body>
 </html> 

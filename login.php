@@ -54,5 +54,7 @@ if (isset($_SESSION['user_id'])) {
         if (result.success) setTimeout(() => window.location.href = 'home.php', 1500); // Changed from products.php to home.php
     });
     </script>
+
+<?php include 'footer.php'; ?>
 </body>
 </html>

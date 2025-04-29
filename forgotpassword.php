@@ -38,5 +38,7 @@
         msg.textContent = result.success || result.error;
     });
     </script>
+
+<?php include 'footer.php'; ?>
 </body>
 </html>

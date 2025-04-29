@@ -831,3 +831,5 @@ function formatDate(dateStr) {
   });
 }
 </script>
+
+<?php include 'footer.php'; ?>

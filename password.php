@@ -388,4 +388,6 @@ changePasswordForm.addEventListener('submit', async (e) => {
     showToast('Error changing password', false);
   }
 });
-</script> 
+</script>
+
+<?php include 'footer.php'; ?> 

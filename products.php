@@ -520,3 +520,5 @@ include 'sidebar.php';
 </div>
 
 <script type="module" src="js/products/main.js"></script>
+
+<?php include 'footer.php'; ?>

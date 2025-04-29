@@ -252,5 +252,4 @@ include 'sidebar.php';
 <script src="js/reports/display-reports.js"></script>
 <script src="js/reports/download-reports.js"></script>
 
-<!-- No manual initialization needed, it's handled in the JS files -->
-</main>
+<?php include 'footer.php'; ?>

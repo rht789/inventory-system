@@ -1005,5 +1005,7 @@ $pageTitle = $currentCategory ? $currentCategory['name'] : "All Products";
         }
     });
     </script>
+
+<?php include 'footer.php'; ?>
 </body>
 </html> 
