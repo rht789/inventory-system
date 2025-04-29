@@ -109,6 +109,73 @@ if ($method === 'POST' && isset($_POST['user_id']) && isset($_POST['status'])) {
     exit;
 }
 
+// Handle user update
+if ($method === 'POST' && isset($_POST['id'])) {
+    // Include authcheck for role verification
+    include_once '../authcheck.php';
+    requireLogin();
+    requireRole('admin');
+    
+    $userId = $_POST['id'];
+    $username = $_POST['username'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $status = $_POST['status'] ?? 'active';
+    
+    // Validate inputs
+    if (empty($username) || empty($email)) {
+        echo json_encode(['error' => 'Username and email are required']);
+        exit;
+    }
+    
+    // Validate status
+    $validStatuses = ['active', 'inactive', 'suspended'];
+    if (!in_array($status, $validStatuses)) {
+        echo json_encode(['error' => 'Invalid status value']);
+        exit;
+    }
+    
+    try {
+        // First check if user exists and isn't an admin
+        $checkStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+        $checkStmt->execute([$userId]);
+        $user = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            echo json_encode(['error' => 'User not found']);
+            exit;
+        }
+        
+        // Prevent editing admin accounts
+        if ($user['role'] === 'admin') {
+            echo json_encode(['error' => 'Cannot modify administrator accounts']);
+            exit;
+        }
+        
+        // Check if email is already used by another user
+        $emailCheckStmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+        $emailCheckStmt->execute([$email, $userId]);
+        
+        if ($emailCheckStmt->rowCount() > 0) {
+            echo json_encode(['error' => 'Email already in use by another user']);
+            exit;
+        }
+        
+        // Update the user
+        $updateStmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, phone = ?, status = ? WHERE id = ?");
+        $result = $updateStmt->execute([$username, $email, $phone, $status, $userId]);
+        
+        if ($result) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Failed to update user']);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
 switch ($method) {
     case 'GET':
         // Include profile_picture in the query
