@@ -1002,7 +1002,6 @@ function editSale(saleId) {
             throw new Error(data.message || `Server responded with status ${response.status}`);
           })
           .catch(e => {
-            // If JSON parsing fails, throw a more general error with the status
             if (e instanceof SyntaxError) {
               throw new Error(`Server error (${response.status}). Please try again or contact support.`);
             }
@@ -1013,48 +1012,29 @@ function editSale(saleId) {
     })
     .then(data => {
       if (data.success && data.data) {
-        // Open the add order modal
-        openAddOrderModal();
-        
         const sale = data.data;
         
-        // Populate customer information - use safe access pattern
+        // Open modal and reset form without adding initial row
+        document.getElementById('addOrderModal').classList.remove('hidden');
+        cleanupOrderForm(false); // Pass false to prevent adding initial row
+        
+        // Populate customer information
         document.getElementById('customerName').value = sale.customer_name || '';
         document.getElementById('customerPhone').value = sale.customer_phone || '';
         document.getElementById('customerEmail').value = sale.customer_email || '';
         document.getElementById('customerAddress').value = sale.customer_address || '';
         
-        // Clear product rows and add new ones for each item
-        document.getElementById('productRows').innerHTML = '';
-        selectedProducts = [];
+        // Set status and note
+        document.getElementById('orderStatus').value = sale.status || 'pending';
+        document.getElementById('orderNote').value = sale.note || '';
         
-        if (sale.items && sale.items.length > 0) {
-          // Directly populate items since products are already loaded
-          populateProductItems(sale.items);
-        } else {
-          // If no items, add at least one empty row
-          addProductRow();
-        }
-        
-        // Set discount - handle potential missing fields safely
+        // Set discount
         document.getElementById('discountPercentage').value = 
           (sale.discount_percentage !== undefined && sale.discount_percentage !== null) 
             ? parseFloat(sale.discount_percentage).toFixed(2) 
             : '0';
         
-        // Set status - default to 'pending' if not available
-        const statusField = document.getElementById('orderStatus');
-        if (statusField) {
-          statusField.value = sale.status || 'pending';
-        }
-        
-        // Set note - handle potentially missing field
-        const noteField = document.getElementById('orderNote');
-        if (noteField) {
-          noteField.value = sale.note || '';
-        }
-        
-        // Add a hidden input for the sale ID to track that this is an edit
+        // Add hidden input for sale ID
         let hiddenIdInput = document.getElementById('editSaleId');
         if (!hiddenIdInput) {
           hiddenIdInput = document.createElement('input');
@@ -1065,11 +1045,61 @@ function editSale(saleId) {
         }
         hiddenIdInput.value = saleId;
         
-        // Change the submit button text
+        // Change submit button text
         const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
         if (submitBtn) {
           submitBtn.textContent = 'Update Order';
         }
+        
+        // Clear existing rows and selected products
+        document.getElementById('productRows').innerHTML = '';
+        selectedProducts = [];
+        
+        // Add rows for each item
+        if (sale.items && sale.items.length > 0) {
+          sale.items.forEach(item => {
+            const row = addProductRow();
+            if (row) {
+              const productSelect = row.querySelector('.product-select');
+              const sizeSelect = row.querySelector('.size-select');
+              const quantityInput = row.querySelector('.quantity-input');
+              const priceInput = row.querySelector('.price-input');
+              
+              if (productSelect) {
+                productSelect.value = item.product_id || '';
+                // Trigger change event to load sizes
+                productSelect.dispatchEvent(new Event('change'));
+                
+                // Wait for sizes to load then set size and other values
+                setTimeout(() => {
+                  if (sizeSelect) {
+                    sizeSelect.value = item.product_size_id || '';
+                    sizeSelect.dispatchEvent(new Event('change'));
+                  }
+                  
+                  if (quantityInput) {
+                    quantityInput.value = item.quantity || 1;
+                    quantityInput.dispatchEvent(new Event('input'));
+                  }
+                  
+                  if (priceInput) {
+                    const price = item.subtotal / item.quantity;
+                    priceInput.value = price.toFixed(2);
+                    priceInput.dispatchEvent(new Event('input'));
+                  }
+                }, 100);
+              }
+            }
+          });
+        } else {
+          // If no items, add one empty row
+          addProductRow();
+        }
+        
+        // Calculate totals after a short delay to ensure all values are set
+        setTimeout(() => {
+          calculateTotals();
+        }, 200);
         
         showToast('Sale loaded for editing', 'success');
       } else {
@@ -1078,168 +1108,45 @@ function editSale(saleId) {
     })
     .catch(error => {
       console.error('Error:', error);
-      
-      // Extract and display useful error message
-      let errorMsg = error.message || 'Unknown error';
-      
-      // Handle database column errors more gracefully
-      if (errorMsg.includes('Unknown column')) {
-        errorMsg = 'Database schema issue detected. The system may need an update.';
-        console.error('Original error:', error.message);
-      }
-      
-      showToast('Failed to load sale data: ' + errorMsg, 'error');
-      
-      // Retry option for critical errors
-      if (confirm('There was a problem loading the sale data. Would you like to try again?')) {
-        editSale(saleId);
-      }
+      showToast('Failed to load sale data: ' + error.message, 'error');
     });
 }
 
-// Helper function to populate product items in the order form
-function populateProductItems(items) {
-  console.log('Populating items:', items);
+// Update the cleanupOrderForm function to accept a parameter for adding initial row
+function cleanupOrderForm(addInitialRow = true) {
+  // Reset the form
+  document.getElementById('addOrderForm').reset();
   
-  if (!Array.isArray(items) || items.length === 0) {
-    console.log('No items to populate');
-    addProductRow();
-    return;
-  }
-  
-  // Clear existing rows first
+  // Clear all product rows
   document.getElementById('productRows').innerHTML = '';
   
-  // Create a new row for each item
-  items.forEach((item, index) => {
-    console.log(`Processing item ${index}:`, item);
-    
-    try {
-      // Add a new row
-      const row = addProductRow();
-      
-      // Get elements from the row
-      const productSelect = row.querySelector('.product-select');
-      
-      // Check if product_id exists
-      if (!item.product_id) {
-        console.error(`Item at index ${index} is missing product_id`);
-        return;
-      }
-      
-      console.log(`Setting product ${item.product_id} for item ${index}`);
-      
-      // Set product and trigger change event
-      productSelect.value = item.product_id;
-      
-      // Manually trigger the change event to populate sizes
-      const changeEvent = new Event('change', { bubbles: true });
-      productSelect.dispatchEvent(changeEvent);
-      
-      // Wait for size select to be populated
-      setTimeout(() => {
-        try {
-          // Find the size select in the current row
-          const sizeSelect = row.querySelector('.size-select');
-          
-          if (item.product_size_id && sizeSelect && !sizeSelect.disabled) {
-            console.log(`Setting size ${item.product_size_id} for item ${index}`);
-            sizeSelect.value = item.product_size_id;
-            
-            // Trigger change event
-            const sizeChangeEvent = new Event('change', { bubbles: true });
-            sizeSelect.dispatchEvent(sizeChangeEvent);
-            
-            // Set quantity with a delay to ensure size change is processed
-            setTimeout(() => {
-              try {
-                const quantityInput = row.querySelector('.quantity-input');
-                if (quantityInput && !quantityInput.disabled) {
-                  console.log(`Setting quantity ${item.quantity} for item ${index}`);
-                  quantityInput.value = item.quantity || 1;
-                  
-                  // Update row total
-                  const quantityChangeEvent = new Event('input', { bubbles: true });
-                  quantityInput.dispatchEvent(quantityChangeEvent);
-                }
-              } catch (err) {
-                console.error(`Error setting quantity for item ${index}:`, err);
-              }
-            }, 300);
-          } else {
-            // If no size or sizes are disabled, set quantity directly
-            setTimeout(() => {
-              try {
-                const quantityInput = row.querySelector('.quantity-input');
-                if (quantityInput && !quantityInput.disabled) {
-                  console.log(`Setting quantity ${item.quantity} directly for item ${index}`);
-                  quantityInput.value = item.quantity || 1;
-                  
-                  // Update row total
-                  const quantityChangeEvent = new Event('input', { bubbles: true });
-                  quantityInput.dispatchEvent(quantityChangeEvent);
-                }
-              } catch (err) {
-                console.error(`Error setting quantity for item ${index}:`, err);
-              }
-            }, 300);
-          }
-        } catch (err) {
-          console.error(`Error setting size for item ${index}:`, err);
-        }
-      }, 300);
-    } catch (err) {
-      console.error(`Error populating item ${index}:`, err);
-    }
-  });
+  // Reset selected products array
+  selectedProducts = [];
   
-  // Force a recalculation of totals after all items are populated
-  setTimeout(() => {
-    console.log('Calculating final totals');
-    calculateTotals();
-  }, 1000);
-}
-
-// Delete sale
-function deleteSale(saleId) {
-  if (!confirm('Are you sure you want to delete this sale? This action cannot be undone.')) {
-    return;
+  // Reset totals
+  document.getElementById('orderFormSubtotal').textContent = '৳ 0.00';
+  document.getElementById('discountDisplay').textContent = '৳ 0.00';
+  document.getElementById('totalDisplay').textContent = '৳ 0.00';
+  
+  // Remove edit sale ID if it exists
+  const editSaleId = document.getElementById('editSaleId');
+  if (editSaleId) {
+    editSaleId.remove();
   }
   
-  // Show loading indicator in toast
-  showToast('Deleting sale...', 'info');
+  // Reset submit button text
+  const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.textContent = 'Create Order';
+  }
   
-  fetch('api/sales.php', {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ id: saleId })
-  })
-  .then(response => {
-    if (!response.ok) {
-      return response.json().then(data => {
-        throw new Error(data.message || `Server responded with status ${response.status}`);
-      });
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      showToast('Sale deleted successfully');
-      loadSales(); // Refresh the list
-      loadProducts(); // Refresh products to update stock counts
-    } else {
-      showToast(data.message || 'Error deleting sale', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to delete sale: ' + error.message, 'error');
-  });
+  // Add initial row if requested
+  if (addInitialRow) {
+    addProductRow();
+  }
 }
 
-// Update an existing order
+// Update the updateOrder function to properly handle the update
 function updateOrder(orderData) {
   // Validate that we have an ID
   if (!orderData.id) {
@@ -1252,11 +1159,22 @@ function updateOrder(orderData) {
   
   // Make sure note is properly formatted
   if (orderData.note === '') {
-    orderData.note = null; // Use null instead of empty string for consistency
+    orderData.note = null;
   }
   
-  // Log what we're sending to help with debugging
-  console.log('Updating order with data:', JSON.stringify(orderData));
+  // Validate items
+  if (!orderData.items || orderData.items.length === 0) {
+    showToast('Error: Order must have at least one item', 'error');
+    return;
+  }
+  
+  // Validate each item has required fields
+  for (const item of orderData.items) {
+    if (!item.product_id || !item.quantity || item.quantity <= 0) {
+      showToast('Error: Invalid item data', 'error');
+      return;
+    }
+  }
   
   fetch('api/sales.php', {
     method: 'PUT',
@@ -1272,7 +1190,6 @@ function updateOrder(orderData) {
           throw new Error(data.message || `Server responded with status ${response.status}`);
         })
         .catch(e => {
-          // If JSON parsing fails, throw a more general error with the status
           if (e instanceof SyntaxError) {
             throw new Error(`Server error (${response.status}). Please try again or contact support.`);
           }
@@ -1288,88 +1205,13 @@ function updateOrder(orderData) {
       loadSales(); // Refresh the sales list
       loadProducts(); // Refresh products to get updated stock values
     } else {
-      showToast(data.message || 'Error updating order', 'error');
+      throw new Error(data.message || 'Error updating order');
     }
   })
   .catch(error => {
     console.error('Error:', error);
-    
-    // Extract and display useful error message
-    let errorMsg = error.message || 'Unknown error';
-    
-    // Handle known error types with more user-friendly messages
-    if (errorMsg.includes('Invalid update data')) {
-      errorMsg = 'Invalid update data. Please check all fields and try again.';
-    }
-    
-    showToast('Failed to update order: ' + errorMsg, 'error');
+    showToast('Failed to update order: ' + error.message, 'error');
   });
-}
-
-// Open the add order modal
-function openAddOrderModal() {
-  document.getElementById('addOrderModal').classList.remove('hidden');
-  
-  // Reset form
-  document.getElementById('addOrderForm').reset();
-  document.getElementById('productRows').innerHTML = '';
-  selectedProducts = [];
-  
-  // Remove any existing edit sale ID
-  const editSaleIdInput = document.getElementById('editSaleId');
-  if (editSaleIdInput) {
-    editSaleIdInput.remove();
-  }
-  
-  // Reset submit button text
-  const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
-  if (submitBtn) {
-    submitBtn.textContent = 'Create Order';
-  }
-  
-  // Show loading indicator
-  showToast('Loading product data...', 'info');
-  
-  // First load products, then add product row
-  loadProducts()
-    .then(() => {
-      // Add initial product row
-      addProductRow();
-      
-      // Reset totals display
-      const subtotalElement = document.getElementById('orderFormSubtotal');
-      const discountElement = document.getElementById('discountDisplay');
-      const totalElement = document.getElementById('totalDisplay');
-      
-      if (subtotalElement) {
-        subtotalElement.textContent = '৳ 0.00';
-      }
-      
-      if (discountElement) {
-        discountElement.textContent = '৳ 0.00';
-      }
-      
-      if (totalElement) {
-        totalElement.textContent = '৳ 0.00';
-      }
-      
-      // Reset global totals
-      subtotal = 0;
-      discount = 0;
-      total = 0;
-      
-      // Calculate totals (important for initialization)
-      calculateTotals();
-    })
-    .catch(error => {
-      console.error('Error initializing form:', error);
-      showToast('Error loading products. Please try again.', 'error');
-    });
-}
-
-// Close the add order modal
-function closeAddOrderModal() {
-  document.getElementById('addOrderModal').classList.add('hidden');
 }
 
 // Show a toast message
@@ -2449,4 +2291,94 @@ function createOrder(orderData) {
     console.error('Error:', error); 
     showToast('Failed to create order: ' + error.message, 'error');
   });
+}
+
+// Update the openAddOrderModal function to use cleanupOrderForm
+function openAddOrderModal() {
+  document.getElementById('addOrderModal').classList.remove('hidden');
+  
+  // Clean up the form and add initial row
+  cleanupOrderForm(true);
+  
+  // Show loading indicator
+  showToast('Loading product data...', 'info');
+  
+  // Load products
+  loadProducts()
+    .then(() => {
+      // Update product dropdowns with loaded products
+      updateProductDropdowns();
+      calculateTotals();
+    })
+    .catch(error => {
+      console.error('Error initializing form:', error);
+      showToast('Error loading products. Please try again.', 'error');
+    });
+}
+
+// Function to update product dropdowns with loaded products
+function updateProductDropdowns() {
+  const productSelects = document.querySelectorAll('.product-select');
+  productSelects.forEach(select => {
+    // Save current value
+    const currentValue = select.value;
+    
+    // Clear existing options (except first one)
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+    
+    // Add product options
+    products.forEach(product => {
+      const option = document.createElement('option');
+      option.value = product.id;
+      option.textContent = product.name;
+      select.appendChild(option);
+    });
+    
+    // Restore previous selection if it exists
+    if (currentValue) {
+      select.value = currentValue;
+    }
+  });
+}
+
+// Update the cleanupOrderForm function
+function cleanupOrderForm(addInitialRow = true) {
+  // Reset the form
+  document.getElementById('addOrderForm').reset();
+  
+  // Clear all product rows
+  document.getElementById('productRows').innerHTML = '';
+  
+  // Reset selected products array
+  selectedProducts = [];
+  
+  // Reset totals
+  document.getElementById('orderFormSubtotal').textContent = '৳ 0.00';
+  document.getElementById('discountDisplay').textContent = '৳ 0.00';
+  document.getElementById('totalDisplay').textContent = '৳ 0.00';
+  
+  // Remove edit sale ID if it exists
+  const editSaleId = document.getElementById('editSaleId');
+  if (editSaleId) {
+    editSaleId.remove();
+  }
+  
+  // Reset submit button text
+  const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.textContent = 'Create Order';
+  }
+  
+  // Add initial row if requested and products are loaded
+  if (addInitialRow) {
+    addProductRow();
+  }
+}
+
+// Close add order modal
+function closeAddOrderModal() {
+  document.getElementById('addOrderModal').classList.add('hidden');
+  cleanupOrderForm();
 }
