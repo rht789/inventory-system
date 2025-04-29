@@ -35,9 +35,10 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<!-- Theme CSS -->
+<link href="css/theme.css" rel="stylesheet">
 <script src="js/notification.js"></script>
-<script src="js/dark-mode.js"></script>
-<link rel="stylesheet" href="css/dark-mode.css">
+<script src="js/theme.js"></script>
 
 <!-- Custom styles for the header -->
 <style>
@@ -62,49 +63,7 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
     transform-origin: top right;
   }
 
-  .header-light {
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  .header-dark {
-    background: #1a1a1a;
-    border-bottom: 1px solid #404040;
-  }
-
-  /* Dark mode toggle button styles */
-  .dark-mode-toggle {
-    position: relative;
-    width: 40px;
-    height: 20px;
-    border-radius: 20px;
-    background-color: #e5e7eb;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  .dark-mode-toggle.dark {
-    background-color: #404040;
-  }
-
-  .dark-mode-toggle::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: white;
-    transition: transform 0.3s ease;
-  }
-
-  .dark-mode-toggle.dark::before {
-    transform: translateX(20px);
-    background-color: #1a1a1a;
-  }
-
-  /* Ensure header is fixed (reinforce the rule) */
+  /* Ensure header is fixed */
   header {
     position: fixed !important;
     top: 0;
@@ -114,7 +73,7 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
   }
 </style>
 
-<header class="sticky top-0 z-50 header-light shadow-sm px-6 py-3 flex justify-between items-center">
+<header class="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center">
   <!-- Sidebar toggle (mobile) -->
   <div class="flex items-center gap-4">
     <button id="sidebarToggle" class="lg:hidden text-gray-600 hover:text-gray-900 transition">
@@ -133,8 +92,11 @@ if ($profilePicture && file_exists($uploadDir . $profilePicture)) {
 
   <!-- Right side header elements -->
   <div class="flex items-center gap-5 relative">
-    <!-- Dark mode toggle -->
-    <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Toggle dark mode"></button>
+    <!-- Theme Toggle -->
+    <div class="theme-toggle" title="Toggle Theme">
+        <i class="fas fa-sun"></i>
+        <i class="fas fa-moon"></i>
+    </div>
 
     <!-- Quick actions dropdown -->
     <div class="relative hidden md:block">
