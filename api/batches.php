@@ -3,6 +3,21 @@
 
 require_once __DIR__ . '/../db.php';
 
+// Helper function to create a notification
+function createNotification($pdo, $type, $title, $message, $role = 'all') {
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (type, title, message, role, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$type, $title, $message, $role]);
+        return $pdo->lastInsertId();
+    } catch (Exception $e) {
+        error_log("Error creating notification: " . $e->getMessage());
+        return false;
+    }
+}
+
 header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -157,6 +172,19 @@ if ($method === 'POST') {
                 $newBatchStock
             ]);
 
+            // Create notification for new batch
+            $productStmt = $pdo->prepare("SELECT name FROM products WHERE id = ?");
+            $productStmt->execute([$input['product_id']]);
+            $productName = $productStmt->fetchColumn();
+            
+            $sizeStmt = $pdo->prepare("SELECT size_name FROM product_sizes WHERE id = ?");
+            $sizeStmt->execute([$input['product_size_id']]);
+            $sizeName = $sizeStmt->fetchColumn();
+            
+            $notificationTitle = "New Batch Added";
+            $notificationMessage = "New batch '{$batchNumber}' for product '{$productName}' (Size: {$sizeName}) has been added with {$newBatchStock} units";
+            createNotification($pdo, 'stock', $notificationTitle, $notificationMessage, 'all');
+
             $pdo->commit();
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
@@ -244,6 +272,19 @@ if ($method === 'POST') {
                 $input['id']
             ]);
 
+            // Create notification for batch update
+            $productStmt = $pdo->prepare("SELECT p.name, ps.size_name 
+                                         FROM batches b 
+                                         JOIN products p ON b.product_id = p.id 
+                                         JOIN product_sizes ps ON b.product_size_id = ps.id 
+                                         WHERE b.id = ?");
+            $productStmt->execute([$input['id']]);
+            $productData = $productStmt->fetch();
+            
+            $notificationTitle = "Batch Updated";
+            $notificationMessage = "Batch '{$batchNumber}' for product '{$productData['name']}' (Size: {$productData['size_name']}) has been updated to {$newBatchStock} units";
+            createNotification($pdo, 'stock', $notificationTitle, $notificationMessage, 'all');
+
             $pdo->commit();
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
@@ -265,9 +306,11 @@ if ($method === 'POST') {
             $pdo->beginTransaction();
 
             $batchStmt = $pdo->prepare("
-                SELECT product_id, product_size_id, stock 
-                FROM batches 
-                WHERE id = ?
+                SELECT b.batch_number, b.product_id, b.product_size_id, p.name as product_name, ps.size_name 
+                FROM batches b
+                JOIN products p ON b.product_id = p.id
+                JOIN product_sizes ps ON b.product_size_id = ps.id
+                WHERE b.id = ?
             ");
             $batchStmt->execute([$input['id']]);
             $batchData = $batchStmt->fetch();
@@ -303,6 +346,11 @@ if ($method === 'POST') {
 
             $pdo->prepare("UPDATE products SET stock = ? WHERE id = ?")
                 ->execute([$newProductStock, $batchData['product_id']]);
+
+            // Create notification for batch deletion
+            $notificationTitle = "Batch Deleted";
+            $notificationMessage = "Batch '{$batchData['batch_number']}' for product '{$batchData['product_name']}' (Size: {$batchData['size_name']}) has been deleted";
+            createNotification($pdo, 'other', $notificationTitle, $notificationMessage, 'all');
 
             $pdo->commit();
             echo json_encode(['success' => true]);
