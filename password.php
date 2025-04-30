@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Validate password strength
-        $passwordRegex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
+        $passwordRegex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!.#%*?&])[A-Za-z\d@$!.#%*?&]{8,}$/';
         if (!preg_match($passwordRegex, $newPassword)) {
             echo json_encode([
                 'success' => false, 
@@ -137,7 +137,7 @@ include 'sidebar.php';
                       class="w-full border-2 border-gray-300 rounded-md pl-10 py-2.5 px-4 focus:border-gray-700 focus:ring-1 focus:ring-gray-700 transition-all" required />
               </div>
               <p class="text-xs text-gray-500 mt-1">
-                Must be at least 8 characters with uppercase, lowercase, number and special character.
+                Must be at least 8 characters with uppercase, lowercase, number and only these special characters: @, $, !, %, *, ?, &, #, .
               </p>
             </div>
 
@@ -173,7 +173,7 @@ include 'sidebar.php';
                 </li>
                 <li class="flex items-center" id="special-check">
                   <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
-                  Contains special character
+                  Contains at least one special character (@, $, !, %, *, ?, &, #, .)
                 </li>
                 <li class="flex items-center" id="match-check">
                   <i class="fas fa-circle text-xs mr-2 text-gray-300"></i>
@@ -313,7 +313,7 @@ function checkPasswordCriteria() {
   }
   
   // Check special character
-  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+  if (/[@$!.#%*?&]/.test(password)) {
     specialCheck.classList.add('text-green-600');
     specialCheck.querySelector('i').classList.remove('text-gray-300');
     specialCheck.querySelector('i').classList.add('text-green-600');
@@ -359,8 +359,14 @@ changePasswordForm.addEventListener('submit', async (e) => {
   }
   
   // Validate password complexity
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!.#%*?&])[A-Za-z\d@$!.#%*?&]{8,}$/;
   if (!passwordRegex.test(newPassword)) {
+    console.log('Password validation failed. Details:');
+    console.log('Contains lowercase:', /[a-z]/.test(newPassword));
+    console.log('Contains uppercase:', /[A-Z]/.test(newPassword));
+    console.log('Contains number:', /\d/.test(newPassword));
+    console.log('Contains special char:', /[@$!.#%*?&]/.test(newPassword));
+    console.log('Is 8+ chars:', newPassword.length >= 8);
     showToast('Password does not meet all requirements', false);
     return;
   }
