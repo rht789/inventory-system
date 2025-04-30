@@ -238,6 +238,33 @@ export async function handleAddProductSubmit(e) {
     return;
   }
   
+  // Validate batch information
+  const initialBatchSize = formData.get('initial_batch_size');
+  const batchNumber = formData.get('batch_number');
+  const manufacturedDate = formData.get('manufactured_date');
+  
+  if (!initialBatchSize || !batchNumber || !manufacturedDate) {
+    showToast('Initial batch size, batch number, and manufactured date are required', false);
+    return;
+  }
+  
+  // Get the initial batch size and its corresponding stock
+  const sizeData = sizesData.find(s => s.size === initialBatchSize);
+  if (sizeData) {
+    formData.append('initial_batch_stock', sizeData.stock);
+  } else {
+    showToast('Selected batch size not found in size list', false);
+    return;
+  }
+  
+  // Validate manufactured date is not in the future
+  const currentDate = new Date();
+  const selectedDate = new Date(manufacturedDate);
+  if (selectedDate > currentDate) {
+    showToast('Manufactured date cannot be in the future', false);
+    return;
+  }
+  
   try {
     // Show loading state in button
     const submitBtn = addProductForm.querySelector('button[type="submit"]');
@@ -245,10 +272,18 @@ export async function handleAddProductSubmit(e) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Saving...';
     
-    const result = await fetch('api/products.php', {
+    const response = await fetch('api/products.php', {
       method: 'POST',
       body: formData
-    }).then(res => res.json());
+    });
+    
+    let result;
+    try {
+      result = await response.json();
+    } catch (err) {
+      console.error('Failed to parse response:', err);
+      throw new Error('Invalid response from server');
+    }
     
     if (result.success) {
       showToast('Product added successfully');
@@ -265,7 +300,14 @@ export async function handleAddProductSubmit(e) {
     submitBtn.innerHTML = originalBtnContent;
   } catch (err) {
     console.error('Error adding product:', err);
-    showToast('Failed to add product', false);
+    showToast('Failed to add product: ' + (err.message || 'Unknown error'), false);
+    
+    // Restore button state if there was an error
+    const submitBtn = addProductForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-save"></i> <span>Save Product</span>';
+    }
   }
 }
 

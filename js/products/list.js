@@ -23,6 +23,11 @@ export function initProductList() {
     window.confirmDeleteProduct = confirmDeleteProduct;
   }
   
+  // Add backward compatibility for the legacy deleteProduct function
+  if (!window.deleteProduct) {
+    window.deleteProduct = confirmDeleteProduct;
+  }
+  
   // Initial load of products
   loadProducts();
 }
@@ -162,6 +167,13 @@ export async function confirmDeleteProduct(id) {
     }
   } catch (err) {
     console.error('Error deleting product:', err);
-    showToast('Failed to delete product', false);
+    // If the server returned success but with an error in formatting,
+    // we'll still reload the products to reflect the changes
+    if (err.message && err.message.includes('Invalid JSON response')) {
+      showToast('Product may have been deleted despite response error');
+      loadProducts();
+    } else {
+      showToast('Failed to delete product', false);
+    }
   }
 } 
