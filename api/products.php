@@ -6,6 +6,21 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Picqer\Barcode\BarcodeGeneratorPNG;
 
+// Helper function to create a notification
+function createNotification($pdo, $type, $title, $message, $role = 'all') {
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (type, title, message, role, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$type, $title, $message, $role]);
+        return $pdo->lastInsertId();
+    } catch (Exception $e) {
+        error_log("Error creating notification: " . $e->getMessage());
+        return false;
+    }
+}
+
 header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -258,9 +273,30 @@ if ($method === 'POST') {
             echo json_encode(['success'=>false,'message'=>'Product ID required']);
             exit;
         }
-        $pdo->prepare("UPDATE products SET deleted_at = NOW() WHERE id = ?")
-            ->execute([$input['id']]);
-        echo json_encode(['success'=>true]);
+
+        try {
+            // Get product name before deleting
+            $stmt = $pdo->prepare("SELECT name FROM products WHERE id = ?");
+            $stmt->execute([$input['id']]);
+            $product = $stmt->fetch();
+            
+            if ($product) {
+                $pdo->prepare("UPDATE products SET deleted_at = NOW() WHERE id = ?")
+                    ->execute([$input['id']]);
+                
+                // Create notification for product deletion
+                $notificationTitle = "Product Deleted";
+                $notificationMessage = "Product '{$product['name']}' has been deleted";
+                createNotification($pdo, 'other', $notificationTitle, $notificationMessage, 'all');
+                
+                echo json_encode(['success'=>true]);
+            } else {
+                throw new Exception("Product not found");
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false, 'message'=>$e->getMessage()]);
+        }
         exit;
     }
 
@@ -318,10 +354,38 @@ if ($method === 'POST') {
                 }
             }
 
-            // First check if the product exists
-            $checkStmt = $pdo->prepare("SELECT id FROM products WHERE id = ?");
+            // Process image upload
+            $imagePath = isset($input['current_image']) ? $input['current_image'] : null;
+            
+            if (!empty($_FILES['product_image']['name'])) {
+                $uploadDir = __DIR__ . '/../uploads/products/';
+                
+                // Create directory if it doesn't exist
+                if (!is_dir($uploadDir)) {
+                    if (!mkdir($uploadDir, 0755, true)) {
+                        throw new Exception("Failed to create image upload directory");
+                    }
+                }
+                
+                // Generate unique filename
+                $extension = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
+                $fileName = 'product_' . $input['id'] . '_' . time() . '.' . $extension;
+                $uploadPath = $uploadDir . $fileName;
+                $relativePath = 'uploads/products/' . $fileName;
+                
+                // Try to upload the file
+                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $uploadPath)) {
+                    $imagePath = $relativePath;
+                } else {
+                    throw new Exception("Failed to upload image");
+                }
+            }
+
+            // First check if the product exists and get its current name
+            $checkStmt = $pdo->prepare("SELECT name FROM products WHERE id = ?");
             $checkStmt->execute([$input['id']]);
-            if (!$checkStmt->fetch()) {
+            $currentProduct = $checkStmt->fetch();
+            if (!$currentProduct) {
                 throw new Exception("Product with ID {$input['id']} not found");
             }
 
@@ -351,6 +415,11 @@ if ($method === 'POST') {
                 'description'    => $input['description'],
                 'image'          => $imagePath
             ]);
+
+            // Create notification for product update
+            $notificationTitle = "Product Updated";
+            $notificationMessage = "Product '{$currentProduct['name']}' has been updated";
+            createNotification($pdo, 'stock', $notificationTitle, $notificationMessage, 'all');
 
             // Handle barcode separately - only create if it doesn't exist
             $barcodeCheck = $pdo->prepare("SELECT barcode FROM products WHERE id = ?");
@@ -473,6 +542,11 @@ if ($method === 'POST') {
                 $imagePath = $newRelativePath;
             }
         }
+
+        // Create notification for new product
+        $notificationTitle = "New Product Added";
+        $notificationMessage = "New product '{$input['name']}' has been added to inventory";
+        createNotification($pdo, 'stock', $notificationTitle, $notificationMessage, 'all');
 
         $gen  = new BarcodeGeneratorPNG();
         $barcodePath = 'barcodes/' . $newId . '.png';
