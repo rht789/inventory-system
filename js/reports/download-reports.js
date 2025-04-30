@@ -1263,6 +1263,7 @@ function initDownloadButtons() {
   const csvBtn = document.getElementById(CSV_BUTTON_ID);
   const pdfBtn = document.getElementById(PDF_BUTTON_ID);
   const excelBtn = document.getElementById(EXCEL_BUTTON_ID);
+  const downloadContainer = document.getElementById('downloadTypeContainer');
   
   // Check for existence of elements
   if (!downloadBtn) {
