@@ -176,6 +176,38 @@ include 'sidebar.php';
         </tbody>
       </table>
     </div>
+    
+    <!-- Pagination -->
+    <div id="pagination-container" class="flex justify-between items-center p-4 border-t border-gray-100 hidden">
+      <div class="text-sm text-gray-500">
+        Showing <span id="pagination-from">1</span> to <span id="pagination-to">10</span> of <span id="pagination-total">0</span> entries
+      </div>
+      <div class="flex space-x-1">
+        <button id="pagination-prev" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div id="pagination-numbers" class="flex space-x-1">
+          <!-- Pagination numbers will be injected here -->
+        </div>
+        <button id="pagination-next" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-500">Items per page:</span>
+        <select id="pagination-limit" class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    
     <!-- Empty state placeholder for when no sales are found -->
     <div id="empty-sales-placeholder" class="hidden p-8 text-center">
       <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -498,6 +530,7 @@ include 'sidebar.php';
 <script src="js/sales/sales-utils.js"></script>
 <script src="js/sales/sales-api.js"></script>
 <script src="js/sales/sales-ui.js"></script>
+<script src="js/sales/sales-pagination.js"></script>
 <script src="js/sales/sales.js"></script>
 
 <?php include 'footer.php'; ?>

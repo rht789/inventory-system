@@ -354,33 +354,6 @@ if ($method === 'POST') {
                 }
             }
 
-            // Process image upload
-            $imagePath = isset($input['current_image']) ? $input['current_image'] : null;
-            
-            if (!empty($_FILES['product_image']['name'])) {
-                $uploadDir = __DIR__ . '/../uploads/products/';
-                
-                // Create directory if it doesn't exist
-                if (!is_dir($uploadDir)) {
-                    if (!mkdir($uploadDir, 0755, true)) {
-                        throw new Exception("Failed to create image upload directory");
-                    }
-                }
-                
-                // Generate unique filename
-                $extension = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
-                $fileName = 'product_' . $input['id'] . '_' . time() . '.' . $extension;
-                $uploadPath = $uploadDir . $fileName;
-                $relativePath = 'uploads/products/' . $fileName;
-                
-                // Try to upload the file
-                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $uploadPath)) {
-                    $imagePath = $relativePath;
-                } else {
-                    throw new Exception("Failed to upload image");
-                }
-            }
-
             // First check if the product exists and get its current name
             $checkStmt = $pdo->prepare("SELECT name FROM products WHERE id = ?");
             $checkStmt->execute([$input['id']]);

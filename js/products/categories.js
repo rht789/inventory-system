@@ -2,6 +2,7 @@
 import { apiGet, apiPost } from '../ajax.js';
 import { showToast } from './utils.js';
 import { loadProducts } from './list.js';
+import { resetPagination } from './pagination.js';
 
 // DOM Elements
 let categorySelect, newCategoryInput, addCategoryBtn, categoryList;
@@ -101,6 +102,7 @@ export async function addCategory() {
       showToast('Category added successfully');
       newCategoryInput.value = '';
       loadCategories();
+      resetPagination();
     } else {
       showToast(result.message || 'Failed to add category', false);
     }
@@ -126,6 +128,7 @@ export async function editCategory(id, name) {
       showToast('Category updated successfully');
       loadCategories();
       loadProducts(); // Refresh products to reflect the category change
+      resetPagination();
     } else {
       showToast(result.message || 'Failed to update category', false);
     }
@@ -149,6 +152,7 @@ export async function deleteCategory(id) {
       showToast('Category deleted successfully');
       loadCategories();
       loadProducts(); // Refresh products to reflect the category change
+      resetPagination();
     } else {
       showToast(result.message || 'Failed to delete category', false);
     }

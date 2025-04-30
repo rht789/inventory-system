@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Show loading state
   showLoadingState(true);
   
+  // Initialize pagination
+  initPagination();
+  
   // Load initial data - products first to ensure global products array is populated
   loadProducts()
     .then(() => {
@@ -181,7 +184,9 @@ function handleBulkAction() {
     }))
     .then(() => {
       showToast(`Successfully deleted ${selectedSales.length} sale(s)`, 'success');
-      loadSales(); // Refresh the list
+      // Reset to first page after bulk deletion
+      paginationState.currentPage = 1;
+      loadSales(); // Refresh the list with pagination
     })
     .catch(error => {
       console.error('Error:', error);
@@ -214,7 +219,7 @@ function handleBulkAction() {
     }))
     .then(() => {
       showToast(`Status updated for ${selectedSales.length} sale(s)`, 'success');
-      loadSales(); // Refresh the list
+      loadSales(); // Refresh the list with pagination
     })
     .catch(error => {
       console.error('Error:', error);
@@ -276,21 +281,34 @@ function loadSales() {
   
   const url = `api/sales.php?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}${timeParam ? '&time=' + timeParam : ''}`;
   
-  fetch(url)
+  return fetch(url)
     .then(response => response.json())
     .then(data => {
       showLoadingState(false);
       
       if (data.success) {
-        renderSalesList(data.sales);
+        // Reset pagination to first page when filters change
+        paginationState.currentPage = 1;
+        
+        // Pass the full data to pagination and get paginated data
+        const pagedSales = initPaginationWithData(data.sales);
+        
+        // Render the sales list with paginated data
+        renderSalesList(pagedSales);
+        
+        // Update statistics using all data 
         updateStatistics(data.sales);
+        
+        return data.sales; // Return for promise chaining
       } else {
         showToast(data.message || 'Error loading sales', 'error');
+        return [];
       }
     })
     .catch(error => {
       showLoadingState(false);
       handleError(error, 'Failed to load sales data');
+      return [];
     });
 }
 
@@ -321,7 +339,7 @@ function updateStatistics(sales) {
 }
 
 // Render sales list in the table
-function renderSalesList(sales) {
+function originalRenderSalesList(sales) {
   const tableBody = document.getElementById('sales-list');
   const emptyPlaceholder = document.getElementById('empty-sales-placeholder');
   const tableContainer = document.querySelector('.overflow-x-auto');
@@ -435,6 +453,21 @@ function renderSalesList(sales) {
   
   // Update bulk actions
   updateBulkActionsVisibility();
+}
+
+// New renderSalesList function that uses pagination
+function renderSalesList(sales) {
+  if (!paginationState.allSales || paginationState.allSales.length === 0) {
+    // If no data in pagination state, initialize with data
+    const paginatedSales = initPaginationWithData(sales);
+    originalRenderSalesList(paginatedSales);
+  } else if (sales) {
+    // Direct rendering of provided sales data
+    originalRenderSalesList(sales);
+  } else {
+    // Re-render current page
+    renderPaginatedSales();
+  }
 }
 
 // Get a formatted status badge with dropdown functionality
@@ -597,9 +630,6 @@ function calculateTotals() {
  * @param {string} newStatus - The new status to set (pending, confirmed, delivered, canceled)
  */
 function updateSaleStatus(saleId, newStatus) {
-  // Show loading indicator in toast
-  showToast('Updating status...', 'info');
-  
   fetch('api/sales.php', {
     method: 'PUT',
     headers: {
@@ -613,10 +643,12 @@ function updateSaleStatus(saleId, newStatus) {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      showToast('Sale status updated successfully');
-      loadSales(); // Refresh the list
+      showToast(`Order status updated to ${newStatus}`);
+      
+      // Reload sales data to update pagination
+      loadSales();
     } else {
-      showToast(data.message || 'Error updating sale status', 'error');
+      showToast(data.message || 'Failed to update status', 'error');
     }
   })
   .catch(error => {
@@ -2197,60 +2229,121 @@ function updateRowTotal(rowIndex) {
 function handleAddOrder(e) {
   e.preventDefault();
   
-  // Check if we have products selected
-  const hasProducts = selectedProducts.some(product => product !== null);
-  if (!hasProducts) {
-    showToast('Please add at least one product to the order', 'error');
-    return;
-  }
+  // Validate form data
+  const customerName = document.getElementById('customerName').value.trim();
   
-  // Get customer information
-  const customerName = document.getElementById('customerName').value;
   if (!customerName) {
     showToast('Customer name is required', 'error');
     return;
   }
   
-  // Prepare the order data
-  const orderData = {
-    customer: {
-      name: document.getElementById('customerName').value,
-      phone: document.getElementById('customerPhone').value,
-      email: document.getElementById('customerEmail').value,
-      address: document.getElementById('customerAddress').value
-    },
+  // Check if there are products added
+  const productRows = document.querySelectorAll('#productRows tr');
+  if (productRows.length === 0) {
+    showToast('Please add at least one product', 'error');
+    return;
+  }
+  
+  // Gather form data
+  const formData = {
+    customer_name: customerName,
+    customer_phone: document.getElementById('customerPhone').value.trim(),
+    customer_email: document.getElementById('customerEmail').value.trim(),
+    customer_address: document.getElementById('customerAddress').value.trim(),
     status: document.getElementById('orderStatus').value,
-    items: selectedProducts.filter(product => product !== null).map(product => ({
-      product_id: product.product_id,
-      product_size_id: product.product_size_id,
-      quantity: product.quantity,
-      subtotal: product.quantity * product.price // Calculate subtotal for each item
-    }))
+    note: document.getElementById('orderNote').value.trim(),
+    items: [],
+    discount_percentage: parseFloat(document.getElementById('discountPercentage').value) || 0,
+    discount_product_id: document.getElementById('discountProduct').value
   };
-
-  // Add discount if present
-  const discountPercentage = parseFloat(document.getElementById('discountPercentage').value);
-  if (discountPercentage && discountPercentage > 0) {
-    orderData.discount = discountPercentage;
-  }
-
-  // Add note if present
-  const note = document.getElementById('orderNote').value.trim();
-  if (note) {
-    orderData.note = note;
+  
+  // Get each product row data
+  let hasErrors = false;
+  document.querySelectorAll('#productRows tr').forEach(row => {
+    const rowIndex = row.getAttribute('data-row-index');
+    const productSelect = row.querySelector('.product-select');
+    const sizeSelect = row.querySelector('.size-select');
+    const quantityInput = row.querySelector('.quantity-input');
+    const priceInput = row.querySelector('.price-input');
+    
+    if (!productSelect || !sizeSelect || !quantityInput || !priceInput) {
+      return;
+    }
+    
+    // Get values
+    const productId = productSelect.value;
+    const sizeId = sizeSelect.value;
+    const quantity = parseInt(quantityInput.value);
+    const price = parseFloat(priceInput.value);
+    
+    // Basic validation
+    if (!productId) {
+      showToast('Please select a product', 'error');
+      hasErrors = true;
+      return;
+    }
+    
+    if (!sizeId) {
+      showToast('Please select a size', 'error');
+      hasErrors = true;
+      return;
+    }
+    
+    if (isNaN(quantity) || quantity <= 0) {
+      showToast('Please enter a valid quantity', 'error');
+      hasErrors = true;
+      return;
+    }
+    
+    if (isNaN(price) || price <= 0) {
+      showToast('Please enter a valid price', 'error');
+      hasErrors = true;
+      return;
+    }
+    
+    // Add to items array
+    formData.items.push({
+      product_id: productId,
+      size_id: sizeId,
+      quantity: quantity,
+      price: price
+    });
+  });
+  
+  if (hasErrors) {
+    return;
   }
   
-  // Check if this is an edit (update) or a new order
-  const editSaleId = document.getElementById('editSaleId');
+  // Show loading state in button
+  const submitBtn = document.querySelector('#addOrderForm button[type="submit"]');
+  const originalBtnContent = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
   
-  if (editSaleId && editSaleId.value) {
-    // This is an edit/update
-    orderData.id = editSaleId.value;
-    updateOrder(orderData);
-  } else {
-    // This is a new order
-    createOrder(orderData);
-  }
+  // Create the order
+  createOrder(formData)
+    .then(data => {
+      if (data.success) {
+        showToast('Order created successfully');
+        closeAddOrderModal();
+        cleanupOrderForm();
+        
+        // Reset to first page to show newly added order
+        paginationState.currentPage = 1;
+        loadSales();
+      } else {
+        throw new Error(data.message || 'Failed to create order');
+      }
+    })
+    .catch(error => {
+      console.error('Error creating order:', error);
+      showToast(error.message || 'An error occurred while creating the order', 'error');
+    })
+    .finally(() => {
+      // Restore button
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnContent;
+    });
 }
 
 /**
@@ -2381,4 +2474,76 @@ function cleanupOrderForm(addInitialRow = true) {
 function closeAddOrderModal() {
   document.getElementById('addOrderModal').classList.add('hidden');
   cleanupOrderForm();
+}
+
+// Delete a sale
+function deleteSale(saleId) {
+  if (!confirm('Are you sure you want to delete this sale? This action cannot be undone.')) {
+    return;
+  }
+  
+  showToast('Deleting sale...', 'info');
+  
+  fetch('api/sales.php', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id: saleId })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showToast('Sale deleted successfully');
+      
+      // Reload sales data to update pagination
+      loadSales();
+    } else {
+      showToast(data.message || 'Failed to delete sale', 'error');
+    }
+  })
+  .catch(error => {
+    handleError(error, 'Failed to delete sale');
+  });
+}
+
+// Update an existing order
+function updateOrder(orderData) {
+  // Show loading state in button
+  const submitBtn = document.querySelector('#editOrderForm button[type="submit"]');
+  const originalBtnContent = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Updating...';
+  
+  fetch('api/sales.php', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(orderData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Restore button
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnContent;
+    
+    if (data.success) {
+      showToast('Order updated successfully');
+      closeEditOrderModal();
+      
+      // Refresh sales list with pagination
+      loadSales();
+    } else {
+      showToast(data.message || 'Failed to update order', 'error');
+    }
+  })
+  .catch(error => {
+    // Restore button
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnContent;
+    
+    console.error('Error updating order:', error);
+    showToast('An error occurred while updating the order', 'error');
+  });
 }

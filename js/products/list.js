@@ -1,6 +1,7 @@
 // Product listing functionality
 import { apiGet, apiPost } from '../ajax.js';
 import { showToast } from './utils.js';
+import { initPagination, initPaginationWithData, resetPagination } from './pagination.js';
 
 // DOM Elements
 let searchInput, stockSelect, categorySelect, productList;
@@ -27,6 +28,9 @@ export function initProductList() {
   if (!window.deleteProduct) {
     window.deleteProduct = confirmDeleteProduct;
   }
+  
+  // Initialize pagination
+  initPagination();
   
   // Initial load of products
   loadProducts();
@@ -79,71 +83,89 @@ export async function loadProducts() {
       return;
     }
     
-    if (productList) {
-      productList.innerHTML = products.map(product => `
-        <tr class="hover:bg-gray-50 transition-colors">
-          <td class="px-6 py-4 text-left">
-            <div class="flex items-center gap-3">
-              ${product.image ? 
-                `<img src="${product.image}" alt="${product.name}" class="w-10 h-10 object-cover rounded border border-gray-200">` : 
-                `<div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
-                  <i class="fas fa-box text-gray-400"></i>
-                </div>`
-              }
-              <div>
-                <div class="font-semibold text-gray-900">${product.name}</div>
-                <div class="text-xs text-gray-500">${product.description || 'No description'}</div>
-              </div>
-            </div>
-          </td>
-          <td class="px-6 py-4 text-center">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-md border-2 border-gray-200 text-xs font-medium bg-white">
-              <i class="fas fa-tag text-gray-500 mr-1"></i>${product.category_name}
-            </span>
-          </td>
-          <td class="px-6 py-4 text-left">
-            <div class="flex flex-wrap gap-1">
-              ${product.sizes.map(size => `
-                <div class="inline-flex items-center px-2 py-1 rounded-md text-xs ${
-                  size.stock > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'
-                }">
-                  ${size.size_name}: ${size.stock}
-                </div>
-              `).join('')}
-            </div>
-          </td>
-          <td class="px-6 py-4 text-center text-gray-700">
-            <div class="flex items-center justify-center">
-              <i class="fas fa-cubes text-gray-500 mr-2"></i>${product.stock}
-            </div>
-          </td>
-          <td class="px-6 py-4 text-center">
-            ${product.barcode ? 
-              `<img src="${product.barcode}" alt="Barcode" class="h-8 mx-auto">` : 
-              `<span class="text-gray-400">No barcode</span>`
-            }
-          </td>
-          <td class="px-6 py-4 text-center font-semibold text-gray-700">৳${parseFloat(product.price).toFixed(2)}</td>
-          <td class="px-6 py-4 text-center font-semibold text-gray-900">৳${parseFloat(product.selling_price).toFixed(2)}</td>
-          <td class="px-6 py-4 text-center">
-            <div class="flex justify-center gap-2">
-              <button onclick="openEditProductModal(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
-                      class="p-2 text-gray-700 hover:text-black border-2 border-gray-200 hover:border-black rounded-md transition-colors">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button onclick="confirmDeleteProduct(${product.id})" 
-                      class="p-2 text-red-600 hover:text-red-700 border-2 border-red-200 hover:border-red-300 rounded-md transition-colors">
-                <i class="fas fa-trash-alt"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
+    // Reset to first page when filters change
+    resetPagination();
+    
+    // Initialize pagination with all products
+    const pagedProducts = initPaginationWithData(products);
+    
+    // Render only the products for the current page
+    renderProducts(pagedProducts);
+    
   } catch (err) {
     console.error('Error loading products:', err);
     showToast('Failed to load products', false);
   }
+}
+
+// Original render function renamed to be used by pagination
+export function originalRenderProducts(products) {
+  if (!productList) return;
+  
+  productList.innerHTML = products.map(product => `
+    <tr class="hover:bg-gray-50 transition-colors">
+      <td class="px-6 py-4 text-left">
+        <div class="flex items-center gap-3">
+          ${product.image ? 
+            `<img src="${product.image}" alt="${product.name}" class="w-10 h-10 object-cover rounded border border-gray-200">` : 
+            `<div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
+              <i class="fas fa-box text-gray-400"></i>
+            </div>`
+          }
+          <div>
+            <div class="font-semibold text-gray-900">${product.name}</div>
+            <div class="text-xs text-gray-500">${product.description || 'No description'}</div>
+          </div>
+        </div>
+      </td>
+      <td class="px-6 py-4 text-center">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-md border-2 border-gray-200 text-xs font-medium bg-white">
+          <i class="fas fa-tag text-gray-500 mr-1"></i>${product.category_name}
+        </span>
+      </td>
+      <td class="px-6 py-4 text-left">
+        <div class="flex flex-wrap gap-1">
+          ${product.sizes.map(size => `
+            <div class="inline-flex items-center px-2 py-1 rounded-md text-xs ${
+              size.stock > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'
+            }">
+              ${size.size_name}: ${size.stock}
+            </div>
+          `).join('')}
+        </div>
+      </td>
+      <td class="px-6 py-4 text-center text-gray-700">
+        <div class="flex items-center justify-center">
+          <i class="fas fa-cubes text-gray-500 mr-2"></i>${product.stock}
+        </div>
+      </td>
+      <td class="px-6 py-4 text-center">
+        ${product.barcode ? 
+          `<img src="${product.barcode}" alt="Barcode" class="h-8 mx-auto">` : 
+          `<span class="text-gray-400">No barcode</span>`
+        }
+      </td>
+      <td class="px-6 py-4 text-center font-semibold text-gray-700">৳${parseFloat(product.price).toFixed(2)}</td>
+      <td class="px-6 py-4 text-center font-semibold text-gray-900">৳${parseFloat(product.selling_price).toFixed(2)}</td>
+      <td class="px-6 py-4 text-center">
+        <div class="flex justify-center gap-2">
+          <button onclick="openEditProductModal(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
+                  class="p-2 text-gray-700 hover:text-black border-2 border-gray-200 hover:border-black rounded-md transition-colors">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button onclick="confirmDeleteProduct(${product.id})" 
+                  class="p-2 text-red-600 hover:text-red-700 border-2 border-red-200 hover:border-red-300 rounded-md transition-colors">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// New wrapper function for rendering with pagination
+export function renderProducts(products) {
+  originalRenderProducts(products);
 }
 
 // Delete a product
@@ -161,6 +183,8 @@ export async function confirmDeleteProduct(id) {
       if (window.closeEditProductModal) {
         window.closeEditProductModal();
       }
+      // Reset pagination to first page after deletion
+      resetPagination();
       loadProducts();
     } else {
       showToast(result.message || 'Failed to delete product', false);
@@ -171,6 +195,7 @@ export async function confirmDeleteProduct(id) {
     // we'll still reload the products to reflect the changes
     if (err.message && err.message.includes('Invalid JSON response')) {
       showToast('Product may have been deleted despite response error');
+      resetPagination();
       loadProducts();
     } else {
       showToast('Failed to delete product', false);

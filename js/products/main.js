@@ -3,6 +3,7 @@ import { initModals } from './modals.js';
 import { initProductList } from './list.js';
 import { initCategories } from './categories.js';
 import { initProductForms } from './forms.js';
+import { initPagination } from './pagination.js';
 
 // Initialize all product management functionality
 document.addEventListener('DOMContentLoaded', () => {

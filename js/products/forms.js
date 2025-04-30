@@ -2,6 +2,7 @@
 import { apiPost } from '../ajax.js';
 import { showToast } from './utils.js';
 import { loadProducts } from './list.js';
+import { resetPagination } from './pagination.js';
 
 // DOM Elements
 let addProductForm, editProductForm, 
@@ -291,6 +292,7 @@ export async function handleAddProductSubmit(e) {
         window.closeAddProductModal();
       }
       loadProducts();
+      resetPagination();
     } else {
       showToast(result.message || 'Failed to add product', false);
     }
@@ -347,6 +349,7 @@ export async function handleEditProductSubmit(e) {
         window.closeEditProductModal();
       }
       loadProducts();
+      resetPagination();
     } else {
       showToast(result.message || 'Failed to update product', false);
     }
