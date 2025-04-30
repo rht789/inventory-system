@@ -276,7 +276,7 @@ if ($method === 'POST') {
 
         try {
             // Get product name before deleting
-            $stmt = $pdo->prepare("SELECT id FROM products WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT id, name FROM products WHERE id = ?");
             $stmt->execute([$input['id']]);
             $product = $stmt->fetch();
             
