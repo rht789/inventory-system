@@ -2246,14 +2246,16 @@ function handleAddOrder(e) {
   
   // Gather form data
   const formData = {
-    customer_name: customerName,
-    customer_phone: document.getElementById('customerPhone').value.trim(),
-    customer_email: document.getElementById('customerEmail').value.trim(),
-    customer_address: document.getElementById('customerAddress').value.trim(),
+    customer: {
+      name: document.getElementById('customerName').value.trim(),
+      phone: document.getElementById('customerPhone').value.trim(),
+      email: document.getElementById('customerEmail').value.trim(),
+      address: document.getElementById('customerAddress').value.trim()
+    },
     status: document.getElementById('orderStatus').value,
     note: document.getElementById('orderNote').value.trim(),
     items: [],
-    discount_percentage: parseFloat(document.getElementById('discountPercentage').value) || 0,
+    discount: parseFloat(document.getElementById('discountPercentage').value) || 0,
     discount_product_id: document.getElementById('discountProduct').value
   };
   
@@ -2304,9 +2306,11 @@ function handleAddOrder(e) {
     // Add to items array
     formData.items.push({
       product_id: productId,
-      size_id: sizeId,
+      product_size_id: sizeId,
       quantity: quantity,
-      price: price
+      price: price,
+      subtotal: price * quantity,
+      discount: 0 // Add discount if needed
     });
   });
   
@@ -2355,7 +2359,7 @@ function createOrder(orderData) {
   // Show loading indicator
   showToast('Creating order...', 'info');
   
-  fetch('api/sales.php', {
+  return fetch('api/sales.php', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -2369,20 +2373,6 @@ function createOrder(orderData) {
       });
     }
     return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      showToast('Order created successfully', 'success');
-      closeAddOrderModal();
-      loadSales(); // Refresh the sales list
-      loadProducts(); // Refresh products to get updated stock values
-    } else {
-      showToast(data.message || 'Error creating order', 'error');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error); 
-    showToast('Failed to create order: ' + error.message, 'error');
   });
 }
 
