@@ -79,6 +79,37 @@ include 'sidebar.php';
         </tbody>
       </table>
     </div>
+    
+    <!-- Pagination for Batches -->
+    <div id="batch-pagination" class="flex justify-between items-center p-4 border-t border-gray-200 hidden">
+      <div class="text-sm text-gray-600">
+        Showing <span id="pagination-from">1</span> to <span id="pagination-to">10</span> of <span id="pagination-total">0</span> batches
+      </div>
+      <div class="flex space-x-1">
+        <button id="pagination-prev" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div id="pagination-numbers" class="flex space-x-1">
+          <!-- Pagination numbers will be injected here -->
+        </div>
+        <button id="pagination-next" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-600">Items per page:</span>
+        <select id="pagination-limit" class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -282,6 +313,21 @@ const
   addBatchProductSelect = document.getElementById('addBatchProductSelect'),
   addBatchSizeSelect = document.getElementById('addBatchSizeSelect');
 
+// Pagination elements
+const batchPagination = document.getElementById('batch-pagination');
+const paginationFrom = document.getElementById('pagination-from');
+const paginationTo = document.getElementById('pagination-to');
+const paginationTotal = document.getElementById('pagination-total');
+const paginationPrev = document.getElementById('pagination-prev');
+const paginationNext = document.getElementById('pagination-next');
+const paginationNumbers = document.getElementById('pagination-numbers');
+const paginationLimit = document.getElementById('pagination-limit');
+
+// Pagination state
+let currentPage = 1;
+let itemsPerPage = 10;
+let totalBatches = 0;
+
 /**
  * Show a toast notification
  */
@@ -333,11 +379,36 @@ function showToast(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', async () => {
   await loadProducts();
   fetchBatches();
+  
+  // Add pagination event listeners
+  paginationPrev.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      fetchBatches();
+    }
+  });
+  
+  paginationNext.addEventListener('click', () => {
+    const totalPages = Math.ceil(totalBatches / itemsPerPage);
+    if (currentPage < totalPages) {
+      currentPage++;
+      fetchBatches();
+    }
+  });
+  
+  paginationLimit.addEventListener('change', () => {
+    itemsPerPage = parseInt(paginationLimit.value);
+    currentPage = 1; // Reset to first page when limit changes
+    fetchBatches();
+  });
 });
 
 // Re-fetch on filter change
 [searchInput, productSelect].forEach(el =>
-  el.addEventListener('input', fetchBatches)
+  el.addEventListener('input', () => {
+    currentPage = 1; // Reset to first page when filters change
+    fetchBatches();
+  })
 );
 
 // Load products for filter and add form
@@ -392,10 +463,16 @@ async function fetchBatches() {
     
     const params = new URLSearchParams({
       search: searchInput.value,
-      product_id: productSelect.value
+      product_id: productSelect.value,
+      page: currentPage,
+      limit: itemsPerPage
     });
     
-    const batches = await apiGet(`./api/batches.php?${params}`);
+    const response = await apiGet(`./api/batches.php?${params}`);
+    
+    // Handle both paginated and non-paginated responses
+    const batches = Array.isArray(response) ? response : (response.batches || []);
+    totalBatches = Array.isArray(response) ? batches.length : (response.pagination?.total || batches.length);
     
     if (batches.length === 0) {
       batchList.innerHTML = `
@@ -411,6 +488,7 @@ async function fetchBatches() {
           </td>
         </tr>
       `;
+      batchPagination.classList.add('hidden');
       return;
     }
     
@@ -460,10 +538,94 @@ async function fetchBatches() {
           </div>
         </td>
       </tr>`).join('');
+      
+    // Update pagination
+    updatePagination();
   } catch (err) {
     console.error(err);
     showToast('Could not load batches', 'error');
   }
+}
+
+// Update pagination display and controls
+function updatePagination() {
+  const totalPages = Math.ceil(totalBatches / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalBatches);
+  
+  if (totalBatches > 0) {
+    batchPagination.classList.remove('hidden');
+    paginationFrom.textContent = startItem;
+    paginationTo.textContent = endItem;
+    paginationTotal.textContent = totalBatches;
+    
+    // Update pagination buttons state
+    paginationPrev.disabled = currentPage <= 1;
+    paginationNext.disabled = currentPage >= totalPages;
+    
+    // Generate page numbers
+    paginationNumbers.innerHTML = '';
+    
+    // Determine range of page numbers to show
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    
+    // Adjust if we're near the end
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+    
+    // Add first page if not in range
+    if (startPage > 1) {
+      const pageBtn = document.createElement('button');
+      pageBtn.className = `px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 ${1 === currentPage ? 'bg-gray-700 text-white border-gray-700' : ''}`;
+      pageBtn.textContent = '1';
+      pageBtn.onclick = () => goToPage(1);
+      paginationNumbers.appendChild(pageBtn);
+      
+      // Add ellipsis if there's a gap
+      if (startPage > 2) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'px-2 py-1 text-gray-500';
+        ellipsis.textContent = '...';
+        paginationNumbers.appendChild(ellipsis);
+      }
+    }
+    
+    // Add page numbers in range
+    for (let i = startPage; i <= endPage; i++) {
+      const pageBtn = document.createElement('button');
+      pageBtn.className = `px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 ${i === currentPage ? 'bg-gray-700 text-white border-gray-700' : ''}`;
+      pageBtn.textContent = i;
+      pageBtn.onclick = () => goToPage(i);
+      paginationNumbers.appendChild(pageBtn);
+    }
+    
+    // Add last page if not in range
+    if (endPage < totalPages) {
+      // Add ellipsis if there's a gap
+      if (endPage < totalPages - 1) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'px-2 py-1 text-gray-500';
+        ellipsis.textContent = '...';
+        paginationNumbers.appendChild(ellipsis);
+      }
+      
+      const pageBtn = document.createElement('button');
+      pageBtn.className = `px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 ${totalPages === currentPage ? 'bg-gray-700 text-white border-gray-700' : ''}`;
+      pageBtn.textContent = totalPages;
+      pageBtn.onclick = () => goToPage(totalPages);
+      paginationNumbers.appendChild(pageBtn);
+    }
+  } else {
+    batchPagination.classList.add('hidden');
+  }
+}
+
+// Go to specific page
+function goToPage(page) {
+  currentPage = page;
+  fetchBatches();
 }
 
 // Format date display
@@ -568,6 +730,9 @@ window.deleteBatch = async id => {
     showToast('Delete error: ' + (err.message || 'Unknown error'), 'error');
   }
 };
+
+// Make goToPage function available to window for pagination buttons
+window.goToPage = goToPage;
 </script>
 
 <?php include 'footer.php'; ?>

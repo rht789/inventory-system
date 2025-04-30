@@ -64,6 +64,9 @@ function isBatchNumberUnique(PDO $pdo, string $batchNumber, int $excludeBatchId 
 if ($method === 'GET') {
     $search = $_GET['search'] ?? '';
     $productId = $_GET['product_id'] ?? '';
+    // Pagination parameters (optional)
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : null;
+    $limit = isset($_GET['limit']) ? max(1, intval($_GET['limit'])) : null;
 
     $conds = [];
     $params = [];
@@ -78,6 +81,28 @@ if ($method === 'GET') {
     }
     $where = $conds ? 'WHERE ' . implode(' AND ', $conds) : '';
 
+    // Optional pagination
+    $isPaginated = ($page !== null && $limit !== null);
+    $totalCount = 0;
+    $totalPages = 0;
+    
+    // Get total count for pagination if needed
+    if ($isPaginated) {
+        $countSql = "
+          SELECT COUNT(*) as total
+          FROM batches b
+          JOIN products p ON b.product_id = p.id
+          JOIN product_sizes ps ON b.product_size_id = ps.id
+          $where
+        ";
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        $totalPages = ceil($totalCount / $limit);
+        $offset = ($page - 1) * $limit;
+    }
+
+    // Build the base SQL query
     $sql = "
       SELECT b.id, b.product_id, b.product_size_id, b.batch_number, b.manufactured_date, b.stock,
              p.name AS product_name, ps.size_name
@@ -87,11 +112,51 @@ if ($method === 'GET') {
       $where
       ORDER BY b.created_at DESC
     ";
+    
+    // Add pagination if requested
+    if ($isPaginated) {
+        $sql .= " LIMIT :limit OFFSET :offset";
+    }
+    
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    
+    // Bind pagination parameters if needed
+    if ($isPaginated) {
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        
+        // Bind other params
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+    } else {
+        // Without pagination, use the simpler execute with params array
+        $stmt->execute($params);
+    }
+    
+    // Execute the statement if pagination is used (we need to execute after binding all params)
+    if ($isPaginated) {
+        $stmt->execute();
+    }
+    
     $batches = $stmt->fetchAll();
 
-    echo json_encode($batches);
+    // Return with pagination metadata if paginated request, otherwise return batches array directly
+    if ($isPaginated) {
+        echo json_encode([
+            'batches' => $batches,
+            'pagination' => [
+                'total' => (int)$totalCount,
+                'limit' => (int)$limit,
+                'current_page' => (int)$page,
+                'total_pages' => (int)$totalPages,
+                'from' => $totalCount > 0 ? ($page - 1) * $limit + 1 : 0,
+                'to' => min($totalCount, $page * $limit)
+            ]
+        ]);
+    } else {
+        echo json_encode($batches);
+    }
     exit;
 }
 

@@ -91,6 +91,37 @@ include 'sidebar.php';
       </tbody>
     </table>
     </div>
+    
+    <!-- Pagination for Stock Table -->
+    <div id="stock-pagination" class="flex justify-between items-center p-4 border-t border-gray-200 hidden">
+      <div class="text-sm text-gray-600">
+        Showing <span id="pagination-from">1</span> to <span id="pagination-to">10</span> of <span id="pagination-total">0</span> products
+      </div>
+      <div class="flex space-x-1">
+        <button id="pagination-prev" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div id="pagination-numbers" class="flex space-x-1">
+          <!-- Pagination numbers will be injected here -->
+        </div>
+        <button id="pagination-next" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-600">Items per page:</span>
+        <select id="pagination-limit" class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -318,9 +349,21 @@ const stockLogsTypeFilter = document.getElementById('stockLogsTypeFilter');
 const stockLogsPagination = document.getElementById('stockLogsPagination');
 const refreshStockLogsBtn = document.getElementById('refreshStockLogs');
 
+// Pagination elements
+const stockPagination = document.getElementById('stock-pagination');
+const paginationFrom = document.getElementById('pagination-from');
+const paginationTo = document.getElementById('pagination-to');
+const paginationTotal = document.getElementById('pagination-total');
+const paginationPrev = document.getElementById('pagination-prev');
+const paginationNext = document.getElementById('pagination-next');
+const paginationNumbers = document.getElementById('pagination-numbers');
+const paginationLimit = document.getElementById('pagination-limit');
+
 let products = [];
 let currentPage = 1;
 let logsPerPage = 15;
+let itemsPerPage = 10;
+let totalProducts = 0;
 
 /**
  * Show a toast notification
@@ -398,13 +441,15 @@ window.closeStockLogsModal = () => {
 window.openBarcodeModal = () => document.getElementById('barcodeModal').classList.remove('hidden');
 window.closeBarcodeModal = () => document.getElementById('barcodeModal').classList.add('hidden');
 
-// Fetch and load stock data
+// Fetch and load stock data with pagination
 async function loadStock() {
   try {
     const params = new URLSearchParams({
       search: searchStockInput.value,
       stock_filter: stockStatusSelect.value,
-      location: locationSelect.value
+      location: locationSelect.value,
+      page: currentPage,
+      limit: itemsPerPage
     });
     
     // Clear loading state
@@ -422,7 +467,11 @@ async function loadStock() {
       </tr>
     `;
     
-    const prods = await apiGet(`./api/products.php?${params}`);
+    const response = await apiGet(`./api/products.php?${params}`);
+    
+    // Handle both paginated and non-paginated responses
+    const prods = Array.isArray(response) ? response : (response.products || []);
+    totalProducts = Array.isArray(response) ? prods.length : (response.pagination?.total || prods.length);
     
     if (prods.length === 0) {
       stockList.innerHTML = `
@@ -438,6 +487,7 @@ async function loadStock() {
           </td>
         </tr>
       `;
+      stockPagination.classList.add('hidden');
       return;
     }
     
@@ -513,10 +563,95 @@ async function loadStock() {
         openBarcodeModal();
       };
     });
+    
+    // Update pagination
+    updatePagination();
   } catch (err) {
     console.error(err);
     showToast('Error loading stock', 'error');
   }
+}
+
+// Update pagination display and controls
+function updatePagination() {
+  // Use the calculated total pages or use the API-provided value if available
+  const totalPages = Math.ceil(totalProducts / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalProducts);
+  
+  if (totalProducts > 0) {
+    stockPagination.classList.remove('hidden');
+    paginationFrom.textContent = startItem;
+    paginationTo.textContent = endItem;
+    paginationTotal.textContent = totalProducts;
+    
+    // Update pagination buttons state
+    paginationPrev.disabled = currentPage <= 1;
+    paginationNext.disabled = currentPage >= totalPages;
+    
+    // Generate page numbers
+    paginationNumbers.innerHTML = '';
+    
+    // Determine range of page numbers to show
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    
+    // Adjust if we're near the end
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+    
+    // Add first page if not in range
+    if (startPage > 1) {
+      const pageBtn = document.createElement('button');
+      pageBtn.className = `px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 ${1 === currentPage ? 'bg-gray-700 text-white border-gray-700' : ''}`;
+      pageBtn.textContent = '1';
+      pageBtn.onclick = () => goToPage(1);
+      paginationNumbers.appendChild(pageBtn);
+      
+      // Add ellipsis if there's a gap
+      if (startPage > 2) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'px-2 py-1 text-gray-500';
+        ellipsis.textContent = '...';
+        paginationNumbers.appendChild(ellipsis);
+      }
+    }
+    
+    // Add page numbers in range
+    for (let i = startPage; i <= endPage; i++) {
+      const pageBtn = document.createElement('button');
+      pageBtn.className = `px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 ${i === currentPage ? 'bg-gray-700 text-white border-gray-700' : ''}`;
+      pageBtn.textContent = i;
+      pageBtn.onclick = () => goToPage(i);
+      paginationNumbers.appendChild(pageBtn);
+    }
+    
+    // Add last page if not in range
+    if (endPage < totalPages) {
+      // Add ellipsis if there's a gap
+      if (endPage < totalPages - 1) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'px-2 py-1 text-gray-500';
+        ellipsis.textContent = '...';
+        paginationNumbers.appendChild(ellipsis);
+      }
+      
+      const pageBtn = document.createElement('button');
+      pageBtn.className = `px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 ${totalPages === currentPage ? 'bg-gray-700 text-white border-gray-700' : ''}`;
+      pageBtn.textContent = totalPages;
+      pageBtn.onclick = () => goToPage(totalPages);
+      paginationNumbers.appendChild(pageBtn);
+    }
+  } else {
+    stockPagination.classList.add('hidden');
+  }
+}
+
+// Go to specific page
+function goToPage(page) {
+  currentPage = page;
+  loadStock();
 }
 
 // Populate the product dropdown with search functionality
@@ -655,7 +790,32 @@ form.onsubmit = async e => {
 
 // Add filter event listeners
 [searchStockInput, stockStatusSelect, locationSelect].forEach(el => {
-  el.addEventListener('input', loadStock);
+  el.addEventListener('input', () => {
+    currentPage = 1; // Reset to first page when filters change
+    loadStock();
+  });
+});
+
+// Pagination event listeners
+paginationPrev.addEventListener('click', () => {
+  if (currentPage > 1) {
+    currentPage--;
+    loadStock();
+  }
+});
+
+paginationNext.addEventListener('click', () => {
+  const totalPages = Math.ceil(totalProducts / itemsPerPage);
+  if (currentPage < totalPages) {
+    currentPage++;
+    loadStock();
+  }
+});
+
+paginationLimit.addEventListener('change', () => {
+  itemsPerPage = parseInt(paginationLimit.value);
+  currentPage = 1; // Reset to first page when limit changes
+  loadStock();
 });
 
 // Initial load
@@ -813,7 +973,7 @@ function renderStockLogs(logs, pagination) {
   }
 }
 
-// Pagination function
+// Pagination function for stock logs
 window.changePage = (page) => {
   currentPage = page;
   loadStockLogs();
@@ -830,6 +990,9 @@ function formatDate(dateStr) {
     minute: '2-digit'
   });
 }
+
+// Global access to pagination function for stock table
+window.goToPage = goToPage;
 </script>
 
 <?php include 'footer.php'; ?>

@@ -178,6 +178,9 @@ if ($method === 'GET') {
     $search      = $_GET['search']       ?? '';
     $stockFilter = $_GET['stock_filter'] ?? '';
     $categoryId  = $_GET['category_id']  ?? '';
+    // Pagination parameters (optional)
+    $page        = isset($_GET['page']) ? max(1, intval($_GET['page'])) : null;
+    $limit       = isset($_GET['limit']) ? max(1, intval($_GET['limit'])) : null;
 
     $conds = ["p.deleted_at IS NULL"];
     $params = [];
@@ -197,6 +200,27 @@ if ($method === 'GET') {
     }
     $where = $conds ? 'WHERE '.implode(' AND ',$conds) : '';
 
+    // Optional pagination
+    $isPaginated = ($page !== null && $limit !== null);
+    $totalCount = 0;
+    $totalPages = 0;
+    
+    // Get total count for pagination if needed
+    if ($isPaginated) {
+        $countSql = "
+          SELECT COUNT(*) as total
+          FROM products p
+          JOIN categories c ON p.category_id = c.id
+          $where
+        ";
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        $totalPages = ceil($totalCount / $limit);
+        $offset = ($page - 1) * $limit;
+    }
+
+    // Build the base SQL query
     $sql = "
       SELECT
         p.id, p.name, p.price, p.selling_price, p.stock, p.min_stock,
@@ -207,8 +231,33 @@ if ($method === 'GET') {
       $where
       ORDER BY p.created_at DESC
     ";
+    
+    // Add pagination if requested
+    if ($isPaginated) {
+        $sql .= " LIMIT :limit OFFSET :offset";
+    }
+    
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    
+    // Bind pagination parameters if needed
+    if ($isPaginated) {
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        
+        // Bind other params
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+    } else {
+        // Without pagination, use the simpler execute with params array
+        $stmt->execute($params);
+    }
+    
+    // Execute the statement if pagination is used (we need to execute after binding all params)
+    if ($isPaginated) {
+        $stmt->execute();
+    }
+    
     $products = $stmt->fetchAll();
 
     foreach ($products as &$p) {
@@ -245,8 +294,23 @@ if ($method === 'GET') {
             exit;
         }
     }
-
-    echo json_encode($products);
+    
+    // Return with pagination metadata if paginated request, otherwise return products array directly
+    if ($isPaginated) {
+        echo json_encode([
+            'products' => $products,
+            'pagination' => [
+                'total' => (int)$totalCount,
+                'limit' => (int)$limit,
+                'current_page' => (int)$page,
+                'total_pages' => (int)$totalPages,
+                'from' => $totalCount > 0 ? ($page - 1) * $limit + 1 : 0,
+                'to' => min($totalCount, $page * $limit)
+            ]
+        ]);
+    } else {
+        echo json_encode($products);
+    }
     exit;
 }
 
