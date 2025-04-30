@@ -386,6 +386,12 @@ function generateReport(autoDownload = false) {
           reportSummary.classList.remove('hidden');
         }
         
+        // Show download options
+        const downloadTypeContainer = document.getElementById('downloadTypeContainer');
+        if (downloadTypeContainer) {
+          downloadTypeContainer.classList.remove('hidden');
+        }
+        
         // Display the report
         displayReportData(data, reportType);
         

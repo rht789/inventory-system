@@ -80,7 +80,7 @@ include 'sidebar.php';
       </div>
       
       <!-- Download Type -->
-      <div class="self-end">
+      <div class="self-end hidden" id="downloadTypeContainer">
         <div class="relative inline-block text-left">
           <button id="downloadTypeBtn" type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
             Download Type
