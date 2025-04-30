@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Validate password strength
-        $passwordRegex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#])[A-Za-z\d@$!.#%*?&]{8,}$/';
+        $passwordRegex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!.#%*?&])[A-Za-z\d@$!.#%*?&]{8,}$/';
         if (!preg_match($passwordRegex, $newPassword)) {
             echo json_encode([
                 'success' => false, 
@@ -313,7 +313,7 @@ function checkPasswordCriteria() {
   }
   
   // Check special character
-  if (/[@$!%*?&#.,]/.test(password)) {
+  if (/[@$!.#%*?&]/.test(password)) {
     specialCheck.classList.add('text-green-600');
     specialCheck.querySelector('i').classList.remove('text-gray-300');
     specialCheck.querySelector('i').classList.add('text-green-600');
@@ -359,8 +359,14 @@ changePasswordForm.addEventListener('submit', async (e) => {
   }
   
   // Validate password complexity
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!.#%*?&])[A-Za-z\d@$!.#%*?&]{8,}$/;
   if (!passwordRegex.test(newPassword)) {
+    console.log('Password validation failed. Details:');
+    console.log('Contains lowercase:', /[a-z]/.test(newPassword));
+    console.log('Contains uppercase:', /[A-Z]/.test(newPassword));
+    console.log('Contains number:', /\d/.test(newPassword));
+    console.log('Contains special char:', /[@$!.#%*?&]/.test(newPassword));
+    console.log('Is 8+ chars:', newPassword.length >= 8);
     showToast('Password does not meet all requirements', false);
     return;
   }
