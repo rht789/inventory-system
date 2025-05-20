@@ -1,6 +1,8 @@
 <?php
 include '../db.php';
 include 'utils.php'; // Include the utils.php file which has the sendMail function
+include_once '../includes/DBTransaction.php'; // Include transaction helper
+
 header('Content-Type: application/json');
 
 // Ensure PHP errors don't output to response
@@ -202,17 +204,39 @@ switch ($method) {
             exit;
         }
 
-        try {
+        // Validate email format
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['error' => 'Invalid email format.']);
+            exit;
+        }
+
+        // Create a transaction helper
+        $transaction = new DBTransaction($pdo);
+        
+        // Execute the user creation in a transaction
+        $result = $transaction->execute(function($pdo) use ($username, $email, $phone, $role, $status) {
             // Generate password and hash
             $password = bin2hex(random_bytes(4)); 
             $hash = password_hash($password, PASSWORD_BCRYPT);
 
-            // First, create the user
+            // First, check if email or username already exists
+            $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ?");
+            $checkStmt->execute([$email, $username]);
+            if ($checkStmt->rowCount() > 0) {
+                throw new Exception('Username or email already exists.');
+            }
+            
+            // Create the user
             $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, phone, role, status) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([$username, $email, $hash, $phone, $role, $status]);
             
             // User created successfully
             $userId = $pdo->lastInsertId();
+            
+            // Create default settings for the user
+            $settingsStmt = $pdo->prepare("INSERT INTO settings (key_name, value, user_id) VALUES (?, ?, ?)");
+            $settingsStmt->execute(['theme', 'light', $userId]);
+            $settingsStmt->execute(['notifications_enabled', 'true', $userId]);
             
             // Prepare email body
             $body = "
@@ -243,26 +267,40 @@ switch ($method) {
             
             $subject = "Welcome to SmartInventory!";
             
-            // Try to send email using the sendMail function from utils.php
+            // Try to send email using the sendMail function
             $emailSent = sendMail($email, $subject, $body);
             
-            if ($emailSent) {
+            // Create audit log for user creation
+            $currentUserId = $_SESSION['user_id'] ?? 0;
+            $auditStmt = $pdo->prepare("
+                INSERT INTO audit_logs (user_id, action, timestamp)
+                VALUES (?, ?, NOW())
+            ");
+            $auditStmt->execute([$currentUserId, "Created user $username (ID: $userId)"]);
+            
+            return [
+                'success' => true,
+                'user_id' => $userId,
+                'email_sent' => $emailSent,
+                'password' => $password
+            ];
+        });
+        
+        if ($result === false) {
+            // Transaction failed
+            echo json_encode([
+                'error' => $transaction->getErrorMessage() ?: 'An error occurred while creating the user.'
+            ]);
+        } else {
+            // Transaction succeeded
+            if ($result['email_sent']) {
                 echo json_encode(['success' => 'User created and password emailed.']);
             } else {
-                // Return success but with a note about email failure
                 echo json_encode([
                     'success' => 'User created successfully.', 
-                    'note' => 'Email could not be sent. Password: ' . $password
+                    'note' => 'Email could not be sent. Password: ' . $result['password']
                 ]);
             }
-        } catch (PDOException $e) {
-            if ($e->errorInfo[1] === 1062) {
-                echo json_encode(['error' => 'Username or email already exists.']);
-            } else {
-                echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
-            }
-        } catch (Exception $e) {
-            echo json_encode(['error' => 'Error: ' . $e->getMessage()]);
         }
         break;
 
