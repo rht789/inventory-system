@@ -1,6 +1,11 @@
 <?php
 // db.php - Global database connection file
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Database configuration
 $dbConfig = [
     'host' => 'localhost', // XAMPP default host

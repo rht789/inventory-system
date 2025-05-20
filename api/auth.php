@@ -1,5 +1,9 @@
 <?php
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
 session_start();
+}
+
 require_once 'utils.php';
 require_once '../db.php';
 
@@ -9,8 +13,14 @@ $action = $_GET['action'] ?? null;
 
 switch ($action) {
     case 'login':
-        $email = $_POST['email'];
-        $password = $_POST['password'];
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+        
+        // Validate inputs
+        if (empty($email) || empty($password)) {
+            echo json_encode(['error' => 'Email and password are required']);
+            exit;
+        }
     
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
@@ -24,6 +34,9 @@ switch ($action) {
                 $_SESSION['user_username'] = $user['username'];
                 $_SESSION['user_role'] = $user['role'];
                 $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? 'default.png';
+                
+                // Regenerate session ID when logging in (security best practice)
+                session_regenerate_id(true);
 
                 // Update last login timestamp
                 $updateStmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");

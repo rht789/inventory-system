@@ -1,3 +1,16 @@
+<?php
+session_start();
+
+// Simple CSRF token function if it doesn't exist
+if (!function_exists('getCsrfField')) {
+    function getCsrfField() {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return '<input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">';
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,6 +28,8 @@
                 <label class="block mb-1">Email Address</label>
                 <input type="email" name="email" class="w-full border p-2 rounded" required>
             </div>
+            <!-- CSRF Token -->
+            <?php echo getCsrfField(); ?>
             <button type="submit" class="w-full bg-black text-white py-2 rounded">Send Reset Link</button>
         </form>
 
@@ -38,7 +53,6 @@
         msg.textContent = result.success || result.error;
     });
     </script>
-
 
 </body>
 </html>

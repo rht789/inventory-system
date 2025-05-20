@@ -128,18 +128,6 @@ CREATE TABLE stock_logs (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
 );
 
--- Table: expenses
-CREATE TABLE expenses (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    description TEXT,
-    expense_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
-);
-
 -- Table: audit_logs
 CREATE TABLE audit_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,

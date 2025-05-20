@@ -6,9 +6,17 @@ if (isset($_SESSION['user_id'])) {
     header("Location: home.php"); // Changed from products.php to home.php
     exit;
 }
+
+// Simple CSRF token function if it doesn't exist
+if (!function_exists('getCsrfField')) {
+    function getCsrfField() {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return '<input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">';
+    }
+}
 ?>
-
-
 
 <!DOCTYPE html>
 <html>
@@ -30,6 +38,8 @@ if (isset($_SESSION['user_id'])) {
                 <label class="block mb-1">Password</label>
                 <input type="password" name="password" class="w-full border p-2 rounded" required>
             </div>
+            <!-- CSRF Token -->
+            <?php echo getCsrfField(); ?>
             <button type="submit" class="w-full bg-black text-white py-2 rounded">Login</button>
         </form>
 
