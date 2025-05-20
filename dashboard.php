@@ -144,35 +144,14 @@ include 'sidebar.php';
         </table>
       </div>
     </div>
-  </div>
-
-  <!-- Drill Down Modal -->
-  <div id="drillDownModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 overflow-hidden">
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold text-gray-800">Sales Details</h2>
-          <button onclick="document.getElementById('drillDownModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-700">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div id="drillDownContent" class="max-h-96 overflow-y-auto">
-          <!-- Content will be dynamically populated -->
-        </div>
-      </div>
-      <div class="bg-gray-50 px-6 py-3 flex justify-end">
-        <button onclick="document.getElementById('drillDownModal').classList.add('hidden')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded mr-2">
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
+    </div>    <!-- Advanced Analytics Section -->  <div class="mb-8">    <div class="flex flex-wrap justify-between items-center mb-6">      <h2 class="text-2xl font-bold text-gray-800">Advanced Analytics</h2>      <div>        <button id="refreshAnalyticsBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-md text-sm">          <i class="fas fa-sync-alt mr-1"></i> Refresh Data        </button>      </div>    </div>        <!-- Analytics Tabs -->    <div class="bg-gray-200 rounded-lg mb-6">      <div class="flex flex-wrap">        <button data-analytics-tab="sales_forecast" class="px-4 py-2 text-sm font-medium rounded-tl-lg bg-gray-700 text-white">          Sales Forecast        </button>        <button data-analytics-tab="inventory_prediction" class="px-4 py-2 text-sm font-medium hover:bg-gray-600 text-gray-700 hover:text-white">          Inventory Prediction        </button>        <button data-analytics-tab="profit_margin_analysis" class="px-4 py-2 text-sm font-medium hover:bg-gray-600 text-gray-700 hover:text-white">          Profit Analysis        </button>        <button data-analytics-tab="product_performance" class="px-4 py-2 text-sm font-medium hover:bg-gray-600 text-gray-700 hover:text-white">          Product Performance        </button>        <button data-analytics-tab="customer_segmentation" class="px-4 py-2 text-sm font-medium hover:bg-gray-600 text-gray-700 hover:text-white">          Customer Segments        </button>      </div>    </div>        <!-- Analytics Content Area -->    <div class="relative bg-white rounded-lg shadow-sm p-6">      <!-- Loading Indicator -->      <div id="analyticsLoading" class="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10 hidden">        <div class="animate-spin h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>      </div>            <!-- Sales Forecast Tab -->      <div id="sales_forecast-tab" class="analytics-tab-content">        <!-- Content will be dynamically populated -->        <div class="flex justify-center items-center h-40">          <div class="animate-spin h-8 w-8 border-4 border-indigo-500 rounded-full border-t-transparent"></div>        </div>      </div>            <!-- Inventory Prediction Tab -->      <div id="inventory_prediction-tab" class="analytics-tab-content hidden">        <!-- Content will be dynamically populated -->      </div>            <!-- Profit Margin Analysis Tab -->      <div id="profit_margin_analysis-tab" class="analytics-tab-content hidden">        <!-- Content will be dynamically populated -->      </div>            <!-- Product Performance Tab -->      <div id="product_performance-tab" class="analytics-tab-content hidden">        <!-- Content will be dynamically populated -->      </div>            <!-- Customer Segmentation Tab -->      <div id="customer_segmentation-tab" class="analytics-tab-content hidden">        <!-- Content will be dynamically populated -->      </div>    </div>  </div>  <!-- Drill Down Modal -->  <div id="drillDownModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 overflow-hidden">      <div class="p-6">        <div class="flex justify-between items-center mb-4">          <h2 class="text-xl font-bold text-gray-800">Sales Details</h2>          <button onclick="document.getElementById('drillDownModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-700">            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />            </svg>          </button>        </div>        <div id="drillDownContent" class="max-h-96 overflow-y-auto">          <!-- Content will be dynamically populated -->        </div>      </div>      <div class="bg-gray-50 px-6 py-3 flex justify-end">        <button onclick="document.getElementById('drillDownModal').classList.add('hidden')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded mr-2">          Close        </button>      </div>    </div>  </div>
 </main>
 
 <!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Include Advanced Analytics Script -->
+<script src="js/analytics/advanced-analytics.js"></script>
 
 <script>
 const ctx = document.getElementById('salesChart').getContext('2d');
@@ -441,6 +420,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTotalStockCount();
     loadTodaySales();
 
+    // Initialize the advanced analytics module
+    if (window.advancedAnalytics && typeof window.advancedAnalytics.init === 'function') {
+        window.advancedAnalytics.init();
+    }
+
     document.getElementById('timeRangeFilter').addEventListener('change', (e) => {
         const filters = {
             timeRange: e.target.value,
@@ -456,6 +440,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         loadSalesAnalytics(filters);
     });
+    
+    // Set up refresh button for analytics
+    const refreshBtn = document.getElementById('refreshAnalyticsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            const activeTab = document.querySelector('[data-analytics-tab].bg-gray-700');
+            if (activeTab && window.advancedAnalytics) {
+                const tabType = activeTab.getAttribute('data-analytics-tab');
+                window.advancedAnalytics.loadData(tabType);
+            }
+        });
+    }
 });
 </script>
 

@@ -1,0 +1,8 @@
+[2025-05-20 10:43:27] API Request: /inventory-system/api/predictive-analytics.php?type=inventory_prediction
+[2025-05-20 10:43:27] Analysis type: inventory_prediction
+[2025-05-20 10:43:27] Generating inventory prediction
+[2025-05-20 10:43:27] Inventory prediction: Starting query
+[2025-05-20 10:43:27] Inventory prediction: Executing query
+[2025-05-20 10:43:27] ERROR in generateInventoryPrediction: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'inventory_system.stock' doesn't exist
+[2025-05-20 10:43:27] ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'inventory_system.stock' doesn't exist
+[2025-05-20 10:43:27] Response sent
